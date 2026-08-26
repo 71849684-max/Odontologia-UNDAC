@@ -7,6 +7,24 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Frontend visual React
+
+La capa cliente React se encuentra en `resources/js/aplicacion/` y se monta desde
+la vista Blade `resources/views/aplicacion.blade.php`. Los estilos propios están
+organizados en `resources/css/aplicacion/` y todas las vistas continúan usando
+datos demostrativos locales.
+
+```bash
+pnpm run dev
+pnpm test
+pnpm run build
+```
+
+La entrega actual incluye acceso visual, resumen y vistas diferenciadas para
+los módulos de administrador, docente y alumno operador. No implementa
+autenticación, consumo de API ni persistencia de datos; sus botones y filtros
+son presentacionales.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
