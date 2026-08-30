@@ -8,12 +8,9 @@
 
 # Dependencias
 /vendor
-/node_modules
+/composer.phar
 
-# Vite y frontend compilado
-/public/build
-/public/hot
-/public/fonts-manifest.dev.json
+# Enlaces públicos
 /public/storage
 
 # Laravel

@@ -3,5 +3,8 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('aplicacion');
+    return response()->json([
+        'servicio' => 'Odontología UNDAC',
+        'capa' => 'backend',
+    ]);
 });

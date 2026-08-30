@@ -11,5 +11,7 @@
 Thumbs.db
 Desktop.ini
 
-# Instalación accidental de npm en la raíz
+# Node (raíz o frontend)
 /node_modules/
+/frontend/node_modules/
+/frontend/dist/
