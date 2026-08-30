@@ -1,3 +1,15 @@
-/.pnpm-store/
-/.superpowers/
+# Editores
 /.idea/
+/.vscode/
+/.cursor/
+
+# Superpowers (estado local; no afecta a docs/superpowers)
+/.superpowers/
+
+# Sistema
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Instalación accidental de npm en la raíz
+/node_modules/
