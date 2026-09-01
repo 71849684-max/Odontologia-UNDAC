@@ -8,45 +8,57 @@ import HistoriasApp from './paginas/HistoriasApp';
 import NuevaHistoriaApp from './paginas/NuevaHistoriaApp';
 import HistoriaClinicaApp from './paginas/HistoriaClinicaApp';
 
+const routeAliases = {
+    dashboard: 'inicio',
+    inicio: 'inicio',
+    pacientes: 'pacientes',
+    historias: 'historias',
+    'nueva-historia': 'nueva-historia',
+    historia: 'historia-clinica',
+    'historia-clinica': 'historia-clinica',
+};
+
 export default function Aplicacion() {
     const [pantalla, establecerPantalla] = useState('acceso');
     const [perfil, establecerPerfil] = useState('alumno');
     const [route, setRoute] = useState('inicio');
     const [openHistoriaId, setOpenHistoriaId] = useState(null);
+    const [openSection, establecerSeccionAbierta] = useState('datos-paciente');
+
+    function navigate(payload) {
+        if (!payload) return;
+
+        if (typeof payload === 'string') {
+            setRoute(routeAliases[payload] ?? payload);
+            return;
+        }
+
+        if (typeof payload === 'object') {
+            const nextRoute = routeAliases[payload.view ?? payload.id] ?? payload.view ?? payload.id;
+            if (nextRoute) setRoute(nextRoute);
+            if (payload.section) establecerSeccionAbierta(payload.section);
+            if (payload.params?.section) establecerSeccionAbierta(payload.params.section);
+            if (payload.historiaId) setOpenHistoriaId(payload.historiaId);
+            if (payload.params?.historiaId) setOpenHistoriaId(payload.params.historiaId);
+        }
+    }
 
     useEffect(() => {
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-
-        function handler(e) {
-            if (e.detail?.id) setRoute(e.detail.id);
-        }
-        function abrirHistoria(e) {
-            if (e.detail?.id) {
-                setOpenHistoriaId(e.detail.id);
-                setRoute('historia-clinica');
-            }
-        }
-        // expose navigation helper on window for legacy code and simple components
-        function navigate(payload) {
-            if (!payload) return;
-            if (typeof payload === 'string') {
-                setRoute(payload);
-            } else if (typeof payload === 'object' && payload.id) {
-                setRoute(payload.id);
-                if (payload.params?.historiaId) setOpenHistoriaId(payload.params.historiaId);
-                if (payload.params?.pacienteId) {/* placeholder for future */}
-            }
-        }
         window.onNavigate = navigate;
 
-        window.addEventListener('hc:navigate', handler);
+        function abrirHistoria(event) {
+            if (!event.detail?.id) return;
+            setOpenHistoriaId(event.detail.id);
+            if (event.detail.section) establecerSeccionAbierta(event.detail.section);
+            setRoute('historia-clinica');
+        }
+
         window.addEventListener('hc:open', abrirHistoria);
         return () => {
-            window.removeEventListener('hc:navigate', handler);
             window.removeEventListener('hc:open', abrirHistoria);
-            // clean up global helper
-            try { delete window.onNavigate; } catch (e) { window.onNavigate = undefined; }
+            try { delete window.onNavigate; } catch { window.onNavigate = undefined; }
         };
     }, []);
 
@@ -62,20 +74,28 @@ export default function Aplicacion() {
 
     const menu = MENU_POR_ROL[perfil] ?? MENU_POR_ROL.alumno;
 
-    function handleNavigate(id) {
-        setRoute(id);
-    }
-
     return (
-        <AppLayout menu={menu} usuario={{ nombre: 'Demo Usuario' }} rol={perfil} onNavigate={handleNavigate}>
-            {route === 'inicio' && <DashboardApp rol={perfil} />}
-            {route === 'pacientes' && <PacientesApp />}
-            {route === 'mis-pacientes' && <PacientesApp />}
-            {route === 'historias' && <HistoriasApp rol={perfil} />}
-            {route === 'mis-historias' && <HistoriasApp rol={perfil} />}
-            {route === 'nueva-historia' && <NuevaHistoriaApp onCreated={(h) => { setOpenHistoriaId(h.id); setRoute('historia-clinica'); }} />}
-            {route === 'historia-clinica' && <HistoriaClinicaApp historiaId={openHistoriaId} />}
-            {/* placeholders for other routes */}
+        <AppLayout menu={menu} usuario={{ nombre: 'Demo Usuario' }} rol={perfil} onNavigate={navigate}>
+            {route === 'inicio' && <DashboardApp rol={perfil} onNavigate={navigate} />}
+            {(route === 'pacientes' || route === 'mis-pacientes') && <PacientesApp onNavigate={navigate} />}
+            {(route === 'historias' || route === 'mis-historias') && <HistoriasApp rol={perfil} onNavigate={navigate} />}
+            {route === 'nueva-historia' && (
+                <NuevaHistoriaApp
+                    onNavigate={navigate}
+                    onCreated={(historia) => {
+                        setOpenHistoriaId(historia.id);
+                        establecerSeccionAbierta('datos-paciente');
+                        setRoute('historia-clinica');
+                    }}
+                />
+            )}
+            {route === 'historia-clinica' && (
+                <HistoriaClinicaApp
+                    historiaId={openHistoriaId}
+                    seccionInicial={openSection}
+                    onNavigate={navigate}
+                />
+            )}
         </AppLayout>
     );
 }

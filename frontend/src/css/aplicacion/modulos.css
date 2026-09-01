@@ -492,3 +492,829 @@
         gap: 4px;
     }
 }
+
+/* Pantallas activas de Fase 3 */
+.pagina-pacientes,
+.pagina-historias,
+.pagina-nueva,
+.pagina-hc {
+    display: grid;
+    min-width: 0;
+    gap: 20px;
+}
+
+.pagina-cabecera {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.pagina-cabecera h2,
+.pagina-nueva > h2,
+.hc-header-resumen h2 {
+    margin: 0;
+    color: var(--ou-navy-950);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.75rem, 3vw, 2.4rem);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+}
+
+.pagina-cabecera p,
+.hc-header-resumen > div:first-child > p {
+    margin: 8px 0 0;
+    color: var(--ou-muted);
+    font-size: 0.76rem;
+    line-height: 1.5;
+}
+
+.acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagina-cabecera .acciones > button,
+.acciones-form > button:last-child,
+.pagina-nueva .acciones > button:last-child,
+.hc-navegacion-secciones > button:last-child {
+    color: #fff;
+    border-color: var(--ou-teal-700);
+    background: var(--ou-teal-700);
+}
+
+.pagina-cabecera .acciones > button,
+.acciones > button,
+.acciones-form > button,
+.paciente-detalle button,
+.tabla-pacientes td button,
+.tabla-historias td button,
+.hc-navegacion-secciones button {
+    min-height: 40px;
+    padding: 0 13px;
+    color: var(--ou-teal-700);
+    border: 1px solid var(--ou-border);
+    border-radius: 9px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.pagina-cabecera .acciones > button:hover,
+.acciones-form > button:last-child:hover,
+.pagina-nueva .acciones > button:last-child:hover,
+.hc-navegacion-secciones > button:last-child:hover {
+    background: #0b6270;
+}
+
+.filtros-busqueda {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--ou-border);
+    border-radius: 14px;
+    background: var(--ou-surface);
+}
+
+.filtros-busqueda > input {
+    width: min(430px, 100%);
+}
+
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 9px;
+}
+
+.filtros label,
+.paciente-form label,
+.pagina-nueva label {
+    display: grid;
+    gap: 6px;
+    color: var(--ou-muted);
+    font-size: 0.64rem;
+    font-weight: 750;
+}
+
+.filtros-busqueda input,
+.filtros-busqueda select,
+.paciente-form input,
+.paciente-form select,
+.paciente-form textarea,
+.pagina-nueva input,
+.pagina-nueva select {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 12px;
+    color: var(--ou-text);
+    border: 1px solid var(--ou-border);
+    border-radius: 9px;
+    background: #fff;
+    font-size: 0.73rem;
+}
+
+.filtros-busqueda input:focus,
+.filtros-busqueda select:focus,
+.paciente-form input:focus,
+.paciente-form select:focus,
+.paciente-form textarea:focus,
+.pagina-nueva input:focus,
+.pagina-nueva select:focus {
+    border-color: var(--ou-teal-600);
+    box-shadow: 0 0 0 4px rgba(15, 113, 129, 0.1);
+}
+
+.filtros > button {
+    min-height: 42px;
+    padding: 0 12px;
+    color: var(--ou-muted);
+    border: 1px solid var(--ou-border);
+    border-radius: 9px;
+    background: #f9fbfc;
+    cursor: pointer;
+    font-size: 0.66rem;
+    font-weight: 700;
+}
+
+.tabla-pacientes,
+.tabla-historias {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--ou-border);
+    border-radius: 15px;
+    background: var(--ou-surface);
+    box-shadow: 0 8px 26px rgba(11, 34, 57, 0.045);
+}
+
+.tabla-pacientes table,
+.tabla-historias table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.tabla-pacientes th,
+.tabla-pacientes td,
+.tabla-historias th,
+.tabla-historias td {
+    padding: 13px 14px;
+    text-align: left;
+}
+
+.tabla-pacientes th,
+.tabla-historias th {
+    color: #8193a0;
+    background: #f9fbfc;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.tabla-pacientes td,
+.tabla-historias td {
+    color: var(--ou-muted);
+    border-top: 1px solid #edf1f3;
+    font-size: 0.68rem;
+}
+
+.tabla-pacientes td:nth-child(2),
+.tabla-historias td:nth-child(2) {
+    color: var(--ou-text);
+    font-weight: 700;
+}
+
+.tabla-pacientes td:last-child,
+.tabla-historias td:last-child {
+    white-space: nowrap;
+}
+
+.tabla-pacientes td button,
+.tabla-historias td button {
+    min-height: 34px;
+    margin: 2px;
+    padding: 0 9px;
+}
+
+.cards-mobile {
+    display: none;
+}
+
+.contenedor-tabla--desplazable {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+}
+
+.card-paciente {
+    display: grid;
+    gap: 10px;
+    padding: 17px;
+    border: 1px solid var(--ou-border);
+    border-radius: 13px;
+    background: #fff;
+    box-shadow: 0 7px 20px rgba(11, 34, 57, 0.045);
+}
+
+.card-paciente header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.card-paciente header strong {
+    color: var(--ou-text);
+    font-size: 0.81rem;
+}
+
+.card-paciente header small,
+.card-paciente p {
+    color: var(--ou-muted);
+    font-size: 0.66rem;
+}
+
+.card-paciente p {
+    margin: 0;
+}
+
+.card-paciente__estado {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    overflow-y: auto;
+    padding: 16px;
+    background: rgba(11, 34, 57, 0.56);
+}
+
+.modal {
+    width: min(760px, calc(100% - 16px));
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    border: 1px solid var(--ou-border);
+    border-radius: 18px;
+    background: var(--ou-surface);
+    box-shadow: var(--ou-shadow);
+}
+
+.modal.small {
+    width: min(560px, calc(100% - 16px));
+}
+
+.paciente-form,
+.paciente-detalle {
+    padding: clamp(20px, 4vw, 30px);
+}
+
+.paciente-form h3,
+.paciente-detalle h3 {
+    margin: 0;
+    color: var(--ou-navy-950);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+    margin-top: 22px;
+}
+
+.form-grid .full {
+    grid-column: 1 / -1;
+}
+
+.paciente-form textarea {
+    min-height: 92px;
+    padding-top: 10px;
+    resize: vertical;
+}
+
+.acciones-form {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 23px;
+}
+
+.errores {
+    margin-top: 15px;
+    padding: 12px 15px;
+    color: var(--ou-danger);
+    border: 1px solid #edc5c1;
+    border-radius: 9px;
+    background: #fffafa;
+    font-size: 0.69rem;
+}
+
+.errores ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.paciente-detalle > header {
+    padding-bottom: 17px;
+    border-bottom: 1px solid var(--ou-border);
+}
+
+.paciente-detalle > header small {
+    display: block;
+    margin-top: 5px;
+    color: var(--ou-muted);
+    font-size: 0.68rem;
+}
+
+.datos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 18px;
+    padding: 18px 0;
+}
+
+.datos p,
+.historias-relacionadas li {
+    margin: 0;
+    color: var(--ou-muted);
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+.datos strong {
+    color: var(--ou-text);
+}
+
+.historias-relacionadas {
+    padding-top: 17px;
+    border-top: 1px solid var(--ou-border);
+}
+
+.historias-relacionadas h4 {
+    margin: 0 0 12px;
+    color: var(--ou-navy-950);
+    font-family: Georgia, 'Times New Roman', serif;
+}
+
+.historias-relacionadas ul {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.paciente-detalle > .acciones {
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.etiqueta-estado--neutro {
+    color: #516675;
+    background: #edf1f3;
+}
+
+.etiqueta-estado--alerta {
+    color: #9d2d25;
+    background: #fae8e6;
+}
+
+.etiqueta-estado--exito {
+    color: #21673d;
+    background: #e2f3e8;
+}
+
+.etiqueta-estado--oscuro {
+    color: #fff;
+    background: var(--ou-navy-700);
+}
+
+.pagina-historias .filtros-busqueda > label {
+    display: grid;
+    gap: 6px;
+    min-width: 190px;
+    color: var(--ou-muted);
+    font-size: 0.64rem;
+    font-weight: 750;
+}
+
+.tabla-historias .progreso-tabla {
+    min-width: 105px;
+}
+
+.tabla-historias .progreso-tabla strong {
+    color: var(--ou-muted);
+    font-size: 0.61rem;
+}
+
+.formulario-nueva-historia {
+    display: grid;
+    gap: 22px;
+    width: min(760px, 100%);
+    padding: clamp(22px, 4vw, 32px);
+    border: 1px solid var(--ou-border);
+    border-radius: 16px;
+    background: var(--ou-surface);
+    box-shadow: 0 8px 26px rgba(11, 34, 57, 0.045);
+}
+
+.formulario-nueva-historia__campos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.resumen-nueva-historia {
+    padding: 18px 20px;
+    border: 1px solid #cce3e5;
+    border-radius: 12px;
+    background: #f2fafb;
+}
+
+.resumen-nueva-historia h3 {
+    margin: 0 0 12px;
+    color: var(--ou-navy-950);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.08rem;
+}
+
+.resumen-nueva-historia p {
+    margin: 6px 0 0;
+    color: var(--ou-muted);
+    font-size: 0.72rem;
+}
+
+.formulario-nueva-historia > .acciones {
+    justify-content: flex-end;
+}
+
+.pagina-nueva:not(:has(.formulario-nueva-historia)) {
+    width: min(620px, 100%);
+    padding: 28px;
+    border: 1px solid var(--ou-border);
+    border-radius: 16px;
+    background: var(--ou-surface);
+}
+
+.pagina-nueva:not(:has(.formulario-nueva-historia)) > p {
+    margin: 0;
+    color: var(--ou-muted);
+}
+
+.pagina-nueva:not(:has(.formulario-nueva-historia)) > button {
+    min-height: 42px;
+    width: fit-content;
+    padding: 0 15px;
+    color: #fff;
+    border: 0;
+    border-radius: 9px;
+    background: var(--ou-teal-700);
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.hc-header-resumen {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.55fr) minmax(0, 1.45fr);
+    gap: 24px;
+    padding: clamp(22px, 3vw, 30px);
+    border: 1px solid var(--ou-border);
+    border-radius: 16px;
+    background: var(--ou-surface);
+    box-shadow: 0 8px 26px rgba(11, 34, 57, 0.045);
+}
+
+.hc-meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: 13px 18px;
+}
+
+.hc-meta p,
+.hc-meta__estado {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    color: var(--ou-muted);
+    font-size: 0.68rem;
+    line-height: 1.4;
+}
+
+.hc-meta p strong,
+.hc-meta__estado > strong {
+    color: #8496a3;
+    font-size: 0.57rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.hc-progreso {
+    display: grid;
+    grid-column: span 2;
+    grid-template-columns: minmax(80px, 1fr) auto;
+    align-items: center;
+    gap: 9px;
+}
+
+.hc-progreso > div {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e8eff2;
+}
+
+.hc-progreso > div > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--ou-teal-600);
+}
+
+.hc-progreso > strong {
+    color: var(--ou-navy-700);
+    font-size: 0.67rem;
+}
+
+.hc-contenedor {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1.58fr);
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--ou-border);
+    border-radius: 16px;
+    background: var(--ou-surface);
+    box-shadow: 0 8px 26px rgba(11, 34, 57, 0.045);
+}
+
+.hc-secciones {
+    min-width: 0;
+    max-height: 680px;
+    overflow-y: auto;
+    padding: 17px 14px;
+    border-right: 1px solid var(--ou-border);
+    background: #f8fbfc;
+}
+
+.hc-secciones ul {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.hc-secciones li {
+    display: grid;
+    gap: 3px;
+    padding: 7px 9px 8px;
+    border-radius: 9px;
+}
+
+.hc-secciones li.en-progreso {
+    background: var(--ou-teal-100);
+    box-shadow: inset 3px 0 0 var(--ou-teal-600);
+}
+
+.hc-secciones li.completo {
+    background: #edf7f0;
+}
+
+.hc-secciones button {
+    width: 100%;
+    padding: 0;
+    color: var(--ou-text);
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: left;
+}
+
+.hc-secciones li.pendiente button {
+    color: var(--ou-muted);
+}
+
+.hc-secciones small {
+    color: #8496a3;
+    font-size: 0.57rem;
+}
+
+.hc-secciones li.en-progreso small {
+    color: var(--ou-teal-700);
+}
+
+.hc-contenido-principal {
+    display: grid;
+    min-width: 0;
+    min-height: 520px;
+    align-content: start;
+    gap: 20px;
+    padding: clamp(20px, 3vw, 30px);
+}
+
+.hc-breadcrumb {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: #8a9ca8;
+    font-size: 0.64rem;
+}
+
+.hc-breadcrumb strong {
+    color: var(--ou-navy-700);
+}
+
+.seccion-placeholder {
+    display: grid;
+    min-height: 300px;
+    align-content: center;
+    justify-items: center;
+    padding: 30px;
+    color: var(--ou-muted);
+    border: 1px dashed #bfd0d9;
+    border-radius: 14px;
+    background: #fbfdfe;
+    text-align: center;
+}
+
+.seccion-placeholder h3 {
+    margin: 0;
+    color: var(--ou-navy-950);
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.45rem;
+    font-weight: 500;
+}
+
+.seccion-placeholder p {
+    max-width: 460px;
+    margin: 10px 0 0;
+    font-size: 0.74rem;
+    line-height: 1.6;
+}
+
+.hc-navegacion-secciones {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.hc-navegacion-secciones button:disabled {
+    color: #9cabb5;
+    border-color: #e2e8ec;
+    background: #f4f7f8;
+    cursor: not-allowed;
+}
+
+@media (max-width: 880px) {
+    .filtros-busqueda {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .filtros-busqueda > input {
+        width: 100%;
+    }
+
+    .hc-header-resumen,
+    .hc-contenedor {
+        grid-template-columns: 1fr;
+    }
+
+    .hc-secciones {
+        max-height: 310px;
+        border-right: 0;
+        border-bottom: 1px solid var(--ou-border);
+    }
+}
+
+@media (max-width: 680px) {
+    .pagina-cabecera {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .pagina-cabecera .acciones > button {
+        width: 100%;
+    }
+
+    .filtros {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filtros > button {
+        grid-column: 1 / -1;
+    }
+
+    .tabla-pacientes .contenedor-tabla {
+        display: none;
+    }
+
+    .tabla-pacientes {
+        overflow: visible;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .cards-mobile {
+        display: grid;
+        gap: 12px;
+    }
+
+    .form-grid,
+    .datos,
+    .formulario-nueva-historia__campos {
+        grid-template-columns: 1fr;
+    }
+
+    .formulario-nueva-historia {
+        padding: 20px 16px;
+    }
+
+    .hc-meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hc-progreso {
+        grid-column: 1 / -1;
+    }
+
+    .hc-secciones {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 12px;
+    }
+
+    .hc-secciones ul {
+        display: flex;
+        width: max-content;
+    }
+
+    .hc-secciones li {
+        width: 170px;
+        flex: 0 0 auto;
+    }
+
+    .hc-contenido-principal {
+        min-height: 440px;
+        padding: 18px 16px;
+    }
+
+    .seccion-placeholder {
+        min-height: 260px;
+        padding: 22px 16px;
+    }
+
+    .form-grid .full {
+        grid-column: auto;
+    }
+
+    .modal-overlay {
+        padding: 8px;
+    }
+
+    .modal,
+    .modal.small {
+        width: 100%;
+        max-height: calc(100vh - 16px);
+        border-radius: 14px;
+    }
+}
+
+@media (max-width: 380px) {
+    .filtros {
+        grid-template-columns: 1fr;
+    }
+
+    .filtros > button {
+        grid-column: auto;
+    }
+
+    .acciones-form {
+        align-items: stretch;
+        flex-direction: column-reverse;
+    }
+
+    .acciones-form > button {
+        width: 100%;
+    }
+}
