@@ -7,6 +7,7 @@ export const MENU_POR_ROL = {
         ]},
         { id: 'administracion', etiqueta: 'Administración', children: [
             { id: 'usuarios', etiqueta: 'Usuarios' },
+            { id: 'permisos-usuarios', etiqueta: 'Permisos por usuario' },
             { id: 'auditoria', etiqueta: 'Auditoría' },
         ]},
         { id: 'sistema', etiqueta: 'Sistema', children: [ { id: 'configuracion', etiqueta: 'Configuración' } ] },

@@ -7,6 +7,7 @@ import PacientesApp from './paginas/PacientesApp';
 import HistoriasApp from './paginas/HistoriasApp';
 import NuevaHistoriaApp from './paginas/NuevaHistoriaApp';
 import HistoriaClinicaApp from './paginas/HistoriaClinicaApp';
+import PermisosUsuariosApp from './paginas/PermisosUsuariosApp';
 
 const routeAliases = {
     dashboard: 'inicio',
@@ -16,6 +17,8 @@ const routeAliases = {
     'nueva-historia': 'nueva-historia',
     historia: 'historia-clinica',
     'historia-clinica': 'historia-clinica',
+    permisos: 'permisos-usuarios',
+    'permisos-usuarios': 'permisos-usuarios',
 };
 
 export default function Aplicacion() {
@@ -89,6 +92,7 @@ export default function Aplicacion() {
                     }}
                 />
             )}
+            {route === 'permisos-usuarios' && perfil === 'administrador' && <PermisosUsuariosApp />}
             {route === 'historia-clinica' && (
                 <HistoriaClinicaApp
                     historiaId={openHistoriaId}
