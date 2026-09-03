@@ -289,6 +289,40 @@
     line-height: 1.4;
 }
 
+.perfil-automatico {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 13px;
+    color: var(--ou-teal-700);
+    border: 1px solid #cce5e6;
+    border-radius: 11px;
+    background: #f3fbfb;
+}
+
+.perfil-automatico > span {
+    display: grid;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+    place-items: center;
+    color: #fff;
+    border-radius: 50%;
+    background: var(--ou-teal-700);
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.perfil-automatico p,
+.perfil-automatico strong,
+.perfil-automatico small {
+    display: block;
+    margin: 0;
+}
+
+.perfil-automatico strong { font-size: 0.76rem; }
+.perfil-automatico small { margin-top: 2px; color: var(--ou-muted); font-size: 0.66rem; line-height: 1.4; }
+
 .campo-contrasena {
     position: relative;
 }

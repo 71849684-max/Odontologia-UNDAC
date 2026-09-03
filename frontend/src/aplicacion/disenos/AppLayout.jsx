@@ -3,17 +3,32 @@ import DisenoPanel from './DisenoPanel';
 import SidebarHC from '../componentes/interfaz/SidebarHC';
 import HeaderBar from '../componentes/interfaz/HeaderBar';
 
-export default function AppLayout({ menu, usuario, rol, onNavigate, children }) {
-    const [activo, setActivo] = useState(menu?.[0]?.id ?? 'inicio');
+function buscarRuta(menu, id) {
+    for (const item of menu ?? []) {
+        if (item.id === id) return [item.etiqueta];
+        const child = item.children?.find((sub) => sub.id === id);
+        if (child) return [item.etiqueta, child.etiqueta];
+    }
+    if (id === 'historia-clinica') return ['Gestión clínica', 'Historia clínica'];
+    return ['Vista no disponible'];
+}
+
+function menuTieneRuta(menu, id) {
+    return (menu ?? []).some((item) => item.id === id || item.children?.some((child) => child.id === id));
+}
+
+export default function AppLayout({ menu, usuario, rol, activo: activoControlado, onNavigate, onLogout, children }) {
+    const [activoInterno, setActivoInterno] = useState(menu?.[0]?.id ?? 'inicio');
+    const activo = activoControlado ?? activoInterno;
 
     useEffect(() => {
-        if (!menu?.some((item) => item.id === activo)) {
-            setActivo(menu?.[0]?.id ?? 'inicio');
+        if (!menuTieneRuta(menu, activo) && activo !== 'historia-clinica') {
+            setActivoInterno(menu?.[0]?.id ?? 'inicio');
         }
     }, [menu, activo]);
 
     function handleSelect(id) {
-        setActivo(id);
+        setActivoInterno(id);
         if (typeof onNavigate === 'function') {
             onNavigate(id);
             return;
@@ -34,7 +49,7 @@ export default function AppLayout({ menu, usuario, rol, onNavigate, children }) 
             }
         >
             <div className="hc-main min-h-screen">
-                <HeaderBar breadcrumb={[activo]} usuario={usuario} rol={rol} />
+                <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onLogout={onLogout} />
                 <main className="hc-contenido min-w-0">
                     {children}
                 </main>

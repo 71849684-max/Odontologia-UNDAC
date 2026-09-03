@@ -9,24 +9,32 @@ import {
 } from 'lucide-react';
 import MarcaInstitucional from '../componentes/interfaz/MarcaInstitucional';
 
-const OPCIONES_PERFIL = [
-    { valor: 'alumno', etiqueta: 'Alumno operador' },
-    { valor: 'docente', etiqueta: 'Docente' },
-    { valor: 'administrador', etiqueta: 'Administrador' },
-];
-
 const BENEFICIOS_INSTITUCIONALES = [
     { icono: HeartPulse, titulo: 'Atención clínica organizada', texto: 'Consulta la información del paciente desde un entorno claro y seguro.' },
     { icono: BookOpenCheck, titulo: 'Seguimiento académico', texto: 'Acompaña la práctica odontológica con supervisión docente.' },
     { icono: GraduationCap, titulo: 'Formación con propósito', texto: 'Tecnología al servicio de la enseñanza y la salud bucal.' },
 ];
 
-export default function PaginaAcceso({ perfilSeleccionado, alCambiarPerfil, alIngresar }) {
+const CUENTAS_DEMOSTRACION = {
+    administrador: { nombre: 'Carlos Mendoza', rol: 'administrador' },
+    docente: { nombre: 'Dra. Elena Salazar', rol: 'docente' },
+    alumno: { nombre: 'María Quispe', rol: 'alumno' },
+};
+
+export function detectarPerfil(correo = '') {
+    const identidad = correo.trim().toLowerCase();
+    if (/admin|administrador/.test(identidad)) return CUENTAS_DEMOSTRACION.administrador;
+    if (/docente|profesor|doctor|dra\.|dr\./.test(identidad)) return CUENTAS_DEMOSTRACION.docente;
+    return CUENTAS_DEMOSTRACION.alumno;
+}
+
+export default function PaginaAcceso({ alIngresar }) {
     const [mostrarContrasena, establecerMostrarContrasena] = useState(false);
+    const [correo, establecerCorreo] = useState('');
 
     function manejarEnvio(evento) {
         evento.preventDefault();
-        alIngresar(perfilSeleccionado);
+        alIngresar(detectarPerfil(correo));
     }
 
     return (
@@ -66,7 +74,14 @@ export default function PaginaAcceso({ perfilSeleccionado, alCambiarPerfil, alIn
                     <form className="formulario-acceso" onSubmit={manejarEnvio}>
                         <label className="campo-formulario">
                             <span>Correo institucional</span>
-                            <input type="email" name="correo" placeholder="nombre@undac.edu.pe" autoComplete="email" />
+                            <input
+                                type="email"
+                                name="correo"
+                                value={correo}
+                                onChange={(evento) => establecerCorreo(evento.target.value)}
+                                placeholder="nombre@undac.edu.pe"
+                                autoComplete="email"
+                            />
                         </label>
                         <label className="campo-formulario">
                             <span>Contraseña</span>
@@ -86,15 +101,10 @@ export default function PaginaAcceso({ perfilSeleccionado, alCambiarPerfil, alIn
                                 </button>
                             </span>
                         </label>
-                        <label className="campo-formulario">
-                            <span>Perfil de demostración</span>
-                            <select value={perfilSeleccionado} onChange={(evento) => alCambiarPerfil(evento.target.value)}>
-                                {OPCIONES_PERFIL.map((opcion) => (
-                                    <option value={opcion.valor} key={opcion.valor}>{opcion.etiqueta}</option>
-                                ))}
-                            </select>
-                            <small>Define la vista que se mostrará en esta maqueta visual.</small>
-                        </label>
+                        <div className="perfil-automatico" role="note">
+                            <span aria-hidden="true">✓</span>
+                            <p><strong>Perfil automático</strong><small>El sistema identifica tu rol institucional a partir de tus credenciales.</small></p>
+                        </div>
                         <div className="opciones-acceso">
                             <label><input type="checkbox" /><span>Recordarme</span></label>
                             <a href="#recuperar">¿Olvidaste tu contraseña?</a>

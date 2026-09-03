@@ -1,6 +1,6 @@
 .diseno-panel {
     display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: 272px minmax(0, 1fr);
     min-height: 100vh;
     background: var(--ou-canvas);
 }
@@ -898,7 +898,7 @@
 
 .hc-contenido {
     min-width: 0;
-    padding: 32px clamp(22px, 3vw, 44px) 48px;
+    padding: 0;
 }
 
 .barra-lateral--hc {
@@ -944,6 +944,7 @@
     width: 100%;
     min-height: 43px;
     align-items: center;
+    gap: 10px;
     padding: 9px 12px;
     color: rgba(255, 255, 255, 0.72);
     border: 0;
@@ -954,6 +955,11 @@
     text-align: left;
     transition: color 150ms ease, background 150ms ease, box-shadow 150ms ease;
 }
+
+.menu-etiqueta { min-width: 0; flex: 1; }
+.menu-chevron { flex: 0 0 auto; transition: transform 160ms ease; }
+.menu-chevron.esta-abierto { transform: rotate(180deg); }
+.menu-item.tiene-activo > button { color: #fff; background: rgba(255, 255, 255, 0.06); }
 
 .menu-item > button:hover,
 .submenu button:hover,
@@ -974,6 +980,7 @@
     gap: 3px;
     margin: 3px 0 5px;
     padding-left: 13px;
+    animation: menu-desplegar 150ms ease-out;
 }
 
 .submenu button {
@@ -981,6 +988,11 @@
     padding-left: 17px;
     color: rgba(255, 255, 255, 0.57);
     font-size: 0.72rem;
+}
+
+@keyframes menu-desplegar {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .barra-footer {
@@ -1365,9 +1377,7 @@
         margin-left: auto;
     }
 
-    .hc-contenido {
-        padding: 24px 16px 36px;
-    }
+    .hc-contenido { padding: 0; }
 
     .indicadores,
     .cartas-progreso {

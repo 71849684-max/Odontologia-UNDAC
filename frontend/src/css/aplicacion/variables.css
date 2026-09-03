@@ -17,4 +17,17 @@
     --ou-radius-sm: 10px;
     --ou-radius-md: 16px;
     --ou-radius-lg: 26px;
+
+    /* Alias semánticos compartidos por las vistas nuevas y las existentes. */
+    --color-primary: var(--ou-navy-950);
+    --color-secondary: var(--ou-navy-700);
+    --color-accent: var(--ou-teal-700);
+    --color-background: var(--ou-canvas);
+    --color-surface: var(--ou-surface);
+    --color-border: var(--ou-border);
+    --color-text: var(--ou-text);
+    --color-muted: var(--ou-muted);
+    --color-success: #237a57;
+    --color-warning: #9a6b13;
+    --color-danger: var(--ou-danger);
 }

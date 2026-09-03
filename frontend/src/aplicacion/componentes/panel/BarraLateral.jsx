@@ -23,7 +23,7 @@ const ICONOS = {
     validaciones: ClipboardCheck,
 };
 
-export default function BarraLateral({ elementos = [], moduloActivo, alSeleccionar, etiquetaPerfil }) {
+export default function BarraLateral({ elementos = [], moduloActivo, alSeleccionar, etiquetaPerfil, onItemSelected }) {
     return (
         <aside className="barra-lateral">
             <MarcaInstitucional compacta inversa />
@@ -40,7 +40,7 @@ export default function BarraLateral({ elementos = [], moduloActivo, alSeleccion
                                 type="button"
                                 className={estaActivo ? 'esta-activo' : ''}
                                 aria-current={estaActivo ? 'page' : undefined}
-                                onClick={() => alSeleccionar(elemento.id)}
+                                onClick={() => { alSeleccionar(elemento.id); onItemSelected?.(); }}
                             >
                                 <Icono size={18} aria-hidden="true" /><span>{elemento.etiqueta}</span>
                             </button>

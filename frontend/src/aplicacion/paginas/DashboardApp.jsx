@@ -1,38 +1,46 @@
-import React from 'react';
-import {
-    Activity,
-    CalendarDays,
-    ClipboardPlus,
-    FileText,
-    FlaskConical,
-    HeartPulse,
-    Search,
-    Stethoscope,
-    Syringe,
-    Users,
-} from 'lucide-react';
+import { CalendarDays, ClipboardCheck, ClipboardPlus, FileText, Search, ShieldCheck, Users } from 'lucide-react';
 import '../../css/aplicacion/historia-clinica.css';
-import { dashboardServices } from '../configuracion/historiaClinica.config.mjs';
-import { mockHistorias } from '../configuracion/datosMock.mjs';
+import { mockHistorias, mockPacientes } from '../configuracion/datosMock.mjs';
 import { ProgressBar, StatusBadge } from '../componentes/clinica/ControlesClinicos.jsx';
 
-const iconMap = {
-    pacientes: Users,
-    historias: FileText,
-    'nueva-historia': ClipboardPlus,
-    odontograma: Stethoscope,
-    examenes: FlaskConical,
-    diagnostico: HeartPulse,
-    tratamiento: Activity,
-    cirugia: Syringe,
-    seguimiento: CalendarDays,
+const PERFIL = {
+    administrador: {
+        etiqueta: 'Administrador',
+        contexto: 'Vista general de operación, accesos y trazabilidad del sistema.',
+        acciones: [
+            { etiqueta: 'Gestionar usuarios', target: 'usuarios', icono: Users },
+            { etiqueta: 'Consultar auditoría', target: 'auditoria', icono: ShieldCheck },
+            { etiqueta: 'Ver historias', target: 'historias', icono: FileText },
+        ],
+        pendientes: ['3 accesos administrativos por revisar', '2 alertas de auditoría sin resolver', 'Configuración del periodo académico por confirmar'],
+    },
+    docente: {
+        etiqueta: 'Docente',
+        contexto: 'Supervisión académica, validaciones y continuidad de atención.',
+        acciones: [
+            { etiqueta: 'Ver pendientes', target: 'pendientes', icono: ClipboardCheck },
+            { etiqueta: 'Buscar historia', target: 'historias', icono: Search },
+            { etiqueta: 'Revisar seguimientos', target: 'seguimiento', icono: CalendarDays },
+        ],
+        pendientes: ['2 historias requieren revisión docente', '1 consentimiento pendiente de validación', '2 controles clínicos programados para hoy'],
+    },
+    alumno: {
+        etiqueta: 'Alumno operador',
+        contexto: 'Tus historias, tareas clínicas y próximos controles.',
+        acciones: [
+            { etiqueta: 'Nueva historia clínica', target: 'nueva-historia', icono: ClipboardPlus },
+            { etiqueta: 'Buscar paciente', target: 'mis-pacientes', icono: Search },
+            { etiqueta: 'Mis seguimientos', target: 'mis-seguimientos', icono: CalendarDays },
+        ],
+        pendientes: ['1 historia incompleta en anamnesis', '2 secciones pendientes de registro', '1 observación docente por atender'],
+    },
 };
 
-const activity = [
-    { icon: FileText, title: 'Historia clínica actualizada', meta: 'Andrea Salazar Huamán · hace 15 min', tone: 'teal' },
-    { icon: ClipboardPlus, title: 'Nueva historia creada', meta: 'Luis Paredes Rojas · hace 32 min', tone: 'gold' },
-    { icon: Stethoscope, title: 'Observación docente recibida', meta: 'HC-2026-003 · hace 1 h', tone: 'blue' },
-    { icon: HeartPulse, title: 'Historia validada', meta: 'HC-2026-004 · hace 2 h', tone: 'green' },
+const ACTIVIDAD = [
+    { icono: FileText, titulo: 'Historia HC-2026-001 actualizada', detalle: 'Andrea Salazar Huamán · hace 15 min', tono: 'teal' },
+    { icono: ClipboardPlus, titulo: 'Paciente registrado', detalle: 'Luis Paredes Rojas · hace 32 min', tono: 'gold' },
+    { icono: ClipboardCheck, titulo: 'Historia enviada a revisión', detalle: 'HC-2026-003 · hace 1 h', tono: 'blue' },
+    { icono: ShieldCheck, titulo: 'Docente validó una historia', detalle: 'HC-2026-004 · hace 2 h', tono: 'green' },
 ];
 
 function go(onNavigate, target) {
@@ -40,88 +48,58 @@ function go(onNavigate, target) {
     else window.onNavigate?.(target);
 }
 
-export default function DashboardApp({ rol, onNavigate }) {
-    return (
-        <div className="hc-dashboard space-y-6">
-            <section className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                    <p className="hc-kicker">Clínica odontológica universitaria</p>
-                    <h1 className="hc-page-title">Inicio</h1>
-                    <p className="hc-page-subtitle">Resumen de la atención clínica, avance académico y accesos principales del sistema.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <button type="button" className="hc-button hc-button--ghost" onClick={() => go(onNavigate, 'pacientes')}><Search size={17} /> Buscar paciente</button>
-                    <button type="button" className="hc-button hc-button--primary" onClick={() => go(onNavigate, 'nueva-historia')}><ClipboardPlus size={17} /> Nueva historia</button>
-                </div>
-            </section>
+function saludoActual() {
+    const hora = new Date().getHours();
+    if (hora < 12) return 'Buenos días';
+    if (hora < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+}
 
-            <section className="hc-dashboard-kpis grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principales">
-                {dashboardServices.slice(0, 4).map((service) => {
-                    const Icon = iconMap[service.id] || FileText;
-                    return (
-                        <button key={service.id} type="button" className="hc-kpi-card" onClick={() => go(onNavigate, service.target)}>
-                            <span className="hc-kpi-card__icon"><Icon size={23} /></span>
-                            <span className="hc-kpi-card__copy"><small>{service.label}</small><strong>{service.metric}</strong><em>{service.metricLabel}</em></span>
-                            <span className="hc-kpi-card__link">Abrir módulo →</span>
-                        </button>
-                    );
-                })}
-            </section>
+function nombreCorto(nombre = '') {
+    return nombre.replace(/^(dra?\.?|prof\.?|lic\.?)\s+/i, '').split(' ')[0] || 'usuario';
+}
 
-            <section className="grid gap-5 xl:grid-cols-[1.05fr_1.2fr_.8fr]">
-                <article className="hc-panel-card">
-                    <div className="hc-panel-card__header"><div><h2>Actividad reciente</h2><p>Últimos movimientos de la maqueta clínica.</p></div><button type="button" onClick={() => go(onNavigate, 'historias')}>Ver todo</button></div>
-                    <div className="hc-activity-list">
-                        {activity.map(({ icon: Icon, title, meta, tone }) => (
-                            <div className="hc-activity-row" key={title}><span className={`hc-activity-row__icon is-${tone}`}><Icon size={16} /></span><span><strong>{title}</strong><small>{meta}</small></span><span aria-hidden="true">›</span></div>
-                        ))}
-                    </div>
-                </article>
+export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
+    const perfil = PERFIL[rol] ?? PERFIL.alumno;
+    const enProceso = mockHistorias.filter((item) => ['Borrador', 'En proceso'].includes(item.estado)).length;
+    const pendientes = mockHistorias.filter((item) => item.estado === 'Pendiente de revisión').length;
+    const finalizadas = mockHistorias.filter((item) => item.estado === 'Validada').length;
+    const indicadores = [
+        { etiqueta: 'Pacientes registrados', valor: mockPacientes.length, detalle: '+2 este mes', icono: Users, target: rol === 'alumno' ? 'mis-pacientes' : 'pacientes' },
+        { etiqueta: 'Historias clínicas', valor: mockHistorias.length, detalle: `${enProceso} activas`, icono: FileText, target: rol === 'alumno' ? 'mis-historias' : 'historias' },
+        { etiqueta: 'Pendientes de validación', valor: pendientes, detalle: 'Revisión docente', icono: ClipboardCheck, target: rol === 'docente' ? 'pendientes' : rol === 'alumno' ? 'mis-historias' : 'historias' },
+        { etiqueta: 'Finalizadas', valor: finalizadas, detalle: `${Math.round((finalizadas / mockHistorias.length) * 100)} % del total`, icono: ShieldCheck, target: rol === 'alumno' ? 'mis-historias' : 'historias' },
+    ];
+    const fecha = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
-                <article className="hc-panel-card">
-                    <div className="hc-panel-card__header"><div><h2>Mis historias por estado</h2><p>Distribución visual para el rol {rol || 'alumno'}.</p></div></div>
-                    <div className="hc-status-summary">
-                        <div className="hc-donut" role="img" aria-label="Distribución de historias: 43 por ciento en proceso, 25 por ciento pendientes, 11 por ciento observadas y 21 por ciento validadas"><span><strong>18</strong><small>Total</small></span></div>
-                        <div className="hc-status-legend">
-                            <div><span className="is-progress" />En proceso <strong>8</strong></div>
-                            <div><span className="is-review" />Pendiente de revisión <strong>4</strong></div>
-                            <div><span className="is-observed" />Observada <strong>2</strong></div>
-                            <div><span className="is-valid" />Validada <strong>4</strong></div>
-                        </div>
-                    </div>
-                </article>
+    return <div className="hc-dashboard space-y-5">
+        <section className="hc-dashboard-welcome">
+            <div><p className="hc-kicker">Clínica odontológica universitaria</p><h1 className="hc-page-title">{saludoActual()}, {nombreCorto(usuario?.nombre)}</h1><p className="hc-page-subtitle">Resumen de actividad clínica. {perfil.contexto}</p></div>
+            <div className="hc-dashboard-context"><strong>{perfil.etiqueta}</strong><span>{fecha}</span><small>Periodo académico 2026-II</small></div>
+        </section>
 
-                <article className="hc-panel-card">
-                    <div className="hc-panel-card__header"><div><h2>Próximos controles</h2><p>Agenda visual de demostración.</p></div></div>
-                    <div className="hc-appointments">
-                        <div><time>10:00</time><span><strong>Andrea Salazar</strong><small>Control postoperatorio</small></span></div>
-                        <div><time>11:30</time><span><strong>Luis Paredes</strong><small>Evaluación clínica</small></span></div>
-                        <div><time>14:00</time><span><strong>Camila Torres</strong><small>Revisión de avance</small></span></div>
-                    </div>
-                </article>
-            </section>
+        <section className="hc-dashboard-kpis grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principales">
+            {indicadores.map(({ etiqueta, valor, detalle, icono: Icono, target }) => <button key={etiqueta} type="button" className="hc-kpi-card" onClick={() => go(onNavigate, target)}><span className="hc-kpi-card__icon"><Icono size={22} /></span><span className="hc-kpi-card__copy"><small>{etiqueta}</small><strong>{valor}</strong><em>{detalle}</em></span><span className="hc-kpi-card__link">Ver detalle →</span></button>)}
+        </section>
 
-            <section className="hc-panel-card">
-                <div className="hc-panel-card__header"><div><h2>Accesos clínicos rápidos</h2><p>Servicios vinculados directamente con las secciones de la Historia Clínica.</p></div></div>
-                <div className="hc-service-strip grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                    {dashboardServices.slice(4).map((service) => {
-                        const Icon = iconMap[service.id] || FileText;
-                        return <button key={service.id} type="button" onClick={() => go(onNavigate, service.target)}><span><Icon size={20} /></span><strong>{service.label}</strong><small>{service.description}</small></button>;
-                    })}
-                </div>
-            </section>
+        <section className="hc-dashboard-grid">
+            <article className="hc-panel-card">
+                <div className="hc-panel-card__header"><div><h2>Actividad reciente</h2><p>Últimos movimientos registrados en la maqueta clínica.</p></div></div>
+                <div className="hc-activity-list">{ACTIVIDAD.map(({ icono: Icono, titulo, detalle, tono }) => <div className="hc-activity-row" key={titulo}><span className={`hc-activity-row__icon is-${tono}`}><Icono size={16} /></span><span><strong>{titulo}</strong><small>{detalle}</small></span><span aria-hidden="true">›</span></div>)}</div>
+            </article>
+            <article className="hc-panel-card">
+                <div className="hc-panel-card__header"><div><h2>Acciones rápidas</h2><p>Accesos disponibles para el perfil {perfil.etiqueta.toLowerCase()}.</p></div></div>
+                <div className="hc-action-grid">{perfil.acciones.map(({ etiqueta, target, icono: Icono }) => <button type="button" key={etiqueta} onClick={() => go(onNavigate, target)}><span><Icono size={18} /></span><strong>{etiqueta}</strong><small>Abrir módulo</small></button>)}</div>
+            </article>
+            <article className="hc-panel-card">
+                <div className="hc-panel-card__header"><div><h2>Pendientes</h2><p>Elementos que requieren atención.</p></div></div>
+                <ul className="hc-pending-list">{perfil.pendientes.map((item, index) => <li key={item}><span>{index + 1}</span><p>{item}</p></li>)}</ul>
+            </article>
+        </section>
 
-            <section className="hc-panel-card">
-                <div className="hc-panel-card__header"><div><h2>Historias en curso</h2><p>Continuar registros clínicos con mayor prioridad.</p></div><button type="button" onClick={() => go(onNavigate, 'historias')}>Ver historias</button></div>
-                <div className="hc-history-preview grid gap-3 lg:grid-cols-3">
-                    {mockHistorias.slice(0, 3).map((item) => (
-                        <button key={item.id} type="button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>
-                            <span className="hc-avatar">{item.paciente.split(' ').slice(0, 2).map((part) => part[0]).join('')}</span>
-                            <span className="min-w-0"><strong>{item.paciente}</strong><small>{item.codigo}</small><StatusBadge status={item.estado} /><ProgressBar value={item.progreso} /></span>
-                        </button>
-                    ))}
-                </div>
-            </section>
-        </div>
-    );
+        <section className="hc-panel-card">
+            <div className="hc-panel-card__header"><div><h2>Historias recientes</h2><p>Últimas historias clínicas modificadas.</p></div><button type="button" onClick={() => go(onNavigate, rol === 'alumno' ? 'mis-historias' : 'historias')}>Ver todas</button></div>
+            <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Operador</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{mockHistorias.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Operador">{item.operador}</td><td data-label="Estado"><StatusBadge status={item.estado} /></td><td data-label="Actualización">{item.fecha}</td><td data-label="Progreso"><ProgressBar value={item.progreso} /></td><td data-label="Acción"><button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button></td></tr>)}</tbody></table></div>
+        </section>
+    </div>;
 }
