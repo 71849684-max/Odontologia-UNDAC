@@ -352,10 +352,32 @@
     background: var(--ou-teal-100);
 }
 
+.pantalla-sesion {
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    color: var(--ou-muted);
+    background: var(--ou-canvas);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.mensaje-acceso-error {
+    margin: 0;
+    padding: 11px 13px;
+    color: #98271f;
+    border: 1px solid #f0c2bd;
+    border-radius: 11px;
+    background: #fdf1f0;
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
 .opciones-acceso {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 16px;
     font-size: 0.76rem;
 }
@@ -401,9 +423,14 @@
     transition: transform 160ms ease, background 160ms ease;
 }
 
-.boton-ingreso:hover {
+.boton-ingreso:hover:not(:disabled) {
     background: #0b6270;
     transform: translateY(-1px);
+}
+
+.boton-ingreso:disabled {
+    cursor: progress;
+    opacity: 0.65;
 }
 
 .boton-ingreso span {

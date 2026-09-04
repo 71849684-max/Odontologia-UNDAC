@@ -15,26 +15,15 @@ const BENEFICIOS_INSTITUCIONALES = [
     { icono: GraduationCap, titulo: 'Formación con propósito', texto: 'Tecnología al servicio de la enseñanza y la salud bucal.' },
 ];
 
-const CUENTAS_DEMOSTRACION = {
-    administrador: { nombre: 'Carlos Mendoza', rol: 'administrador' },
-    docente: { nombre: 'Dra. Elena Salazar', rol: 'docente' },
-    alumno: { nombre: 'María Quispe', rol: 'alumno' },
-};
-
-export function detectarPerfil(correo = '') {
-    const identidad = correo.trim().toLowerCase();
-    if (/admin|administrador/.test(identidad)) return CUENTAS_DEMOSTRACION.administrador;
-    if (/docente|profesor|doctor|dra\.|dr\./.test(identidad)) return CUENTAS_DEMOSTRACION.docente;
-    return CUENTAS_DEMOSTRACION.alumno;
-}
-
-export default function PaginaAcceso({ alIngresar }) {
+export default function PaginaAcceso({ alIngresar, enviando = false, error = null }) {
     const [mostrarContrasena, establecerMostrarContrasena] = useState(false);
-    const [correo, establecerCorreo] = useState('');
+    const [nombreUsuario, establecerNombreUsuario] = useState('');
+    const [contrasena, establecerContrasena] = useState('');
 
     function manejarEnvio(evento) {
         evento.preventDefault();
-        alIngresar(detectarPerfil(correo));
+        if (enviando) return;
+        alIngresar({ nombreUsuario, contrasena });
     }
 
     return (
@@ -73,14 +62,17 @@ export default function PaginaAcceso({ alIngresar }) {
                     </div>
                     <form className="formulario-acceso" onSubmit={manejarEnvio}>
                         <label className="campo-formulario">
-                            <span>Correo institucional</span>
+                            <span>Usuario</span>
                             <input
-                                type="email"
-                                name="correo"
-                                value={correo}
-                                onChange={(evento) => establecerCorreo(evento.target.value)}
-                                placeholder="nombre@undac.edu.pe"
-                                autoComplete="email"
+                                type="text"
+                                name="nombre_usuario"
+                                value={nombreUsuario}
+                                onChange={(evento) => establecerNombreUsuario(evento.target.value)}
+                                placeholder="Tu usuario institucional"
+                                autoComplete="username"
+                                autoCapitalize="none"
+                                spellCheck="false"
+                                required
                             />
                         </label>
                         <label className="campo-formulario">
@@ -89,8 +81,11 @@ export default function PaginaAcceso({ alIngresar }) {
                                 <input
                                     type={mostrarContrasena ? 'text' : 'password'}
                                     name="contrasena"
+                                    value={contrasena}
+                                    onChange={(evento) => establecerContrasena(evento.target.value)}
                                     placeholder="Ingresa tu contraseña"
                                     autoComplete="current-password"
+                                    required
                                 />
                                 <button
                                     type="button"
@@ -101,15 +96,19 @@ export default function PaginaAcceso({ alIngresar }) {
                                 </button>
                             </span>
                         </label>
+                        {error && (
+                            <p className="mensaje-acceso-error" role="alert">{error}</p>
+                        )}
                         <div className="perfil-automatico" role="note">
                             <span aria-hidden="true">✓</span>
-                            <p><strong>Perfil automático</strong><small>El sistema identifica tu rol institucional a partir de tus credenciales.</small></p>
+                            <p><strong>Perfil institucional</strong><small>El sistema determina tu rol y tus módulos desde el servidor al validar tus credenciales.</small></p>
                         </div>
                         <div className="opciones-acceso">
-                            <label><input type="checkbox" /><span>Recordarme</span></label>
                             <a href="#recuperar">¿Olvidaste tu contraseña?</a>
                         </div>
-                        <button className="boton-ingreso" type="submit">Ingresar al sistema <span aria-hidden="true">→</span></button>
+                        <button className="boton-ingreso" type="submit" disabled={enviando}>
+                            {enviando ? 'Verificando…' : 'Ingresar al sistema'} <span aria-hidden="true">→</span>
+                        </button>
                     </form>
                     <div className="ayuda-acceso"><span aria-hidden="true">i</span><p>¿Necesitas asistencia? Comunícate con el soporte de la clínica odontológica.</p></div>
                 </div>

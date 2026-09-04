@@ -28,6 +28,8 @@ call :asegurar_composer
 if errorlevel 1 goto :fallo_herramientas
 call :asegurar_node
 if errorlevel 1 goto :fallo_herramientas
+call :asegurar_mysql
+if errorlevel 1 goto :fallo_herramientas
 echo.
 
 echo [2/4] Backend Laravel
@@ -77,6 +79,11 @@ if exist "%ProgramFiles%\nodejs\npm.cmd" set "PATH=%ProgramFiles%\nodejs;%PATH%"
 if exist "%ProgramFiles(x86)%\nodejs\npm.cmd" set "PATH=%ProgramFiles(x86)%\nodejs;%PATH%"
 if exist "C:\laragon\bin\composer" set "PATH=C:\laragon\bin\composer;%PATH%"
 if exist "C:\laragon\bin\nodejs" set "PATH=C:\laragon\bin\nodejs;%PATH%"
+if exist "C:\laragon\bin\mysql" (
+    for /d %%D in ("C:\laragon\bin\mysql\mysql-8.4*") do (
+        if exist "%%~D\bin\mysql.exe" set "PATH=%%~D\bin;!PATH!"
+    )
+)
 if exist "C:\laragon\bin\nodejs" (
     for /d %%D in ("C:\laragon\bin\nodejs\node-*") do (
         if exist "%%~D\npm.cmd" set "PATH=%%~D;!PATH!"
@@ -112,12 +119,28 @@ if errorlevel 1 (
     echo [ERROR] Se necesita PHP 8.3 o superior. Encontrado: !PHP_VER!
     exit /b 1
 )
-php -r "exit(extension_loaded('pdo_sqlite') && extension_loaded('openssl') && extension_loaded('mbstring') ? 0 : 1);"
+php -r "exit(extension_loaded('pdo_mysql') && extension_loaded('openssl') && extension_loaded('mbstring') ? 0 : 1);"
 if errorlevel 1 (
-    echo [ERROR] PHP !PHP_VER! no tiene extensiones necesarias ^(pdo_sqlite, openssl, mbstring^).
+    echo [ERROR] PHP !PHP_VER! no tiene extensiones necesarias ^(pdo_mysql, openssl, mbstring^).
     exit /b 1
 )
 echo [OK] PHP !PHP_VER!
+exit /b 0
+
+rem ------------------------------------------------
+:asegurar_mysql
+where mysql >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] No se encontro MySQL 8.4 de Laragon.
+    exit /b 1
+)
+mysql -u root -h 127.0.0.1 -P 3306 -N -s -e "SELECT VERSION();" >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] MySQL no responde. Abre Laragon y pulsa Start All.
+    exit /b 1
+)
+for /f "tokens=*" %%V in ('mysql -u root -h 127.0.0.1 -P 3306 -N -s -e "SELECT VERSION();"') do set "MYSQL_VER=%%V"
+echo [OK] MySQL !MYSQL_VER!
 exit /b 0
 
 rem ------------------------------------------------
@@ -222,21 +245,49 @@ if errorlevel 1 (
     echo [OK] APP_KEY presente
 )
 
-if not exist "database\database.sqlite" (
-    type nul > "database\database.sqlite"
-    echo [OK] Se creo database\database.sqlite
+echo [..] Comprobando base de datos MySQL...
+set "DB_EXISTE="
+for /f "tokens=*" %%D in ('mysql -u root -h 127.0.0.1 -P 3306 -N -s -e "SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME='bd_clinica_undac';"') do set "DB_EXISTE=%%D"
+if not defined DB_EXISTE (
+    if not exist "%ROOT%bd_clinica_undac.sql" (
+        echo [ERROR] No se encontro bd_clinica_undac.sql
+        popd
+        exit /b 1
+    )
+    echo [..] Importando bd_clinica_undac.sql...
+    mysql -u root -h 127.0.0.1 -P 3306 < "%ROOT%bd_clinica_undac.sql"
+    if errorlevel 1 (
+        echo [ERROR] La importacion de MySQL fallo.
+        popd
+        exit /b 1
+    )
+    echo [OK] Base de datos importada
 ) else (
-    echo [OK] SQLite presente
+    echo [OK] Base de datos MySQL presente
 )
 
-echo [..] Ejecutando migraciones...
-php artisan migrate --force --no-interaction
+php artisan config:clear >nul
+php artisan db:show --database=mysql >nul
 if errorlevel 1 (
-    echo [ERROR] Las migraciones fallaron.
+    echo [ERROR] Laravel no pudo conectarse a MySQL.
     popd
     exit /b 1
 )
-echo [OK] Migraciones al dia
+echo [OK] Laravel conectado a MySQL
+
+rem El dump siembra los roles pero ningun usuario: sin esto nadie puede entrar.
+echo [..] Comprobando el usuario administrador...
+for /f "tokens=*" %%U in ('mysql -u root -h 127.0.0.1 -P 3306 -N -s -e "SELECT COUNT(*) FROM bd_clinica_undac.usuario;"') do set "TOTAL_USUARIOS=%%U"
+if "!TOTAL_USUARIOS!"=="0" (
+    php artisan db:seed --class=SeederAdministrador --force --no-interaction
+    if errorlevel 1 (
+        echo [ERROR] No se pudo crear el administrador. Revisa ADMIN_USUARIO y ADMIN_CONTRASENA en backend\.env
+        popd
+        exit /b 1
+    )
+) else (
+    echo [OK] Ya existen usuarios registrados
+)
 popd
 exit /b 0
 

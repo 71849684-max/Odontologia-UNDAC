@@ -1,23 +1,136 @@
-import { useState } from 'react';
-import { Building2, CalendarRange, Check, LockKeyhole, Save, Settings2, Stethoscope } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, Check, LockKeyhole, Save, Settings2, Stethoscope } from 'lucide-react';
+import { guardarConfiguracion, listarConfiguracion } from '../servicios/servicioAdministracion';
+import { ErrorHttp } from '../servicios/clienteHttp';
 
-const SECCIONES = [
-    { id: 'institucion', titulo: 'Datos institucionales', descripcion: 'Nombre y unidad académica visibles en documentos.', icono: Building2 },
-    { id: 'clinica', titulo: 'Parámetros clínicos', descripcion: 'Criterios visuales para estados y revisiones.', icono: Stethoscope },
-    { id: 'periodo', titulo: 'Año académico y semestres', descripcion: 'Periodo activo usado en los formularios.', icono: CalendarRange },
-    { id: 'seguridad', titulo: 'Seguridad', descripcion: 'Avisos de sesión y trazabilidad de cambios.', icono: LockKeyhole },
-];
+const ICONOS = {
+    NOMBRE_INSTITUCION: Building2,
+    FACULTAD: Building2,
+    ELIMINACION_CLINICA_PERMITIDA: LockKeyhole,
+    TIPO_DENTICION_POR_DEFECTO: Stethoscope,
+};
 
 export default function ConfiguracionApp() {
+    const [parametros, setParametros] = useState([]);
+    const [valores, setValores] = useState({});
+    const [cargando, setCargando] = useState(true);
+    const [guardando, setGuardando] = useState(false);
     const [guardado, setGuardado] = useState(false);
-    const [opciones, setOpciones] = useState({ validacion: true, auditoria: true, notificaciones: false });
-    const alternar = (id) => setOpciones((actuales) => ({ ...actuales, [id]: !actuales[id] }));
+    const [error, setError] = useState('');
 
-    return <div className="hc-page space-y-5">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Sistema</p><h1 className="hc-page-title">Configuración</h1><p className="hc-page-subtitle">Parámetros institucionales de demostración preparados para la futura integración con backend.</p></div><button type="button" className="hc-button hc-button--primary" onClick={() => setGuardado(true)}>{guardado ? <Check size={17} /> : <Save size={17} />}{guardado ? 'Cambios guardados' : 'Guardar configuración'}</button></header>
-        <div className="hc-inline-callout"><span><Settings2 size={20} /></span><div><strong>Modo interfaz</strong><small>Los cambios se conservan solo durante esta sesión y no modifican datos del sistema.</small></div></div>
-        <section className="hc-settings-grid">
-            {SECCIONES.map(({ id, titulo, descripcion, icono: Icono }) => <article className="hc-panel-card hc-settings-card" key={id}><div className="hc-settings-card__title"><span><Icono size={19} /></span><div><h2>{titulo}</h2><p>{descripcion}</p></div></div>{id === 'institucion' && <div className="hc-settings-fields"><label>Nombre de la clínica<input defaultValue="Clínica Odontológica UNDAC" /></label><label>Facultad<input defaultValue="Facultad de Ciencias de la Salud" /></label></div>}{id === 'periodo' && <div className="hc-settings-fields"><label>Año académico<select defaultValue="2026"><option>2026</option><option>2027</option></select></label><label>Semestre activo<select defaultValue="2026-II"><option>2026-I</option><option>2026-II</option></select></label></div>}{id === 'clinica' && <div className="hc-toggle-list"><label><span><strong>Validación docente obligatoria</strong><small>Solicitar revisión antes de finalizar una historia.</small></span><input type="checkbox" checked={opciones.validacion} onChange={() => alternar('validacion')} /></label><label><span><strong>Notificaciones clínicas</strong><small>Mostrar avisos sobre revisiones y seguimientos.</small></span><input type="checkbox" checked={opciones.notificaciones} onChange={() => alternar('notificaciones')} /></label></div>}{id === 'seguridad' && <div className="hc-toggle-list"><label><span><strong>Auditar cambios clínicos</strong><small>Registrar edición, validación, firma y exportación.</small></span><input type="checkbox" checked={opciones.auditoria} onChange={() => alternar('auditoria')} /></label></div>}</article>)}
-        </section>
-    </div>;
+    useEffect(() => {
+        (async () => {
+            setCargando(true);
+            setError('');
+            try {
+                const respuesta = await listarConfiguracion();
+                const data = respuesta.data ?? [];
+                setParametros(data);
+                setValores(Object.fromEntries(data.map((item) => [item.codigo, item.valor])));
+            } catch (err) {
+                setError(err instanceof ErrorHttp ? err.message : 'No se pudo cargar la configuración.');
+            } finally {
+                setCargando(false);
+            }
+        })();
+    }, []);
+
+    function actualizar(codigo, valor) {
+        setGuardado(false);
+        setValores((actuales) => ({ ...actuales, [codigo]: valor }));
+    }
+
+    async function guardar() {
+        setGuardando(true);
+        setError('');
+        try {
+            const normalizados = Object.fromEntries(
+                parametros.map((item) => {
+                    const valor = valores[item.codigo];
+                    if (item.tipo === 'BOOLEANO') return [item.codigo, valor ? '1' : '0'];
+                    return [item.codigo, valor == null ? '' : String(valor)];
+                }),
+            );
+            const respuesta = await guardarConfiguracion(normalizados);
+            const data = respuesta.data ?? [];
+            setParametros(data);
+            setValores(Object.fromEntries(data.map((item) => [item.codigo, item.valor])));
+            setGuardado(true);
+        } catch (err) {
+            setError(err instanceof ErrorHttp ? err.message : 'No se pudo guardar la configuración.');
+        } finally {
+            setGuardando(false);
+        }
+    }
+
+    return (
+        <div className="hc-page space-y-5">
+            <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                    <p className="hc-kicker">Sistema</p>
+                    <h1 className="hc-page-title">Configuración</h1>
+                    <p className="hc-page-subtitle">Parámetros institucionales de la clínica odontológica UNDAC.</p>
+                </div>
+                <button type="button" className="hc-button hc-button--primary" onClick={guardar} disabled={guardando || cargando}>
+                    {guardado ? <Check size={17} /> : <Save size={17} />}
+                    {guardando ? 'Guardando…' : guardado ? 'Cambios guardados' : 'Guardar configuración'}
+                </button>
+            </header>
+
+            <div className="hc-inline-callout">
+                <span><Settings2 size={20} /></span>
+                <div>
+                    <strong>Parámetros del sistema</strong>
+                    <small>Los valores se persisten en la base de datos y quedan auditados.</small>
+                </div>
+            </div>
+
+            {error && <p className="hc-inline-callout" role="alert">{error}</p>}
+            {cargando && <p role="status">Cargando configuración…</p>}
+
+            {!cargando && (
+                <section className="hc-settings-grid">
+                    {parametros.map((item) => {
+                        const Icono = ICONOS[item.codigo] ?? Settings2;
+                        return (
+                            <article className="hc-panel-card hc-settings-card" key={item.codigo}>
+                                <div className="hc-settings-card__title">
+                                    <span><Icono size={19} /></span>
+                                    <div>
+                                        <h2>{item.nombre}</h2>
+                                        <p>{item.descripcion || item.codigo}</p>
+                                    </div>
+                                </div>
+                                {item.tipo === 'BOOLEANO' ? (
+                                    <div className="hc-toggle-list">
+                                        <label>
+                                            <span>
+                                                <strong>{item.nombre}</strong>
+                                                <small>{item.descripcion}</small>
+                                            </span>
+                                            <input
+                                                type="checkbox"
+                                                checked={Boolean(valores[item.codigo])}
+                                                onChange={(evento) => actualizar(item.codigo, evento.target.checked)}
+                                            />
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <div className="hc-settings-fields">
+                                        <label>
+                                            Valor
+                                            <input
+                                                value={valores[item.codigo] ?? ''}
+                                                onChange={(evento) => actualizar(item.codigo, evento.target.value)}
+                                            />
+                                        </label>
+                                    </div>
+                                )}
+                            </article>
+                        );
+                    })}
+                </section>
+            )}
+        </div>
+    );
 }
