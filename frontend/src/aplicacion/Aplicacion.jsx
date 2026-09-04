@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import PaginaAcceso from './paginas/PaginaAcceso';
 import AppLayout from './disenos/AppLayout';
-import { MENU_POR_ROL } from './configuracion/menuPorRol';
+import { MENU_POR_ROL, perfilDesdeRoles } from './configuracion/menuPorRol';
+import { useSesion } from './autenticacion/ContextoSesion';
+import { puedeVerRuta } from './autenticacion/rutasProtegidas';
+import AccesoDenegado from './paginas/AccesoDenegado';
 import DashboardApp from './paginas/DashboardApp';
 import PacientesApp from './paginas/PacientesApp';
 import HistoriasApp from './paginas/HistoriasApp';
@@ -43,10 +46,16 @@ const VIEW_COMPONENTS = {
     'mis-seguimientos': SeguimientoApp,
 };
 
+function PantallaCargandoSesion() {
+    return (
+        <main className="pantalla-sesion" role="status" aria-live="polite">
+            <p>Verificando tu sesión…</p>
+        </main>
+    );
+}
+
 export default function Aplicacion() {
-    const [pantalla, establecerPantalla] = useState('acceso');
-    const [perfil, establecerPerfil] = useState('alumno');
-    const [usuario, establecerUsuario] = useState({ nombre: 'María Quispe' });
+    const sesion = useSesion();
     const [route, setRoute] = useState('inicio');
     const [openHistoriaId, setOpenHistoriaId] = useState(null);
     const [openSection, establecerSeccionAbierta] = useState('datos-paciente');
@@ -97,34 +106,40 @@ export default function Aplicacion() {
         document.body.scrollTop = 0;
     }, [route]);
 
-    if (pantalla === 'acceso') {
+    if (sesion.cargando) {
+        return <PantallaCargandoSesion />;
+    }
+
+    if (!sesion.autenticado) {
         return (
             <PaginaAcceso
-                alIngresar={(identidad) => {
-                    establecerPerfil(identidad?.rol ?? 'alumno');
-                    establecerUsuario({ nombre: identidad?.nombre ?? 'Usuario institucional' });
-                    setRoute('inicio');
-                    establecerPantalla('panel');
+                enviando={sesion.enviando}
+                error={sesion.error}
+                alIngresar={async (credenciales) => {
+                    if (await sesion.iniciarSesion(credenciales)) setRoute('inicio');
                 }}
             />
         );
     }
 
-    const menu = MENU_POR_ROL[perfil] ?? MENU_POR_ROL.alumno;
-    const ComponenteVista = VIEW_COMPONENTS[route] ?? VistaNoDisponible;
+    const perfil = perfilDesdeRoles(sesion.roles);
+    const menu = MENU_POR_ROL[perfil] ?? MENU_POR_ROL.administrativo;
+    const ComponenteVista = puedeVerRuta(route, sesion)
+        ? VIEW_COMPONENTS[route] ?? VistaNoDisponible
+        : AccesoDenegado;
 
     return (
         <AppLayout
             menu={menu}
-            usuario={usuario}
+            usuario={sesion.usuario}
             rol={perfil}
             activo={route}
             onNavigate={navigate}
-            onLogout={() => establecerPantalla('acceso')}
+            onLogout={() => sesion.cerrarSesion()}
         >
             <ComponenteVista
                 rol={perfil}
-                usuario={usuario}
+                usuario={sesion.usuario}
                 tipo={route === 'pendientes' ? 'pendientes' : 'seguimiento'}
                 historiaId={openHistoriaId}
                 seccionInicial={openSection}
