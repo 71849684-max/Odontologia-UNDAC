@@ -18,6 +18,19 @@
     --ou-radius-md: 16px;
     --ou-radius-lg: 26px;
 
+    /* Escala única de capas: evita que menús, overlays y modales compitan con
+       encabezados sticky internos de la historia clínica. */
+    --ou-z-content: 1;
+    --ou-z-sticky: 20;
+    --ou-z-clinical-nav: 60;
+    --ou-z-header: 100;
+    --ou-z-popover: 200;
+    --ou-z-overlay: 300;
+    --ou-z-drawer: 400;
+    --ou-z-floating: 500;
+    --ou-z-toast: 600;
+    --ou-z-modal: 1000;
+
     /* Alias semánticos compartidos por las vistas nuevas y las existentes. */
     --color-primary: var(--ou-navy-950);
     --color-secondary: var(--ou-navy-700);

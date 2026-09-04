@@ -20,13 +20,13 @@ const ICONOS = {
 };
 
 export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected }) {
-    const [gruposAbiertos, setGruposAbiertos] = useState(() => new Set(
-        menu.filter((item) => item.children?.some((child) => child.id === activo)).map((item) => item.id),
+    const [grupoAbierto, setGrupoAbierto] = useState(() => (
+        menu.find((item) => item.children?.some((child) => child.id === activo))?.id ?? null
     ));
 
     useEffect(() => {
         const padreActivo = menu.find((item) => item.children?.some((child) => child.id === activo));
-        if (padreActivo) setGruposAbiertos((actuales) => new Set(actuales).add(padreActivo.id));
+        setGrupoAbierto(padreActivo?.id ?? null);
     }, [activo, menu]);
 
     function seleccionar(id) {
@@ -35,11 +35,7 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected 
     }
 
     function alternarGrupo(id) {
-        setGruposAbiertos((actuales) => {
-            const siguientes = new Set(actuales);
-            siguientes.has(id) ? siguientes.delete(id) : siguientes.add(id);
-            return siguientes;
-        });
+        setGrupoAbierto((actual) => actual === id ? null : id);
     }
 
     return (
@@ -50,7 +46,7 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected 
                     {menu.map((item) => {
                         const Icono = ICONOS[item.id] ?? ClipboardList;
                         const tieneHijos = Boolean(item.children?.length);
-                        const abierto = gruposAbiertos.has(item.id);
+                        const abierto = grupoAbierto === item.id;
                         const grupoActivo = item.children?.some((sub) => sub.id === activo);
                         return (
                         <li key={item.id} className={`menu-item${grupoActivo ? ' tiene-activo' : ''}`}>

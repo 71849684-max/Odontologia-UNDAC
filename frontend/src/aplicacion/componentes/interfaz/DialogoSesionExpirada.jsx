@@ -1,8 +1,17 @@
+import { useEffect, useRef } from 'react';
 import { ClockAlert } from 'lucide-react';
 
 export default function DialogoSesionExpirada({ alVolver }) {
+    const referenciaDialogo = useRef(null);
+
+    useEffect(() => {
+        const dialogo = referenciaDialogo.current;
+        if (dialogo && !dialogo.open) dialogo.showModal();
+        return () => dialogo?.close();
+    }, []);
+
     return (
-        <dialog className="dialogo-sesion" open aria-labelledby="titulo-sesion-expirada">
+        <dialog ref={referenciaDialogo} className="dialogo-sesion" aria-labelledby="titulo-sesion-expirada" onCancel={alVolver}>
             <span className="dialogo-sesion__icono" aria-hidden="true">
                 <ClockAlert size={25} />
             </span>

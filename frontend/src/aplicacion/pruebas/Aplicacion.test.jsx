@@ -39,7 +39,10 @@ test('el sidebar despliega grupos y todas las vistas administrativas muestran co
     await usuario.click(screen.getByRole('button', { name: 'Pacientes' }));
     expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();
 
-    await usuario.click(screen.getByRole('button', { name: 'Administración' }));
+    const administracion = screen.getByRole('button', { name: 'Administración' });
+    await usuario.click(administracion);
+    expect(gestion).toHaveAttribute('aria-expanded', 'false');
+    expect(administracion).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Usuarios' }));
     expect(screen.getByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Permisos por usuario' }));
@@ -47,7 +50,10 @@ test('el sidebar despliega grupos y todas las vistas administrativas muestran co
     await usuario.click(screen.getByRole('button', { name: 'Auditoría' }));
     expect(screen.getByRole('heading', { name: 'Auditoría del sistema' })).toBeInTheDocument();
 
-    await usuario.click(screen.getByRole('button', { name: 'Sistema' }));
+    const sistema = screen.getByRole('button', { name: 'Sistema' });
+    await usuario.click(sistema);
+    expect(administracion).toHaveAttribute('aria-expanded', 'false');
+    expect(sistema).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Configuración' }));
     expect(screen.getByRole('heading', { name: 'Configuración' })).toBeInTheDocument();
 });

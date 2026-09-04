@@ -4,7 +4,7 @@ Fecha: 3 de septiembre de 2026
 
 ## Alcance
 
-Optimización exclusiva de la interfaz React/Vite del Sistema de Historia Clínica Digital Odontológica UNDAC. No se modificó backend, base de datos, endpoints ni persistencia.
+Optimización de la interfaz React/Vite del Sistema de Historia Clínica Digital Odontológica UNDAC. En la revisión adicional solicitada se actualizaron también los scripts de propuesta de base de datos de la carpeta de documentación; no se modificó el backend, no se ejecutaron scripts contra una base ni se publicó el proyecto.
 
 ## Archivos creados
 
@@ -70,6 +70,16 @@ Esta regla es exclusivamente presentacional y debe sustituirse por el rol devuel
 - Historia clínica verificada con sus 17 secciones institucionales.
 - Responsive medido en 1920, 1440, 1366, 1024, 768, 480 y 375 px sin overflow horizontal.
 - Drawer móvil verificado: overlay, tecla Escape y cierre automático al seleccionar una opción.
+
+## Revisión adicional de capas, acordeón y propuesta de datos
+
+- Se centralizó la escala de `z-index` y se corrigió el contexto de apilamiento que dejaba las notificaciones debajo de la cabecera clínica.
+- El diálogo de sesión expirada usa ahora la capa modal nativa del navegador.
+- El sidebar funciona como acordeón exclusivo: al abrir Gestión clínica, Administración o Sistema se cierra el grupo anterior.
+- La prueba de navegación comprueba explícitamente el cierre del acordeón anterior.
+- Se revisaron y corrigieron los scripts MariaDB y SQL Server de la carpeta `documentos`; el informe detallado está en `03_revision_bd_historia_clinica.md`.
+- Las dos variantes mantienen paridad de 63 tablas e incluyen los 24 ítems institucionales del cuestionario.
+- Verificación visual local: el desplegable de notificaciones queda por encima de la navegación sticky de la historia clínica.
 
 ## Pendientes de backend
 
