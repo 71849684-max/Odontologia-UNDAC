@@ -1,7 +1,6 @@
 import { CalendarDays, ClipboardCheck, ClipboardPlus, FileText, Search, ShieldCheck, Users } from 'lucide-react';
-import '../../css/aplicacion/historia-clinica.css';
 import { mockHistorias, mockPacientes } from '../configuracion/datosMock.mjs';
-import { ProgressBar, StatusBadge } from '../componentes/clinica/ControlesClinicos.jsx';
+import { ProgressBar, StatusBadge } from '../formularios/compartidos/ControlesClinicos.jsx';
 
 const PERFIL = {
     administrador: {

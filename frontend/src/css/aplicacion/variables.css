@@ -44,3 +44,24 @@
     --color-warning: #9a6b13;
     --color-danger: var(--ou-danger);
 }
+
+:root {
+  --undac-navy: #0b2341;
+  --undac-navy-2: #123b63;
+  --undac-blue: #1f6da8;
+  --undac-cyan: #1aa0b8;
+  --undac-teal: #168b8f;
+  --undac-bg: #f4f7fb;
+  --undac-card: #ffffff;
+  --undac-text: #1b2a3a;
+  --undac-muted: #66778a;
+  --undac-line: #dfe7ef;
+  --undac-line-strong: #cdd9e5;
+  --undac-success: #14835f;
+  --undac-warning: #b97808;
+  --undac-danger: #b44444;
+  --undac-shadow: 0 12px 34px rgba(22, 48, 79, .08);
+  --undac-radius: 16px;
+  --undac-radius-sm: 10px;
+  --undac-focus: 0 0 0 3px rgba(31, 109, 168, .22);
+}

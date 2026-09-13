@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, test, vi } from 'vitest';
 import { ingresar, renderizarAplicacion, SESIONES } from './ayudas/sesionDePrueba';
@@ -53,7 +53,7 @@ test('muestra primero el acceso sin selector manual de perfil', async () => {
 
     expect(screen.getByRole('heading', { name: /historia clínica digital/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/perfil de demostración/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/perfil institucional/i)).toBeInTheDocument();
+    expect(screen.queryByText(/perfil institucional/i)).not.toBeInTheDocument();
 });
 
 test('el rol lo entrega el backend y permite cerrar sesión', async () => {
@@ -111,4 +111,33 @@ test('el sidebar despliega grupos y todas las vistas administrativas muestran co
     expect(sistema).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Configuración' }));
     expect(screen.getByRole('heading', { name: 'Configuración' })).toBeInTheDocument();
+});
+
+test('sincroniza la navegación con la URL y permite volver desde el breadcrumb', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Gestión clínica' }));
+    await usuario.click(screen.getByRole('button', { name: 'Pacientes' }));
+
+    expect(window.location.hash).toBe('#/pacientes');
+    expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();
+
+    const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
+    await usuario.click(within(breadcrumb).getByRole('button', { name: 'Inicio' }));
+
+    expect(window.location.hash).toBe('#/inicio');
+    expect(screen.getByRole('heading', { name: /carlos/i })).toBeInTheDocument();
+});
+
+test('abre una vista enlazada directamente desde la URL', async () => {
+    window.history.replaceState({}, '', '#/auditoria');
+    obtenerSesion.mockResolvedValue(SESIONES.administrador);
+
+    await renderizarAplicacion();
+
+    expect(await screen.findByRole('heading', { name: 'Auditoría del sistema' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'true');
 });

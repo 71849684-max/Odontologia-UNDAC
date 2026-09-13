@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import AgendaSeguimientos from '../componentes/modulos/AgendaSeguimientos';
 import BibliotecaRecursos from '../componentes/modulos/BibliotecaRecursos';
 import CronologiaEventos from '../componentes/modulos/CronologiaEventos';
-import PanelConfiguracion from '../componentes/modulos/PanelConfiguracion';
+import PanelConfiguracion from '../formularios/configuracion-panel/PanelConfiguracion.jsx';
 import TablaRegistros from '../componentes/modulos/TablaRegistros';
 
 test('presenta registros con encabezados semánticos', () => {

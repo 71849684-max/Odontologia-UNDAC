@@ -1,0 +1,89 @@
+.hc-admission { --admission-teal: #079b94; }
+.hc-admission .undac-section-card { border: 1px solid #dce6ef; border-radius: 14px; overflow: hidden; box-shadow: 0 3px 16px #183c5b03; }
+.hc-admission .undac-section-card__header { padding: 18px 22px; background: #f8fbfd; }
+.hc-admission .undac-section-card__body { padding: 22px; }
+.hc-admission .undac-section-card__header p { margin-left: 34px; }
+.hc-admission-title { display: flex; gap: 10px; align-items: center; font-weight: 700; }
+.hc-admission-title > svg { box-sizing: content-box; padding: 6px; color: white; background: var(--admission-teal); border-radius: 6px; flex-shrink: 0; }
+.hc-admission > section:nth-child(2) .hc-admission-title > svg { background: #008dca; }
+.hc-companion-card .hc-admission-title > svg { background: #7160cd; }
+.hc-admission-badge { padding: 4px 8px; border: 1px solid #b7e7dc; border-radius: 5px; color: #087d71; background: #effcf8; font-size: 11px; }
+.hc-admission-group { display: flex; align-items: center; gap: 7px; margin: 24px 0 16px; padding-top: 20px; border-top: 1px solid #edf1f5; font-size: 11px; font-weight: 750; letter-spacing: .035em; text-transform: uppercase; color: #173854; }
+.hc-admission-group svg { color: var(--admission-teal); }
+.hc-patient-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.hc-patient-grid > * { min-width: 0; }
+.hc-patient-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hc-patient-grid--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.hc-patient-grid--birth { grid-template-columns: 1fr .5fr 1.5fr; }
+.hc-patient-grid > .hc-span-two { grid-column: span 2; }
+.hc-patient-grid > .hc-span-full { grid-column: 1 / -1; }
+.hc-admission-row { margin-top: 16px; }
+.hc-admission .undac-field input, .hc-admission .undac-field select { height: 39px; border-radius: 7px; font-size: 13px; }
+.hc-admission .undac-field > span, .hc-admission .undac-choice legend { font-size: 11px; font-weight: 600; color: #21415c; }
+.hc-admission input:focus-visible, .hc-admission select:focus-visible { outline: 2px solid #079b9480; outline-offset: 2px; }
+.hc-admission .undac-choice__options span { min-height: 39px; border-radius: 7px; }
+.hc-admission .undac-choice__options input:checked + span { border-color: #079b94; background: #effbf8; color: #077b76; }
+.hc-patient-grid input[readonly], .hc-patient-grid select:disabled { background: #f3f6f9; color: #53677d; }
+.hc-personal-search__input { position: relative; }
+.hc-personal-search__input > svg { position: absolute; left: 12px; bottom: 12px; color: #94a8bc; }
+.hc-admission .hc-personal-search__input input { padding-left: 36px; padding-right: 100px; }
+.hc-personal-change { position: absolute; right: 7px; bottom: 7px; padding: 5px 12px; border: 0; border-radius: 5px; color: white; background: #078e88; font-size: 12px; cursor: pointer; }
+.hc-personal-search__results { margin-top: 10px; border: 1px solid #d6e2ef; border-radius: 8px; overflow: hidden; }
+.hc-personal-search__results button { display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 12px 16px; text-align: left; color: inherit; background: white; border: 0; cursor: pointer; }
+.hc-personal-search__results button:hover, .hc-personal-search__results button:focus-visible { background: #eef7fb; }
+.hc-personal-search__results p { margin: 12px 16px; font-size: 13px; }
+.hc-personal-search__results span { font-size: 12px; }
+.hc-operator-summary { margin-top: 16px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; color: white; background: linear-gradient(110deg, #2c6764, #10263e); border-radius: 11px; }
+.hc-operator-identity { display: flex; align-items: center; gap: 12px; flex: 1 1 230px; }
+.hc-operator-avatar { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; background: #ffffff0d; border: 1px solid #61c9c466; border-radius: 8px; color: #78e5db; }
+.hc-operator-identity strong { display: block; font-size: 14px; }
+.hc-operator-identity small { display: block; margin-top: 5px; font-size: 11px; color: #d3e9ef; }
+.hc-operator-role { display: inline-block; margin-top: 5px; padding: 2px 7px; border: 1px solid #78e5db44; border-radius: 4px; font-size: 10px; color: #b4fff3; }
+.hc-operator-summary dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 20px; flex: 2 1 400px; margin: 0; }
+.hc-operator-summary dl > div { border-left: 1px solid #ffffff1f; padding-left: 14px; min-width: 0; }
+.hc-operator-summary dt { color: #a9e2e3; text-transform: uppercase; font-size: 9px; letter-spacing: .035em; }
+.hc-operator-summary dd { margin: 5px 0 0; font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+.hc-operator-empty { display: flex; gap: 10px; align-items: center; margin-top: 16px; padding: 18px; background: #f4f9fa; border: 1px dashed #cbdfe2; border-radius: 8px; color: #607e87; font-size: 12px; }
+.hc-attendance .undac-choice__options { display: grid; grid-template-columns: 1fr 1fr; }
+.hc-attendance .undac-choice__options label, .hc-attendance .undac-choice__options span { width: 100%; }
+.hc-attendance .undac-choice__options span { padding: 15px; }
+.hc-parental { margin-top: 22px; padding: 16px; background: #f6f9fc; border: 1px solid #e0e8f0; border-radius: 10px; }
+.hc-parental .hc-admission-group { border: 0; padding: 0; margin: 0 0 16px; }
+.hc-parental-person { padding: 16px; background: white; border: 1px solid #e1e8f0; border-radius: 8px; }
+.hc-parental-person h5 { margin: 0 0 14px; color: #25445f; font-size: 12px; }
+.hc-admission-note { display: flex; align-items: center; gap: 10px; padding: 15px; margin: 16px 0 0; background: #f0faf8; color: #36716b; border-radius: 8px; font-size: 12px; }
+.hc-admission-note svg { flex-shrink: 0; }
+
+/* El ancho útil del formulario determina la distribución, incluidas las barras laterales y el zoom. */
+.undac-hc-main--admission { container: admission-main / inline-size; background: #f3f7fb; }
+.undac-hc-main--admission > .undac-hc-content { width: 100%; max-width: none; min-width: 0; }
+.hc-admission { width: 100%; min-width: 0; align-items: start; }
+.hc-admission > .undac-section-card { min-width: 0; container: admission-card / inline-size; }
+.hc-patient-grid--residence { grid-template-columns: 2fr 1fr 1fr; }
+.hc-operator-identity > div { min-width: 0; overflow-wrap: anywhere; }
+.hc-operator-summary dl { min-width: 0; }
+@container admission-main (min-width: 1500px) {
+  .hc-admission { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; }
+  .hc-admission > .undac-section-card:first-child { grid-column: 1 / -1; }
+}
+@container admission-card (min-width: 1100px) {
+  .hc-operator-summary { flex-wrap: nowrap; padding: 16px 20px; }
+  .hc-operator-identity { flex: 0 1 270px; }
+  .hc-operator-summary dl { grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: center; flex: 1; }
+}
+@container admission-card (max-width: 850px) {
+  .hc-patient-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hc-parental > .hc-patient-grid--two { grid-template-columns: 1fr; }
+  .hc-patient-grid--residence { grid-template-columns: 1fr 1fr; }
+  .hc-patient-grid--residence > :first-child { grid-column: 1 / -1; }
+  .hc-operator-summary { gap: 16px; }
+}
+@container admission-card (max-width: 560px) {
+  .hc-admission .undac-section-card__header, .hc-admission .undac-section-card__body { padding: 16px; }
+  .hc-patient-grid, .hc-attendance .undac-choice__options { grid-template-columns: 1fr; }
+  .hc-patient-grid > .hc-span-two { grid-column: auto; }
+  .hc-operator-summary dl { grid-template-columns: repeat(2, minmax(0, 1fr)); flex-basis: 100%; gap: 12px; }
+  .hc-operator-identity { flex-basis: 100%; }
+  .hc-parental { padding: 12px; }
+  .hc-admission-title { align-items: flex-start; }
+}

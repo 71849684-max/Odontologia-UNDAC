@@ -1,0 +1,92 @@
+/* Apariencia de la referencia Stitch; conserva las cuadrículas responsive. */
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/inter/inter-400.ttf') format('truetype'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/inter/inter-500.ttf') format('truetype'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/inter/inter-600.ttf') format('truetype'); }
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/inter/inter-700.ttf') format('truetype'); }
+
+.hc-main, .barra-lateral--hc, .hc-clinical-shell {
+  font-family: 'Inter', Arial, sans-serif;
+  --undac-navy: #0a192f;
+  --undac-text: #1e293b;
+  --undac-muted: #64748b;
+  --undac-teal: #0d9488;
+  --undac-cyan: #14b8a6;
+  --undac-line: #e2e8f0;
+  --undac-line-strong: #cbd5e1;
+  --undac-focus: 0 0 0 3px #14b8a626;
+}
+.barra-lateral--hc { background: #0b1e36; color: #cbd5e1; }
+.barra-lateral--hc .marca-hc { font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+.barra-lateral--hc .marca-hc { display: flex; align-items: center; gap: 10px; }
+.marca-hc__icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 1px solid #14b8a633; border-radius: 7px; color: #2dd4bf; background: #14b8a60d; }
+.marca-hc__text { display: grid; gap: 3px; }
+.marca-hc__text small { color: #2dd4bf; font-size: 9px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; }
+.barra-lateral--hc .menu-item > button { font-weight: 500; color: #cbd5e1; border-radius: 6px; }
+.barra-lateral--hc .menu-item.tiene-activo > button { background: transparent; color: #94a3b8; }
+.barra-lateral--hc .menu-item.tiene-activo > button > svg:first-child { color: #2dd4bf; }
+.barra-lateral--hc .submenu { border-left: 1px solid #1e293b; padding-left: 10px; }
+.barra-lateral--hc .submenu button { color: #94a3b8; border: 1px solid transparent; border-radius: 6px; font-weight: 400; }
+.barra-lateral--hc .submenu button.esta-activo { color: #5eead4; background: #14b8a61a; border-color: #14b8a633; box-shadow: none; font-weight: 600; }
+.barra-lateral--hc .menu-item > button:hover, .barra-lateral--hc .submenu button:hover { background: #1e293b99; color: white; }
+.barra-lateral--hc .barra-footer { color: #64748b; border-color: #1e293b; }
+
+.hc-clinical-shell { border-color: #e2e8f0; border-radius: 10px; box-shadow: none; }
+.hc-clinical-shell .undac-hc-header { background: white; border-color: #e2e8f0; border-radius: 10px 10px 0 0; }
+.hc-clinical-shell .undac-hc-header__patient h1 { color: #0a192f; font-weight: 700; }
+.hc-clinical-shell .undac-hc-header .undac-avatar { border-radius: 10px; background: #0d9488; color: white; font-weight: 700; }
+.hc-clinical-shell .hc-section-nav { background: white; }
+.hc-clinical-shell .hc-section-nav .undac-hc-nav__group button { border-radius: 6px; }
+.hc-clinical-shell .hc-section-nav .undac-hc-nav__group button.is-active { color: #115e59; background: #f0fdfa; box-shadow: inset 3px 0 0 #0d9488; }
+.hc-clinical-shell .hc-section-nav .undac-hc-nav__group button.is-active .undac-hc-nav__num { background: #0d9488; color: white; }
+.hc-clinical-shell .undac-hc-nav__label { font-size: 11px; font-weight: 400; }
+.hc-clinical-shell .undac-hc-nav__group button.is-active .undac-hc-nav__label { font-weight: 600; }
+.hc-clinical-shell .undac-hc-nav__num { border-radius: 4px; color: #475569; background: #f1f5f9; }
+.hc-clinical-shell .undac-hc-nav__group-title { color: #94a3b8; font-weight: 600; letter-spacing: .035em; }
+.hc-clinical-shell .undac-hc-nav__group button.is-complete .undac-hc-nav__state { color: #0d9488; }
+.hc-clinical-shell .undac-progress__track { background: #e2e8f0; }
+.hc-clinical-shell .undac-progress__track > span { background: #0d9488; }
+.hc-clinical-shell .undac-status--en-proceso { color: #0f766e; background: #f0fdfa; border-color: #99f6e4; }
+.hc-clinical-shell .undac-btn--primary { color: white; background: #0d9488; border-color: #0d9488; box-shadow: none; }
+.hc-clinical-shell .undac-btn--primary:hover { background: #0f766e; border-color: #0f766e; }
+.hc-clinical-shell .undac-btn--secondary { background: white; color: #334155; border-color: #cbd5e1; box-shadow: none; }
+.hc-clinical-shell .undac-btn { border-radius: 6px; font-family: inherit; }
+.hc-clinical-shell .undac-savebar { border-color: #e2e8f0; box-shadow: 0 -2px 10px #0a192f05; }
+.hc-clinical-shell .undac-hc-main--admission { background: #f1f5f9; }
+.hc-clinical-shell .undac-hc-main--admission .undac-hc-main__heading { padding: 20px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; }
+.hc-clinical-shell .undac-hc-main--admission .undac-hc-main__heading h2 { color: #0a192f; font-size: clamp(22px, 1.5vw, 28px); font-weight: 700; letter-spacing: -.025em; }
+.hc-clinical-shell .undac-hc-main__academic { background: #f8fafc; border-color: #e2e8f0; border-radius: 6px; }
+.hc-clinical-shell .undac-hc-main__academic span { color: #0f766e; font-weight: 600; }
+.hc-clinical-shell .undac-hc-main__academic b { color: #94a3b8; font-weight: 500; }
+
+.hc-clinical-shell .hc-admission { --admission-teal: #0d9488; color: #1e293b; }
+.hc-clinical-shell .hc-admission > .undac-section-card { border-color: #e2e8f0; border-radius: 10px; box-shadow: none; background: white; }
+.hc-clinical-shell .hc-admission .undac-section-card__header { background: #f8fafc; padding: 16px 20px; border-color: #e2e8f0; }
+.hc-clinical-shell .hc-admission .undac-section-card__header h3 { font-size: 13px; font-weight: 600; color: #0a192f; }
+.hc-clinical-shell .hc-admission .undac-section-card__header p { margin-top: 3px; margin-left: 32px; font-size: 11px; color: #64748b; }
+.hc-clinical-shell .hc-admission .hc-admission-title { gap: 8px; font-weight: 600; }
+.hc-clinical-shell .hc-admission .hc-admission-title > svg { width: 16px; height: 16px; padding: 4px; border-radius: 4px; }
+.hc-clinical-shell .hc-admission > section:nth-child(2) .hc-admission-title > svg { background: #0284c7; }
+.hc-clinical-shell .hc-companion-card .hc-admission-title > svg { background: #4f46e5; }
+.hc-clinical-shell .hc-admission .undac-section-card__body { padding: 20px; }
+.hc-clinical-shell .hc-admission .undac-field > span, .hc-clinical-shell .hc-admission .undac-choice legend { color: #334155; font-weight: 500; font-size: 11px; }
+.hc-clinical-shell .hc-admission .undac-field input, .hc-clinical-shell .hc-admission .undac-field select { height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; color: #334155; font-size: 12px; font-weight: 400; box-shadow: none; }
+.hc-clinical-shell .hc-admission .undac-field input::placeholder { color: #94a3b8; }
+.hc-clinical-shell .hc-admission input[readonly], .hc-clinical-shell .hc-admission select:disabled { background: #f1f5f9; color: #64748b; }
+.hc-clinical-shell .hc-admission input:focus-visible, .hc-clinical-shell .hc-admission select:focus-visible { border-color: #14b8a6; outline: 2px solid #14b8a633; }
+.hc-clinical-shell .hc-admission .hc-admission-group { border-color: #f1f5f9; color: #0a192f; font-weight: 600; font-size: 11px; }
+.hc-clinical-shell .hc-admission .undac-choice__options span { border-color: #e2e8f0; color: #475569; border-radius: 6px; font-weight: 400; font-size: 11px; }
+.hc-clinical-shell .hc-admission .undac-choice__options input:checked + span { color: #0f766e; border-color: #14b8a6; background: #f0fdfa; box-shadow: none; }
+.hc-clinical-shell .hc-attendance .undac-choice__options span::before { content: ''; width: 12px; height: 12px; flex-shrink: 0; margin-right: 9px; border: 2px solid #cbd5e1; border-radius: 50%; }
+.hc-clinical-shell .hc-attendance .undac-choice__options input:checked + span::before { border-color: #0d9488; background: #0d9488; box-shadow: inset 0 0 0 2px white; }
+.hc-clinical-shell .hc-admission .hc-personal-change { background: #0d9488; border-radius: 4px; font-weight: 600; }
+.hc-clinical-shell .hc-admission .hc-operator-summary { background: linear-gradient(110deg, #2c6764, #0b1e36); border-radius: 8px; }
+.hc-clinical-shell .hc-admission .hc-admission-badge { border-color: #a7f3d0; color: #0f766e; background: #f0fdfa; border-radius: 3px; }
+.hc-clinical-shell .hc-admission .hc-parental { border-color: #e2e8f0; background: #f8fafc; border-radius: 8px; }
+.hc-clinical-shell .hc-admission .hc-parental-person { border-color: #e2e8f0; border-radius: 6px; }
+.hc-clinical-shell .hc-admission .hc-parental-person h5 { color: #334155; font-weight: 600; }
+.hc-clinical-shell ::-webkit-scrollbar { width: 6px; height: 6px; }
+.hc-clinical-shell ::-webkit-scrollbar-track { background: #f1f5f9; }
+.hc-clinical-shell ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+@media (max-width: 560px) {
+  .hc-clinical-shell .hc-admission .undac-section-card__header, .hc-clinical-shell .hc-admission .undac-section-card__body { padding: 16px; }
+}

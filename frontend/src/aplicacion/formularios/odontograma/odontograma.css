@@ -1,0 +1,93 @@
+/* NTS 188: selección gris; rojo y azul reservados a los hallazgos clínicos. */
+.nts-odontogram { min-width: 0; }
+.nts-notice { padding: 12px 14px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 8px; color: #475569; font-size: 12px; line-height: 1.6; }
+.nts-record-toolbar, .nts-metadata { display: grid; grid-template-columns: 2fr 2fr 1fr; align-items: end; gap: 14px; margin: 18px 0; }
+.nts-metadata { grid-template-columns: 1fr 2fr 1fr; }
+.nts-odontogram .undac-field > span { font-size: 12px; }
+.nts-odontogram .undac-field input, .nts-odontogram .undac-field select, .nts-odontogram .undac-field textarea { font-size: 14px; min-height: 40px; }
+.nts-guidance, .nts-save-status { font-size: 12px; line-height: 1.6; color: #475569; }
+.nts-error { border-left: 3px solid #dc2626; padding: 10px; color: #991b1b; background: #fff1f2; }
+.nts-chart-scroll { max-width: 100%; overflow-x: auto; border: 1px solid #dbe2e8; border-radius: 8px; background: white; }
+.nts-chart { min-width: 800px; padding: 16px; }
+.nts-orientation { display: flex; justify-content: space-between; font-size: 12px; color: #475569; margin-bottom: 12px; }
+.nts-arch { text-align: center; }
+.nts-arch h4 { font-size: 11px; margin: 12px 0 5px; font-weight: 500; color: #475569; }
+.nts-compact-row { position: relative; display: flex; align-items: flex-start; margin: 0 auto; padding-top: 24px; min-height: 110px; }
+.nts-tooth { width: 48px; flex: 0 0 48px; display: grid; justify-items: center; gap: 5px; border-radius: 9px; padding: 0 2px 6px; }
+.nts-tooth.is-selected { background: #edf1f4; box-shadow: inset 0 0 0 1px #a1adb8; }
+.nts-tooth-number { width: 30px; height: 20px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: #475569; font-size: 11px; font-weight: 750; cursor: pointer; }
+.nts-tooth.is-selected .nts-tooth-number { background: #475569; color: white; }
+.nts-tooth-map { position: relative; width: var(--tooth-size, 42px); height: var(--tooth-size, 42px); border: 1px solid #8fa5b7; border-radius: 22% 22% 30% 30%; background: white; }
+.nts-surface { position: absolute; display: block; border: 1px solid #aebdca; padding: 0; background: white; border-radius: 3px; cursor: pointer; }
+.nts-surface--top { width: 43%; height: 28%; left: 28.5%; top: 3%; }
+.nts-surface--bottom { width: 43%; height: 28%; left: 28.5%; bottom: 3%; }
+.nts-surface--left { width: 28%; height: 43%; left: 3%; top: 28.5%; }
+.nts-surface--right { width: 28%; height: 43%; right: 3%; top: 28.5%; }
+.nts-surface--center { width: 32%; height: 32%; left: 34%; top: 34%; }
+.nts-surface:hover, .nts-surface:focus-visible, .nts-surface.is-selected { outline: 2px solid #475569; outline-offset: 1px; z-index: 1; box-shadow: none; }
+.nts-tooth-map--absent { background: #dbeafe; border-color: #1d4ed8; }
+.nts-tooth-absence { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; fill: none; stroke: white; stroke-width: 6; filter: drop-shadow(0 0 1px #1d4ed8); }
+.nts-tooth-codes { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; min-height: 16px; max-width: 44px; font-size: 9px; font-weight: 750; overflow-wrap: anywhere; }
+.nts-midline { border-left: 1px dashed #94a3b8; }
+.nts-range-overlay { position: absolute; inset: 0; width: 100%; height: 110px; overflow: visible; pointer-events: none; }
+.nts-compact-preview { --tooth-size: 170px; display: grid; justify-content: center; gap: 14px; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; }
+.nts-compact-preview .nts-surface { cursor: default; }
+.nts-row { display: block; margin: 0 auto; overflow: visible; max-width: none; height: 165px; }
+.nts-row [role=button] { cursor: pointer; }
+.nts-row [role=button]:hover, .nts-row [role=button]:focus-visible { fill: #e2e8f0; outline: none; stroke: #475569; stroke-width: 2.5; }
+.nts-occlusal { width: 600px; margin: 8px auto; border-top: 1px dashed #94a3b8; color: #64748b; font-size: 10px; }
+.nts-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; font-size: 12px; line-height: 1.5; }
+.nts-legend span { display: flex; align-items: center; gap: 6px; }
+.nts-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.nts-blue { background: #1d4ed8; }
+.nts-red { background: #dc2626; }
+.nts-editor { display: grid; grid-template-columns: minmax(180px, 260px) 1fr; gap: 28px; }
+.nts-shape-editor svg { width: 100%; max-height: 285px; border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; }
+.nts-shape-editor svg.nts-drawing { touch-action: none; cursor: crosshair; }
+.nts-shape-editor p, .nts-editor-fields p { font-size: 12px; line-height: 1.6; color: #475569; }
+.nts-editor-fields { min-width: 0; display: grid; align-content: start; gap: 12px; border: 0; padding: 0; margin: 0; }
+.nts-editor-fields:disabled { opacity: .7; }
+.nts-findings { margin-top: 22px; font-size: 13px; }
+.nts-findings h4 { font-size: 14px; }
+.nts-findings > div { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+.nts-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.nts-register { margin-top: 16px; overflow-x: auto; font-size: 12px; }
+.nts-register summary { cursor: pointer; padding: 10px 0; }
+.nts-register table { border-collapse: collapse; width: 100%; }
+.nts-register td, .nts-register th { padding: 9px; text-align: left; border-bottom: 1px solid #cbd5e1; overflow-wrap: anywhere; }
+.nts-close { margin-top: 22px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 13px; }
+.nts-close label { display: flex; gap: 8px; align-items: center; }
+.nts-tools { min-width: 0; border: 0; padding: 0; margin: 20px 0 12px; }
+.nts-tools legend { font-size: 13px; font-weight: 650; margin-bottom: 10px; }
+.nts-quick-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+.nts-quick-tools button, .nts-dentition button { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #d5dfe7; border-radius: 8px; padding: 9px 11px; background: white; font-size: 12px; cursor: pointer; }
+.nts-quick-tools button[aria-pressed=true], .nts-dentition button[aria-pressed=true] { border-color: #475569; background: #edf1f4; box-shadow: inset 0 0 0 1px #475569; }
+.nts-tool--inspect { --tool-ink: #475569; --tool-bg: #f1f5f9; --tool-border: #cbd5e1; }
+.nts-tool--caries { --tool-ink: #b91c1c; --tool-bg: #fef2f2; --tool-border: #fecaca; }
+.nts-tool--restoration { --tool-ink: #1d4ed8; --tool-bg: #eff6ff; --tool-border: #bfdbfe; }
+.nts-tool--absent { --tool-ink: #7e22ce; --tool-bg: #faf5ff; --tool-border: #e9d5ff; }
+.nts-tool--extracted { --tool-ink: #c2410c; --tool-bg: #fff7ed; --tool-border: #fed7aa; }
+.nts-tool--fracture { --tool-ink: #92400e; --tool-bg: #fefce8; --tool-border: #fde68a; }
+.nts-tool--sealant { --tool-ink: #047857; --tool-bg: #ecfdf5; --tool-border: #a7f3d0; }
+.nts-tool--erase { --tool-ink: #a21caf; --tool-bg: #fdf4ff; --tool-border: #f5d0fe; }
+.nts-quick-tools .nts-tool { min-height: 44px; gap: 8px; font-weight: 600; color: var(--tool-ink); background: var(--tool-bg); border-color: var(--tool-border); }
+.nts-quick-tools .nts-tool svg { flex: 0 0 20px; }
+.nts-quick-tools .nts-tool:hover:not(:disabled) { border-color: var(--tool-ink); }
+.nts-quick-tools .nts-tool[aria-pressed=true] { color: white; background: var(--tool-ink); border-color: var(--tool-ink); box-shadow: 0 0 0 2px white, 0 0 0 3px var(--tool-ink); }
+.nts-quick-tools .nts-tool:focus-visible { outline: 3px solid #0f172a; outline-offset: 4px; }
+.nts-quick-tools .nts-tool:disabled { cursor: default; opacity: .5; }
+.nts-tool-options { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.nts-tool-options > label { flex: 1 1 200px; max-width: 360px; }
+.nts-more-findings { max-width: 360px; margin-top: 12px; }
+.nts-more-findings summary { cursor: pointer; font-size: 12px; color: #475569; padding: 6px 0; }
+.nts-more-findings[open] summary { margin-bottom: 6px; }
+.nts-dentition { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0; }
+.nts-evaluation-details { margin-top: 12px; }
+.nts-evaluation-details summary, .nts-extra-details summary { cursor: pointer; color: #475569; font-size: 13px; padding: 8px 0; }
+.nts-extra-details .nts-editor-fields { padding-top: 10px; max-width: 620px; }
+.nts-extra-details .nts-shape-editor { max-width: 210px; }
+@media (max-width: 768px) {
+  .nts-record-toolbar, .nts-metadata, .nts-notes { grid-template-columns: 1fr; }
+  .nts-editor { grid-template-columns: 1fr; }
+  .nts-shape-editor { max-width: 260px; margin: auto; }
+}

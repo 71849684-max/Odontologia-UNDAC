@@ -289,45 +289,13 @@
     line-height: 1.4;
 }
 
-.perfil-automatico {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 12px 13px;
-    color: var(--ou-teal-700);
-    border: 1px solid #cce5e6;
-    border-radius: 11px;
-    background: #f3fbfb;
-}
-
-.perfil-automatico > span {
-    display: grid;
-    width: 26px;
-    height: 26px;
-    flex: 0 0 auto;
-    place-items: center;
-    color: #fff;
-    border-radius: 50%;
-    background: var(--ou-teal-700);
-    font-size: 0.75rem;
-    font-weight: 800;
-}
-
-.perfil-automatico p,
-.perfil-automatico strong,
-.perfil-automatico small {
-    display: block;
-    margin: 0;
-}
-
-.perfil-automatico strong { font-size: 0.76rem; }
-.perfil-automatico small { margin-top: 2px; color: var(--ou-muted); font-size: 0.66rem; line-height: 1.4; }
-
 .campo-contrasena {
     position: relative;
+    display: block;
 }
 
 .campo-contrasena input {
+    display: block;
     padding-right: 50px;
 }
 
@@ -335,6 +303,7 @@
     position: absolute;
     top: 50%;
     right: 6px;
+    transform: translateY(-50%);
     display: grid;
     width: 38px;
     height: 38px;
@@ -350,6 +319,10 @@
 .campo-contrasena button:hover {
     color: var(--ou-teal-700);
     background: var(--ou-teal-100);
+}
+
+.campo-contrasena button svg {
+    display: block;
 }
 
 .pantalla-sesion {
@@ -379,6 +352,7 @@
     align-items: center;
     justify-content: flex-end;
     gap: 16px;
+    margin-top: -4px;
     font-size: 0.76rem;
 }
 
@@ -540,36 +514,17 @@
 
 @media (max-width: 560px) {
     .acceso-identidad {
-        padding-top: 22px;
+        display: none;
     }
 
-    .marca-institucional__texto small {
-        max-width: 200px;
-        font-size: 0.61rem;
-    }
-
-    .acceso-identidad__contenido {
-        margin-top: 44px;
-    }
-
-    .beneficios-acceso {
-        grid-template-columns: 1fr;
-    }
-
-    .beneficio-acceso {
-        display: flex;
-    }
-
-    .beneficio-acceso__icono {
-        margin-bottom: 0;
+    .acceso-formulario {
+        min-height: 100vh;
+        min-height: 100svh;
+        padding: 28px 22px 20px;
     }
 
     .acceso-formulario__marca {
         margin-bottom: 34px;
     }
 
-    .opciones-acceso {
-        align-items: flex-start;
-        flex-direction: column;
-    }
 }

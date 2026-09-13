@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import PaginaAcceso from './paginas/PaginaAcceso';
 import AppLayout from './disenos/AppLayout';
 import { MENU_POR_ROL, perfilDesdeRoles } from './configuracion/menuPorRol';
@@ -29,6 +29,40 @@ const routeAliases = {
     'permisos-usuarios': 'permisos-usuarios',
 };
 
+function normalizarRuta(ruta) {
+    return routeAliases[ruta] ?? ruta ?? 'inicio';
+}
+
+function leerDestinoActual() {
+    if (typeof window === 'undefined') {
+        return { ruta: 'inicio', historiaId: null, seccion: 'datos-paciente' };
+    }
+
+    const fragmento = window.location.hash.replace(/^#\/?/, '');
+    if (!fragmento) {
+        return { ruta: 'inicio', historiaId: null, seccion: 'datos-paciente' };
+    }
+
+    const [rutaCodificada, consulta = ''] = fragmento.split('?');
+    let ruta = rutaCodificada;
+    try { ruta = decodeURIComponent(rutaCodificada); } catch { ruta = rutaCodificada; }
+
+    const parametros = new URLSearchParams(consulta);
+    return {
+        ruta: normalizarRuta(ruta),
+        historiaId: parametros.get('historia'),
+        seccion: parametros.get('seccion') ?? 'datos-paciente',
+    };
+}
+
+function crearHashNavegacion(ruta, historiaId = null, seccion = null) {
+    const parametros = new URLSearchParams();
+    if (ruta === 'historia-clinica' && historiaId) parametros.set('historia', historiaId);
+    if (ruta === 'historia-clinica' && seccion && seccion !== 'datos-paciente') parametros.set('seccion', seccion);
+    const consulta = parametros.toString();
+    return `#/${encodeURIComponent(ruta)}${consulta ? `?${consulta}` : ''}`;
+}
+
 const VIEW_COMPONENTS = {
     inicio: DashboardApp,
     pacientes: PacientesApp,
@@ -56,36 +90,55 @@ function PantallaCargandoSesion() {
 
 export default function Aplicacion() {
     const sesion = useSesion();
-    const [route, setRoute] = useState('inicio');
-    const [openHistoriaId, setOpenHistoriaId] = useState(null);
-    const [openSection, establecerSeccionAbierta] = useState('datos-paciente');
+    const [destinoInicial] = useState(leerDestinoActual);
+    const [route, setRoute] = useState(destinoInicial.ruta);
+    const [openHistoriaId, setOpenHistoriaId] = useState(destinoInicial.historiaId);
+    const [openSection, establecerSeccionAbierta] = useState(destinoInicial.seccion);
 
-    function navigate(payload) {
+    const navigate = useCallback((payload, opciones = {}) => {
         if (!payload) return;
 
+        let nextRoute;
+        let historiaId = null;
+        let seccion = 'datos-paciente';
+
         if (typeof payload === 'string') {
-            setRoute(routeAliases[payload] ?? payload);
-            return;
+            nextRoute = normalizarRuta(payload);
         }
 
         if (typeof payload === 'object') {
-            const nextRoute = routeAliases[payload.view ?? payload.id] ?? payload.view ?? payload.id;
-            if (nextRoute) setRoute(nextRoute);
-            if (payload.section) establecerSeccionAbierta(payload.section);
-            if (payload.params?.section) establecerSeccionAbierta(payload.params.section);
-            if (payload.historiaId) setOpenHistoriaId(payload.historiaId);
-            if (payload.params?.historiaId) setOpenHistoriaId(payload.params.historiaId);
+            nextRoute = normalizarRuta(payload.view ?? payload.id);
+            historiaId = payload.historiaId ?? payload.params?.historiaId ?? null;
+            seccion = payload.section ?? payload.params?.section ?? 'datos-paciente';
         }
-    }
+
+        if (!nextRoute) return;
+        setRoute(nextRoute);
+        setOpenHistoriaId(historiaId);
+        establecerSeccionAbierta(seccion);
+
+        if (typeof window !== 'undefined') {
+            const hash = crearHashNavegacion(nextRoute, historiaId, seccion);
+            if (window.location.hash !== hash) {
+                window.history[opciones.reemplazar ? 'replaceState' : 'pushState'](
+                    { ruta: nextRoute },
+                    '',
+                    hash,
+                );
+            }
+        }
+    }, []);
 
     useEffect(() => {
         window.onNavigate = navigate;
 
         function abrirHistoria(event) {
             if (!event.detail?.id) return;
-            setOpenHistoriaId(event.detail.id);
-            if (event.detail.section) establecerSeccionAbierta(event.detail.section);
-            setRoute('historia-clinica');
+            navigate({
+                view: 'historia-clinica',
+                historiaId: event.detail.id,
+                section: event.detail.section,
+            });
         }
 
         function navegarDesdeEvento(event) {
@@ -99,7 +152,29 @@ export default function Aplicacion() {
             window.removeEventListener('hc:navigate', navegarDesdeEvento);
             try { delete window.onNavigate; } catch { window.onNavigate = undefined; }
         };
+    }, [navigate]);
+
+    useEffect(() => {
+        function sincronizarConNavegador() {
+            const destino = leerDestinoActual();
+            setRoute(destino.ruta);
+            setOpenHistoriaId(destino.historiaId);
+            establecerSeccionAbierta(destino.seccion);
+        }
+
+        window.addEventListener('popstate', sincronizarConNavegador);
+        window.addEventListener('hashchange', sincronizarConNavegador);
+        return () => {
+            window.removeEventListener('popstate', sincronizarConNavegador);
+            window.removeEventListener('hashchange', sincronizarConNavegador);
+        };
     }, []);
+
+    useEffect(() => {
+        if (sesion.autenticado && !window.location.hash) {
+            window.history.replaceState({ ruta: route }, '', crearHashNavegacion(route, openHistoriaId, openSection));
+        }
+    }, [sesion.autenticado, route, openHistoriaId, openSection]);
 
     useEffect(() => {
         document.documentElement.scrollTop = 0;
@@ -116,7 +191,7 @@ export default function Aplicacion() {
                 enviando={sesion.enviando}
                 error={sesion.error}
                 alIngresar={async (credenciales) => {
-                    if (await sesion.iniciarSesion(credenciales)) setRoute('inicio');
+                    if (await sesion.iniciarSesion(credenciales)) navigate('inicio', { reemplazar: true });
                 }}
             />
         );
@@ -135,7 +210,10 @@ export default function Aplicacion() {
             rol={perfil}
             activo={route}
             onNavigate={navigate}
-            onLogout={() => sesion.cerrarSesion()}
+            onLogout={() => {
+                navigate('inicio', { reemplazar: true });
+                sesion.cerrarSesion();
+            }}
         >
             <ComponenteVista
                 rol={perfil}
@@ -145,9 +223,7 @@ export default function Aplicacion() {
                 seccionInicial={openSection}
                 onNavigate={navigate}
                 onCreated={(historia) => {
-                    setOpenHistoriaId(historia.id);
-                    establecerSeccionAbierta('datos-paciente');
-                    setRoute('historia-clinica');
+                    navigate({ view: 'historia-clinica', historiaId: historia.id, section: 'datos-paciente' });
                 }}
             />
         </AppLayout>

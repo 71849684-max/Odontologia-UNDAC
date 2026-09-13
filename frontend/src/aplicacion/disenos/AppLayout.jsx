@@ -1,16 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import DisenoPanel from './DisenoPanel';
 import SidebarHC from '../componentes/interfaz/SidebarHC';
 import HeaderBar from '../componentes/interfaz/HeaderBar';
 
 function buscarRuta(menu, id) {
     for (const item of menu ?? []) {
-        if (item.id === id) return [item.etiqueta];
+        if (item.id === id) return [{ etiqueta: item.etiqueta }];
         const child = item.children?.find((sub) => sub.id === id);
-        if (child) return [item.etiqueta, child.etiqueta];
+        if (child) return [
+            { id: 'inicio', etiqueta: 'Inicio' },
+            { etiqueta: item.etiqueta },
+            { etiqueta: child.etiqueta },
+        ];
     }
-    if (id === 'historia-clinica') return ['Gestión clínica', 'Historia clínica'];
-    return ['Vista no disponible'];
+    if (id === 'historia-clinica') return [
+        { id: 'inicio', etiqueta: 'Inicio' },
+        { id: 'historias', etiqueta: 'Historias clínicas' },
+        { etiqueta: 'Historia clínica' },
+    ];
+    return [{ id: 'inicio', etiqueta: 'Inicio' }, { etiqueta: 'Vista no disponible' }];
 }
 
 function menuTieneRuta(menu, id) {
@@ -19,6 +27,7 @@ function menuTieneRuta(menu, id) {
 
 export default function AppLayout({ menu, usuario, rol, activo: activoControlado, onNavigate, onLogout, children }) {
     const [activoInterno, setActivoInterno] = useState(menu?.[0]?.id ?? 'inicio');
+    const contenidoRef = useRef(null);
     const activo = activoControlado ?? activoInterno;
 
     useEffect(() => {
@@ -26,6 +35,10 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
             setActivoInterno(menu?.[0]?.id ?? 'inicio');
         }
     }, [menu, activo]);
+
+    useEffect(() => {
+        contenidoRef.current?.focus({ preventScroll: true });
+    }, [activo]);
 
     function handleSelect(id) {
         setActivoInterno(id);
@@ -49,8 +62,8 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
             }
         >
             <div className="hc-main min-h-screen">
-                <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onLogout={onLogout} />
-                <main className="hc-contenido min-w-0">
+                <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} onLogout={onLogout} />
+                <main ref={contenidoRef} className="hc-contenido min-w-0" tabIndex={-1}>
                     {children}
                 </main>
             </div>

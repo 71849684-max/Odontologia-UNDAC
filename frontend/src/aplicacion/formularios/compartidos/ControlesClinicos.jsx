@@ -30,12 +30,12 @@ export function SectionCard({ title, subtitle, children, actions, className = ''
   );
 }
 
-export function Field({ label, value = '', onChange, type = 'text', placeholder = '', required = false, min, max, step, className = '', help }) {
+export function Field({ label, value = '', onChange, type = 'text', placeholder = '', required = false, min, max, step, className = '', help, readOnly = false, maxLength, inputMode }) {
   const id = React.useId();
   return (
     <label className={`undac-field ${className}`} htmlFor={id}>
       <span>{label}{required ? <em> *</em> : null}</span>
-      <input id={id} type={type} value={value ?? ''} placeholder={placeholder} min={min} max={max} step={step} required={required} onChange={(event) => onChange?.(event.target.value)} />
+      <input id={id} type={type} value={value ?? ''} placeholder={placeholder} min={min} max={max} step={step} required={required} readOnly={readOnly} maxLength={maxLength} inputMode={inputMode} onChange={(event) => onChange?.(event.target.value)} />
       {help ? <small>{help}</small> : null}
     </label>
   );
@@ -52,12 +52,12 @@ export function TextAreaField({ label, value = '', onChange, placeholder = '', r
   );
 }
 
-export function SelectField({ label, value = '', onChange, options = [], placeholder = 'Seleccione', className = '' }) {
+export function SelectField({ label, value = '', onChange, options = [], placeholder = 'Seleccione', className = '', disabled = false }) {
   const id = React.useId();
   return (
     <label className={`undac-field ${className}`} htmlFor={id}>
       <span>{label}</span>
-      <select id={id} value={value ?? ''} onChange={(event) => onChange?.(event.target.value)}>
+      <select id={id} value={value ?? ''} disabled={disabled} onChange={(event) => onChange?.(event.target.value)}>
         <option value="">{placeholder}</option>
         {options.map((option) => {
           const normalized = typeof option === 'string' ? { value: option, label: option } : option;

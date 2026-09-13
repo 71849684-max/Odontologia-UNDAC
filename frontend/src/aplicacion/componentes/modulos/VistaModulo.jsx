@@ -4,7 +4,7 @@ import BarraFiltros from './BarraFiltros';
 import BibliotecaRecursos from './BibliotecaRecursos';
 import CronologiaEventos from './CronologiaEventos';
 import EncabezadoModulo from './EncabezadoModulo';
-import PanelConfiguracion from './PanelConfiguracion';
+import PanelConfiguracion from '../../formularios/configuracion-panel/PanelConfiguracion.jsx';
 import PanelDistribucion from './PanelDistribucion';
 import TablaRegistros from './TablaRegistros';
 

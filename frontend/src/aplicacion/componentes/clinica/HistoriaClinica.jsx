@@ -1,53 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import '../../../css/aplicacion/historia-clinica.css';
 import { clinicalSections } from '../../configuracion/historiaClinica.config.mjs';
-import { createEmptyOdontogram } from '../../configuracion/odontograma.config.mjs';
 import { mockHistoriaMeta, mockHistorias, mockPacientes } from '../../configuracion/datosMock.mjs';
-import { ProgressBar, SaveBar, StatusBadge } from './ControlesClinicos.jsx';
-import Odontograma from './Odontograma.jsx';
-import {
-  DatosPacienteSection,
-  AnamnesisSection,
-  CuestionarioSaludSection,
-  AntecedentesSection,
-  ExamenClinicoSection,
-  ExamenExtraoralSection,
-  ExamenIntraoralSection,
-  OclusionSection,
-  ExamenesAuxiliaresSection,
-  DiagnosticoSection,
-  ModelosSection,
-  PlanTratamientoSection,
-  ConsentimientoSection,
-  CirugiaSection,
-  ReporteOperatorioSection,
-  SeguimientoSection,
-} from './SeccionesClinicas.jsx';
+import { ProgressBar, SaveBar, StatusBadge } from '../../formularios/compartidos/ControlesClinicos.jsx';
+import { componentesSeccion } from '../../formularios/registroFormularios.js';
 
-const componentMap = {
-  'datos-paciente': DatosPacienteSection,
-  anamnesis: AnamnesisSection,
-  'cuestionario-salud': CuestionarioSaludSection,
-  antecedentes: AntecedentesSection,
-  'examen-clinico': ExamenClinicoSection,
-  'examen-extraoral': ExamenExtraoralSection,
-  'examen-intraoral': ExamenIntraoralSection,
-  oclusion: OclusionSection,
-  'examenes-auxiliares': ExamenesAuxiliaresSection,
-  diagnostico: DiagnosticoSection,
-  modelos: ModelosSection,
-  'plan-tratamiento': PlanTratamientoSection,
-  consentimiento: ConsentimientoSection,
-  cirugia: CirugiaSection,
-  'reporte-operatorio': ReporteOperatorioSection,
-  seguimiento: SeguimientoSection,
-};
-
-const navGlyphs = {
-  'datos-paciente': '01', anamnesis: '02', 'cuestionario-salud': '03', antecedentes: '04', 'examen-clinico': '05',
-  'examen-extraoral': '06', 'examen-intraoral': '07', odontograma: '08', oclusion: '09', 'examenes-auxiliares': '10',
-  diagnostico: '11', modelos: '12', 'plan-tratamiento': '13', consentimiento: '14', cirugia: '15', 'reporte-operatorio': '16', seguimiento: '17'
-};
+const navGlyphs = Object.fromEntries(clinicalSections.map((section, index) => [section.id, String(index + 1).padStart(2, '0')]));
 
 export default function HistoriaClinica({ historiaId, initialSection = 'datos-paciente', onExit }) {
   const safeInitial = clinicalSections.some((item) => item.id === initialSection) ? initialSection : 'datos-paciente';
@@ -56,7 +13,6 @@ export default function HistoriaClinica({ historiaId, initialSection = 'datos-pa
   const patientInitials = selectedPatient.nombres.split(' ').slice(0, 2).map((part) => part[0]).join('');
   const [activeSection, setActiveSection] = useState(safeInitial);
   const [formData, setFormData] = useState({});
-  const [odontogram, setOdontogram] = useState(() => createEmptyOdontogram());
   const [completed, setCompleted] = useState(new Set(['datos-paciente','anamnesis','cuestionario-salud','antecedentes','examen-clinico','examen-extraoral']));
   const [savedMessage, setSavedMessage] = useState('');
 
@@ -72,7 +28,7 @@ export default function HistoriaClinica({ historiaId, initialSection = 'datos-pa
 
   const save = () => {
     setCompleted((current) => new Set([...current, activeSection]));
-    setSavedMessage(`“${active.label}” guardado localmente.`);
+    setSavedMessage(activeSection === 'odontograma' ? 'El odontograma conserva cada cambio aplicado en este navegador. Revise los avisos de guardado de la evaluación.' : `“${active.label}” guardado localmente.`);
     window.setTimeout?.(() => setSavedMessage(''), 1800);
   };
 
@@ -83,7 +39,7 @@ export default function HistoriaClinica({ historiaId, initialSection = 'datos-pa
     document.querySelector('.undac-hc-main')?.scrollTo?.({ top: 0, behavior: 'smooth' });
   };
 
-  const ActiveComponent = componentMap[activeSection];
+  const ActiveComponent = componentesSeccion[activeSection];
 
   return (
     <div className="undac-hc-shell hc-clinical-shell">
@@ -109,7 +65,7 @@ export default function HistoriaClinica({ historiaId, initialSection = 'datos-pa
             return <button type="button" key={section.id} className={`${isActive ? 'is-active' : ''} ${isComplete ? 'is-complete' : ''}`} onClick={() => setActiveSection(section.id)} aria-current={isActive ? 'page' : undefined}><span className="undac-hc-nav__num">{navGlyphs[section.id]}</span><span className="undac-hc-nav__label">{section.short}</span><span className="undac-hc-nav__state" aria-label={isComplete ? 'Sección trabajada' : 'Sección pendiente'}>{isComplete ? '✓' : '•'}</span></button>; })}</div>)}
         </aside>
 
-        <main className="undac-hc-main">
+        <main className={`undac-hc-main ${activeSection === 'datos-paciente' ? 'undac-hc-main--admission' : ''}`}>
           <div className="undac-hc-main__heading">
             <div><span className="undac-eyebrow">Sección {String(sectionIndex + 1).padStart(2, '0')} de {clinicalSections.length}</span><h2>{active.label}</h2><p>Registro frontend-only · datos ficticios · guardado local.</p></div>
             <div className="undac-hc-main__academic"><span><b>Semestre</b>{mockHistoriaMeta.semestre}</span><span><b>Año</b>{mockHistoriaMeta.anioAcademico}</span><span><b>Docente</b>{mockHistoriaMeta.docente}</span></div>
@@ -118,11 +74,17 @@ export default function HistoriaClinica({ historiaId, initialSection = 'datos-pa
           {savedMessage ? <div className="undac-toast" role="status">✓ {savedMessage}</div> : null}
 
           <div className="undac-hc-content">
-            {activeSection === 'odontograma'
-              ? <Odontograma value={odontogram} onChange={setOdontogram} />
-              : ActiveComponent
-                ? <ActiveComponent values={formData[activeSection] || {}} onChange={updateSection} meta={mockHistoriaMeta} />
-                : <div className="undac-card"><p>Sección preparada para implementación.</p></div>}
+            {ActiveComponent
+              ? <ActiveComponent
+                  key={`${selectedHistory.codigo}-${activeSection}`}
+                  values={formData[activeSection] || {}}
+                  onChange={updateSection}
+                  meta={mockHistoriaMeta}
+                  patientId={selectedHistory.codigo}
+                  patientName={selectedPatient.nombres}
+                  historyCode={selectedHistory.codigo}
+                />
+              : <div className="undac-card"><p>Sección preparada para implementación.</p></div>}
           </div>
 
           <SaveBar sectionLabel={active.label} onSave={save} onPrevious={() => go(-1)} onNext={() => go(1)} isFirst={sectionIndex === 0} isLast={sectionIndex === clinicalSections.length - 1} />

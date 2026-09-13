@@ -19,14 +19,18 @@ const ICONOS = {
     configuracion: Settings,
 };
 
+function obtenerGrupoActivo(menu, activo) {
+    const padre = menu.find((item) => item.children?.some((child) => child.id === activo));
+    if (padre) return padre.id;
+    if (activo === 'historia-clinica') return menu.find((item) => item.id === 'gestion')?.id ?? null;
+    return null;
+}
+
 export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected }) {
-    const [grupoAbierto, setGrupoAbierto] = useState(() => (
-        menu.find((item) => item.children?.some((child) => child.id === activo))?.id ?? null
-    ));
+    const [grupoAbierto, setGrupoAbierto] = useState(() => obtenerGrupoActivo(menu, activo));
 
     useEffect(() => {
-        const padreActivo = menu.find((item) => item.children?.some((child) => child.id === activo));
-        setGrupoAbierto(padreActivo?.id ?? null);
+        setGrupoAbierto(obtenerGrupoActivo(menu, activo));
     }, [activo, menu]);
 
     function seleccionar(id) {
@@ -40,14 +44,15 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected 
 
     return (
         <aside className="barra-lateral--hc" aria-label="Navegación principal">
-            <div className="marca-hc">Historia Clínica · UNDAC</div>
+            <div className="marca-hc"><span className="marca-hc__icon"><Stethoscope size={20} aria-hidden="true" /></span><span className="marca-hc__text">Historia Clínica<small>Odontología UNDAC</small></span></div>
             <nav>
                 <ul className="menu-principal">
                     {menu.map((item) => {
                         const Icono = ICONOS[item.id] ?? ClipboardList;
                         const tieneHijos = Boolean(item.children?.length);
                         const abierto = grupoAbierto === item.id;
-                        const grupoActivo = item.children?.some((sub) => sub.id === activo);
+                        const grupoActivo = item.children?.some((sub) => sub.id === activo)
+                            || (activo === 'historia-clinica' && item.id === 'gestion');
                         return (
                         <li key={item.id} className={`menu-item${grupoActivo ? ' tiene-activo' : ''}`}>
                             <button

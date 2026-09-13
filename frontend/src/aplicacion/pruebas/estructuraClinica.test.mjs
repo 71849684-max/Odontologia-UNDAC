@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clinicalSections, dashboardServices, healthQuestions, consentParagraphs, intraoralTissues, labFields } from '../configuracion/historiaClinica.config.mjs';
-import { permanentTeeth, toothSurfaces, odontogramStates, createEmptyOdontogram, applyOdontogramMark } from '../configuracion/odontograma.config.mjs';
+import { permanentTeeth, toothSurfaces, odontogramStates, createEmptyOdontogram, applyOdontogramMark } from '../formularios/odontograma/odontograma.config.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const src = path.resolve(__dirname, '../..');
@@ -75,9 +75,11 @@ test('existen las cinco paginas que consume Aplicacion.jsx', () => {
 });
 
 test('la historia clinica integrada expone las 17 secciones y campos criticos del Word', () => {
-  const file = path.join(app, 'componentes', 'clinica', 'SeccionesClinicas.jsx');
-  assert.ok(fs.existsSync(file), 'falta componentes/clinica/SeccionesClinicas.jsx');
-  const source = fs.readFileSync(file, 'utf8') + JSON.stringify(labFields);
+  const directory = path.join(app, 'formularios');
+  const source = fs.readdirSync(directory, { recursive: true })
+    .filter((file) => file.endsWith('.jsx'))
+    .map((file) => fs.readFileSync(path.join(directory, file), 'utf8'))
+    .join('\n') + JSON.stringify(labFields);
   for (const label of [
     'Tiempo de residencia en Cerro de Pasco','Motivo de consulta','Ectoscopía','Hábitos nocivos',
     'Signos vitales','Forma del cráneo','Ángulo nasolabial','Tejidos blandos','Oclusión',
@@ -104,7 +106,7 @@ test('el CSS clinico existe, es responsive y contiene estilos semanticos', () =>
 });
 
 test('no se introducen llamadas backend en el frontend clinico', () => {
-  const roots = [path.join(app, 'componentes', 'clinica'), path.join(app, 'paginas')];
+  const roots = [path.join(app, 'componentes', 'clinica'), path.join(app, 'formularios')];
   for (const root of roots) {
     if (!fs.existsSync(root)) continue;
     for (const file of fs.readdirSync(root, { recursive: true })) {
