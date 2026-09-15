@@ -1,18 +1,31 @@
 import React from 'react';
-import { Activity, ClipboardList, FileHeart, Route, Stethoscope, UserRound } from 'lucide-react';
+import { CheckCircle2, CircleAlert } from 'lucide-react';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
-
-const ICONS = { ingreso: UserRound, entrevista: ClipboardList, evaluacion: Stethoscope, sintesis: FileHeart, plan: Route, seguimiento: Activity };
 
 export default function ClinicalMomentHeader() {
   const { activeMoment, momentProgress } = useHistoriaClinica();
   const progress = momentProgress(activeMoment);
-  const Icon = ICONS[activeMoment.id] ?? ClipboardList;
+  const pendingSections = progress.total - progress.complete;
+  const pendingCopy = pendingSections === 1 ? '1 sección por revisar' : `${pendingSections} secciones por revisar`;
+  const momentReady = pendingSections === 0;
   return (
     <section className="clinical-moment-header">
-      <span className="clinical-moment-header__icon"><Icon size={25} aria-hidden="true" /></span>
-      <div className="clinical-moment-header__copy"><span className="clinical-kicker">Momento {activeMoment.number} de 6</span><h2>{activeMoment.label}</h2><p>{activeMoment.description}</p></div>
-      <div className="clinical-moment-header__progress"><span><b>Progreso de este momento</b><strong>{progress.percent}%</strong></span><div><i style={{ width: `${progress.percent}%` }} /></div><small>{progress.complete} de {progress.total} secciones completadas · {progress.started} iniciadas</small></div>
+      <div className="clinical-moment-header__copy"><span className="clinical-moment-header__number" aria-hidden="true">{activeMoment.number}.</span><div><span className="clinical-kicker">Momento clínico de 6</span><h2>{activeMoment.label}</h2><p>{activeMoment.description}</p></div></div>
+      <div className="clinical-moment-header__progress" role="status" aria-label={`Estado de ${activeMoment.label}`}>
+        <span><b>Secciones revisadas</b><strong>{progress.complete} de {progress.total}</strong></span>
+        <div
+          role="progressbar"
+          aria-label={`Progreso de ${activeMoment.label}`}
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow={progress.percent}
+        ><i style={{ width: `${progress.percent}%` }} /></div>
+        <small>{pendingCopy} · {progress.started} iniciadas</small>
+      </div>
+      <aside className={`clinical-moment-header__readiness${momentReady ? ' is-ready' : ''}`} aria-label="Resumen de revisión del momento">
+        {momentReady ? <CheckCircle2 size={22} aria-hidden="true" /> : <CircleAlert size={22} aria-hidden="true" />}
+        <div><strong>{momentReady ? 'Momento preparado' : 'Información por revisar'}</strong><small>{momentReady ? 'Todas sus secciones están completas.' : pendingCopy}</small></div>
+      </aside>
     </section>
   );
 }

@@ -30,9 +30,9 @@ export default function ConsentimientoSection({ values, onChange, patient, histo
         <Field label="Cerro de Pasco — día" value={get('firmaDia')} onChange={set('firmaDia')} /><Field label="Mes" value={get('firmaMes')} onChange={set('firmaMes')} /><Field label="Año" value={get('firmaAnio')} onChange={set('firmaAnio')} />
       </div>
     </SectionCard>
-    <SectionCard title="Firmas, acompañante y programación" subtitle="Las áreas de firma continúan siendo marcadores visuales hasta integrar firma electrónica válida.">
+    <SectionCard title="Firmas, acompañante y programación" subtitle="Las constancias quedan preparadas para su validación cuando se integre la firma electrónica.">
       <div className="undac-signature-grid">
-        {['Firma del paciente','Huella dactilar — dedo índice derecho','Firma del acompañante','Firma del docente — autorización de cirugía'].map((label) => <div className="undac-signature-slot" key={label}><span>Área reservada</span><strong>{label}</strong></div>)}
+        {['Firma del paciente','Huella dactilar — dedo índice derecho','Firma del acompañante','Firma del docente — autorización de cirugía'].map((label) => <div className="undac-signature-slot" key={label}><span>Constancia pendiente</span><strong>{label}</strong></div>)}
       </div>
       <Subheading>Familiar que lo acompaña</Subheading>
       <div className="undac-form-grid">

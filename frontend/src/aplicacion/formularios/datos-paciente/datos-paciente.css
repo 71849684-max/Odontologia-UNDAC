@@ -1,4 +1,17 @@
 .hc-admission { --admission-teal: #079b94; }
+.clinical-admission-overview { display: grid; grid-template-columns: minmax(210px, .55fr) minmax(0, 1.45fr); align-items: center; gap: 18px; border: 1px solid #d7e9ed; border-radius: 12px; padding: 14px 16px; background: linear-gradient(115deg, #f2fbfb, #ffffff 58%); }
+.clinical-admission-overview__heading { display: grid; gap: 4px; }
+.clinical-admission-overview__heading span { color: #07847f; font-size: 9px; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }
+.clinical-admission-overview__heading strong { color: #193c58; font-size: 12px; line-height: 1.35; }
+.clinical-admission-overview__steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.clinical-admission-overview__step { min-width: 0; display: grid; grid-template-columns: 30px minmax(0, 1fr) 16px; align-items: center; gap: 7px; padding: 7px; border: 1px solid #e1eaef; border-radius: 9px; background: #fff; }
+.clinical-admission-overview__step > span { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 8px; color: #6c8190; background: #f1f5f7; }
+.clinical-admission-overview__step > div { min-width: 0; display: grid; gap: 2px; }
+.clinical-admission-overview__step strong { overflow: hidden; color: #27455d; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.clinical-admission-overview__step small { overflow: hidden; color: #8092a0; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.clinical-admission-overview__step > i { width: 7px; height: 7px; border-radius: 50%; background: #c7d2db; }
+.clinical-admission-overview__step.is-progress > span { color: #087d78; background: #e4f8f4; }
+.clinical-admission-overview__step.is-progress > svg { color: #079b94; }
 .hc-admission .undac-section-card { border: 1px solid #dce6ef; border-radius: 14px; overflow: hidden; box-shadow: 0 3px 16px #183c5b03; }
 .hc-admission .undac-section-card__header { padding: 18px 22px; background: #f8fbfd; }
 .hc-admission .undac-section-card__body { padding: 22px; }
@@ -72,6 +85,7 @@
   .hc-operator-summary dl { grid-template-columns: repeat(6, minmax(0, 1fr)); align-items: center; flex: 1; }
 }
 @container admission-card (max-width: 850px) {
+  .clinical-admission-overview { grid-template-columns: 1fr; }
   .hc-patient-grid--four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hc-parental > .hc-patient-grid--two { grid-template-columns: 1fr; }
   .hc-patient-grid--residence { grid-template-columns: 1fr 1fr; }
@@ -79,6 +93,7 @@
   .hc-operator-summary { gap: 16px; }
 }
 @container admission-card (max-width: 560px) {
+  .clinical-admission-overview__steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hc-admission .undac-section-card__header, .hc-admission .undac-section-card__body { padding: 16px; }
   .hc-patient-grid, .hc-attendance .undac-choice__options { grid-template-columns: 1fr; }
   .hc-patient-grid > .hc-span-two { grid-column: auto; }
@@ -86,4 +101,13 @@
   .hc-operator-identity { flex-basis: 100%; }
   .hc-parental { padding: 12px; }
   .hc-admission-title { align-items: flex-start; }
+}
+
+@media (max-width: 1040px) {
+  .clinical-admission-overview { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .clinical-admission-overview { padding: 12px; }
+  .clinical-admission-overview__steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

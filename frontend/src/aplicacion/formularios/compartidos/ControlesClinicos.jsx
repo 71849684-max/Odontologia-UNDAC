@@ -1,4 +1,5 @@
 import React from 'react';
+import { ImagePlus } from 'lucide-react';
 
 export function StatusBadge({ status = 'Borrador' }) {
   const slug = String(status).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
@@ -16,11 +17,12 @@ export function ProgressBar({ value = 0, label = 'Progreso de historia' }) {
 }
 
 export function SectionCard({ title, subtitle, children, actions, className = '' }) {
+  const titleId = React.useId();
   return (
-    <section className={`undac-card undac-section-card hc-clinical-card ${className}`}>
+    <section className={`undac-card undac-section-card hc-clinical-card ${className}`} aria-labelledby={titleId}>
       <div className="undac-section-card__header">
         <div>
-          <h3>{title}</h3>
+          <h3 id={titleId}>{title}</h3>
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
         {actions ? <div className="undac-section-card__actions">{actions}</div> : null}
@@ -33,15 +35,17 @@ export function SectionCard({ title, subtitle, children, actions, className = ''
 
 export function CollapsibleSection({ title, subtitle, summary, children, defaultOpen = false, status, className = '' }) {
   const [open, setOpen] = React.useState(defaultOpen);
+  const contentId = React.useId();
+  const triggerId = React.useId();
   return (
     <section className={`clinical-collapsible ${open ? 'is-open' : ''} ${className}`}>
-      <button type="button" className="clinical-collapsible__trigger" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+      <button id={triggerId} type="button" className="clinical-collapsible__trigger" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen((value) => !value)}>
         <span className="clinical-collapsible__copy"><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span>
         {!open && summary ? <span className="clinical-collapsible__summary">{summary}</span> : null}
         {status ? <span className={`clinical-collapsible__status is-${status}`}>{status === 'complete' ? 'Completo' : status === 'progress' ? 'En progreso' : 'Pendiente'}</span> : null}
         <span className="clinical-collapsible__chevron" aria-hidden="true">⌄</span>
       </button>
-      {open ? <div className="clinical-collapsible__body">{children}</div> : null}
+      {open ? <div id={contentId} className="clinical-collapsible__body" role="region" aria-labelledby={triggerId}>{children}</div> : null}
     </section>
   );
 }
@@ -124,23 +128,23 @@ export function CheckboxGroup({ label, values = [], onChange, options = [], clas
   );
 }
 
-export function PhotoPlaceholder({ title, description = 'Espacio visual preparado. La carga real se habilitará al integrar el backend.', count = 1 }) {
+export function PhotoPlaceholder({ title, description = 'Espacio preparado para documentar evidencia visual de la evaluación.', count = 1 }) {
   return (
-    <div className="undac-photo-block">
+    <section className="undac-photo-block" role="group" aria-label={title}>
       <div className="undac-photo-block__head">
         <div><strong>{title}</strong><span>{description}</span></div>
-        <span className="undac-tag">Mock</span>
+        <span className="undac-photo-block__count">{count} vista{count === 1 ? '' : 's'} sugerida{count === 1 ? '' : 's'}</span>
       </div>
       <div className={`undac-photo-grid undac-photo-grid--${Math.min(count, 6)}`}>
         {Array.from({ length: count }, (_, index) => (
           <div className="undac-photo-slot" key={index}>
-            <span aria-hidden="true">＋</span>
+            <span aria-hidden="true"><ImagePlus size={18} /></span>
             <strong>{count > 1 ? `Vista ${index + 1}` : 'Área de imagen'}</strong>
-            <small>Sin almacenamiento real</small>
+            <small>Pendiente de adjuntar</small>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 

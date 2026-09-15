@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Info, ShieldCheck, X } from 'lucide-react';
+import { CircleCheck, Info, MapPin, Phone, ShieldCheck, UserRound, UsersRound, X } from 'lucide-react';
 import { CollapsibleSection, Field, SelectField, ChoiceGroup } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 import BusquedaPersonal from './BusquedaPersonal.jsx';
@@ -48,8 +48,22 @@ export default function DatosPacienteSection({ values, onChange, meta }) {
   const campo = (label, key, props = {}) => <Field label={label} value={get(key)} onChange={set(key)} {...props} />;
   const conAcompanante = get('modalidadAsistencia', 'acompanado') === 'acompanado';
   const operadorNombre = values?.personal?.nombre || get('operador') || meta?.operador || 'Sin asignar';
+  const admissionBlocks = [
+    { label: 'Identificación', detail: 'Documento y datos personales', icon: UserRound, state: status(values, ['dni', 'nombres', 'apellidos']) },
+    { label: 'Contacto', detail: 'Teléfono y datos básicos', icon: Phone, state: status(values, ['celular', 'correo', 'ocupacion']) },
+    { label: 'Residencia', detail: 'Dirección y procedencia', icon: MapPin, state: status(values, ['departamento', 'provincia', 'distrito', 'domicilio']) },
+    { label: 'Acompañante', detail: 'Apoyo o contacto de emergencia', icon: UsersRound, state: status(values, ['acompanante', 'informante', 'tutorCelular']) },
+  ];
 
   return <div className="undac-section-stack hc-admission clinical-admission-flow">
+    <section className="clinical-admission-overview" aria-label="Ruta de ingreso del paciente">
+      <div className="clinical-admission-overview__heading"><span>Ruta de ingreso</span><strong>Organice la filiación antes de continuar con la entrevista clínica.</strong></div>
+      <div className="clinical-admission-overview__steps">
+        {admissionBlocks.map(({ label, detail, icon: Icon, state }) => <div className={`clinical-admission-overview__step is-${state}`} key={label}>
+          <span><Icon size={18} aria-hidden="true" /></span><div><strong>{label}</strong><small>{detail}</small></div>{state === 'progress' ? <CircleCheck size={16} aria-label={`${label} en progreso`} /> : <i aria-label={`${label} pendiente`} />}
+        </div>)}
+      </div>
+    </section>
     <CollapsibleSection
       title="Identificación del paciente"
       subtitle="Datos institucionales y de identidad"
