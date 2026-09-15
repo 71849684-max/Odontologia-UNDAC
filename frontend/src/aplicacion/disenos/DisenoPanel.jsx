@@ -1,7 +1,7 @@
 import { cloneElement, isValidElement, useEffect, useState } from 'react';
 import { Menu, X } from 'lucide-react';
 
-export default function DisenoPanel({ barraLateral, children }) {
+export default function DisenoPanel({ barraLateral, children, modoClinico = false }) {
     const [menuAbierto, establecerMenuAbierto] = useState(false);
     const barraConCierre = isValidElement(barraLateral)
         ? cloneElement(barraLateral, { onItemSelected: () => establecerMenuAbierto(false) })
@@ -16,8 +16,8 @@ export default function DisenoPanel({ barraLateral, children }) {
     }, []);
 
     return (
-        <div className="diseno-panel">
-            <button
+        <div className={`diseno-panel${modoClinico ? ' diseno-panel--clinical-mode' : ''}`}>
+            {!modoClinico ? <button
                 type="button"
                 className="boton-menu-movil"
                 aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
@@ -25,9 +25,9 @@ export default function DisenoPanel({ barraLateral, children }) {
                 onClick={() => establecerMenuAbierto((estadoActual) => !estadoActual)}
             >
                 {menuAbierto ? <X size={21} /> : <Menu size={21} />}
-            </button>
-            {menuAbierto && <button type="button" className="fondo-menu" aria-label="Cerrar menú lateral" onClick={() => establecerMenuAbierto(false)} />}
-            <div className={`diseno-panel__lateral${menuAbierto ? ' esta-abierto' : ''}`}>{barraConCierre}</div>
+            </button> : null}
+            {!modoClinico && menuAbierto && <button type="button" className="fondo-menu" aria-label="Cerrar menú lateral" onClick={() => establecerMenuAbierto(false)} />}
+            {!modoClinico ? <div className={`diseno-panel__lateral${menuAbierto ? ' esta-abierto' : ''}`}>{barraConCierre}</div> : null}
             <div className="diseno-panel__principal">{children}</div>
         </div>
     );

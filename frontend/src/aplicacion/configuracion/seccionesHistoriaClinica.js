@@ -1,16 +1,9 @@
-export const SECCIONES_HC = [
-  { id: 'datos-paciente', titulo: 'Datos del paciente', orden: 1 },
-  { id: 'anamnesis', titulo: 'Anamnesis', orden: 2 },
-  { id: 'cuestionario', titulo: 'Cuestionario de salud', orden: 3 },
-  { id: 'antecedentes', titulo: 'Antecedentes', orden: 4 },
-  { id: 'examen-clinico', titulo: 'Examen clínico', orden: 5 },
-  { id: 'examen-extraoral', titulo: 'Examen extraoral', orden: 6 },
-  { id: 'examen-intraoral', titulo: 'Examen intraoral', orden: 7 },
-  { id: 'odontograma', titulo: 'Odontograma', orden: 8 },
-  { id: 'diagnostico', titulo: 'Diagnóstico', orden: 9 },
-  { id: 'plan-tratamiento', titulo: 'Plan de tratamiento', orden: 10 },
-  { id: 'consentimiento', titulo: 'Consentimiento', orden: 11 },
-  { id: 'cirugia', titulo: 'Cirugía', orden: 12 },
-  { id: 'reporte-operatorio', titulo: 'Reporte operatorio', orden: 13 },
-  { id: 'seguimiento', titulo: 'Seguimiento', orden: 14 },
-];
+import { clinicalSections } from './historiaClinica.config.mjs';
+
+// Compatibilidad: la navegación clínica usa `clinicalMoments` como fuente principal.
+// Esta exportación se deriva de `clinicalSections` para evitar mantener una segunda lista divergente.
+export const SECCIONES_HC = clinicalSections.map((section, index) => ({
+  id: section.id,
+  titulo: section.label,
+  orden: index + 1,
+}));

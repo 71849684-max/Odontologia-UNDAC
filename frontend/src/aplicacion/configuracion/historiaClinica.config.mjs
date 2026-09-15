@@ -18,6 +18,65 @@ export const clinicalSections = [
   { id: 'seguimiento', label: 'Seguimiento quirúrgico', short: 'Seguimiento', group: 'Seguimiento', icon: 'followup' },
 ];
 
+export const clinicalMoments = [
+  {
+    id: 'ingreso',
+    number: 1,
+    label: 'Ingreso y filiación',
+    short: 'Ingreso',
+    description: 'Identificación, datos personales, residencia y contexto de atención del paciente.',
+    sections: ['datos-paciente'],
+  },
+  {
+    id: 'entrevista',
+    number: 2,
+    label: 'Entrevista y antecedentes',
+    short: 'Entrevista',
+    description: 'Motivo de consulta, enfermedad actual, cuestionario de salud y antecedentes.',
+    sections: ['anamnesis', 'cuestionario-salud', 'antecedentes'],
+  },
+  {
+    id: 'evaluacion',
+    number: 3,
+    label: 'Evaluación estomatológica',
+    short: 'Evaluación',
+    description: 'Examen general, evaluación extraoral e intraoral, odontograma y oclusión.',
+    sections: ['examen-clinico', 'examen-extraoral', 'examen-intraoral', 'odontograma', 'oclusion'],
+  },
+  {
+    id: 'sintesis',
+    number: 4,
+    label: 'Síntesis diagnóstica',
+    short: 'Síntesis',
+    description: 'Exámenes auxiliares, diagnósticos, pronóstico y estudio de modelos.',
+    sections: ['examenes-auxiliares', 'diagnostico', 'modelos'],
+  },
+  {
+    id: 'plan',
+    number: 5,
+    label: 'Plan y procedimientos',
+    short: 'Plan',
+    description: 'Plan integral, consentimiento, cirugía y reporte operatorio.',
+    sections: ['plan-tratamiento', 'consentimiento', 'cirugia', 'reporte-operatorio'],
+  },
+  {
+    id: 'seguimiento',
+    number: 6,
+    label: 'Evolución y seguimiento',
+    short: 'Evolución',
+    description: 'Registro longitudinal de controles, procedimientos y evolución del paciente.',
+    sections: ['seguimiento'],
+  },
+];
+
+export function getMomentForSection(sectionId) {
+  return clinicalMoments.find((moment) => moment.sections.includes(sectionId)) ?? clinicalMoments[0];
+}
+
+export function getSectionById(sectionId) {
+  return clinicalSections.find((section) => section.id === sectionId) ?? clinicalSections[0];
+}
+
 export const dashboardServices = [
   { id: 'pacientes', label: 'Pacientes', description: 'Registro, búsqueda y acceso a pacientes', metric: '24', metricLabel: 'asignados', target: { view: 'pacientes' }, icon: 'users' },
   { id: 'historias', label: 'Historias clínicas', description: 'Historias activas, en revisión y cerradas', metric: '18', metricLabel: 'activas', target: { view: 'historias' }, icon: 'folder' },

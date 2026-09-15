@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { clinicalSections, dashboardServices, healthQuestions, consentParagraphs, intraoralTissues, labFields } from '../configuracion/historiaClinica.config.mjs';
+import { clinicalSections, clinicalMoments, dashboardServices, healthQuestions, consentParagraphs, intraoralTissues, labFields } from '../configuracion/historiaClinica.config.mjs';
 import { permanentTeeth, toothSurfaces, odontogramStates, createEmptyOdontogram, applyOdontogramMark } from '../formularios/odontograma/odontograma.config.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -21,6 +21,14 @@ const expectedSections = [
 test('la historia clinica conserva las 17 secciones institucionales', () => {
   assert.equal(clinicalSections.length, 17);
   assert.deepEqual(clinicalSections.map((s) => s.id), expectedSections);
+});
+
+
+
+test('las 17 secciones se organizan en seis momentos clínicos sin duplicados', () => {
+  assert.equal(clinicalMoments.length, 6);
+  assert.deepEqual(clinicalMoments.flatMap((moment) => moment.sections), expectedSections);
+  assert.equal(new Set(clinicalMoments.flatMap((moment) => moment.sections)).size, 17);
 });
 
 test('el cuestionario de salud mantiene 24 preguntas institucionales', () => {
@@ -100,7 +108,16 @@ test('el CSS clinico existe, es responsive y contiene estilos semanticos', () =>
   const file = path.join(css, 'historia-clinica.css');
   assert.ok(fs.existsSync(file));
   const source = fs.readFileSync(file, 'utf8') + JSON.stringify(labFields);
-  for (const token of ['.hc-dashboard-kpis','.hc-clinical-shell','.hc-section-nav','.hc-odontogram','.hc-clinical-card','@media (max-width: 768px)']) {
+  for (const token of ['.hc-dashboard-kpis','.hc-odontogram','.hc-clinical-card','@media (max-width: 768px)']) {
+    assert.ok(source.includes(token), `falta estilo ${token}`);
+  }
+});
+
+test('el workspace clínico tiene estilos propios y responsive', () => {
+  const file = path.join(css, 'clinica', 'workspace.css');
+  assert.ok(fs.existsSync(file));
+  const source = fs.readFileSync(file, 'utf8');
+  for (const token of ['.clinical-workspace-shell','.clinical-moment-sidebar','.clinical-patient-bar','.clinical-collapsible','@media (max-width: 900px)']) {
     assert.ok(source.includes(token), `falta estilo ${token}`);
   }
 });

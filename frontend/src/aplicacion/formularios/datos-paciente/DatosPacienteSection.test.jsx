@@ -24,6 +24,7 @@ test('inicializa la fecha local del registro y conserva una fecha existente', ()
 
 test('la cascada filtra ubicaciones y limpia selecciones dependientes', () => {
   render(<Formulario />);
+  fireEvent.click(screen.getByRole('button', { name: /Ubicación y residencia/ }));
   expect(screen.getByLabelText('Provincia')).toBeDisabled();
   expect(screen.getByLabelText('Distrito')).toBeDisabled();
   fireEvent.change(screen.getByLabelText('Departamento'), { target: { value: 'Pasco' } });
@@ -40,6 +41,7 @@ test('la cascada filtra ubicaciones y limpia selecciones dependientes', () => {
 
 test('busca personal por nombre sin tildes y por DNI y guarda la selección', () => {
   render(<Formulario />);
+  fireEvent.click(screen.getByText('Cambiar asignación'));
   const busqueda = screen.getByRole('searchbox');
   fireEvent.change(busqueda, { target: { value: 'fernandez maria' } });
   fireEvent.click(screen.getByRole('button', { name: /María Fernández/ }));
@@ -64,6 +66,7 @@ test('calcula la edad al cambiar la fecha de nacimiento', () => {
 
 test('al cambiar la modalidad conserva los datos del acompañante', () => {
   render(<Formulario />);
+  fireEvent.click(screen.getByRole('button', { name: /Acompañante, informante o tutor/ }));
   fireEvent.change(screen.getByLabelText('Nombre completo del informante'), { target: { value: 'Rosa' } });
   fireEvent.click(screen.getByRole('radio', { name: 'Solo (paciente autovalente)' }));
   expect(screen.queryByLabelText('Nombre completo del informante')).not.toBeInTheDocument();
@@ -73,6 +76,7 @@ test('al cambiar la modalidad conserva los datos del acompañante', () => {
 
 test('permite cambiar el operador desde su ficha y vuelve al buscador', () => {
   render(<Formulario initial={{ personal: { nombre: 'María Fernández', dni: '71000001', rol: 'Alumno' } }} />);
+  fireEvent.click(screen.getByText('Cambiar asignación'));
   expect(screen.getByRole('status', { name: 'Personal seleccionado' })).toHaveTextContent('71000001');
   fireEvent.click(screen.getByRole('button', { name: 'Cambiar' }));
   expect(screen.queryByRole('status', { name: 'Personal seleccionado' })).not.toBeInTheDocument();

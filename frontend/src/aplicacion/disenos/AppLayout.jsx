@@ -25,7 +25,7 @@ function menuTieneRuta(menu, id) {
     return (menu ?? []).some((item) => item.id === id || item.children?.some((child) => child.id === id));
 }
 
-export default function AppLayout({ menu, usuario, rol, activo: activoControlado, onNavigate, onLogout, children }) {
+export default function AppLayout({ menu, usuario, rol, activo: activoControlado, modoClinico = false, onNavigate, onLogout, children }) {
     const [activoInterno, setActivoInterno] = useState(menu?.[0]?.id ?? 'inicio');
     const contenidoRef = useRef(null);
     const activo = activoControlado ?? activoInterno;
@@ -53,6 +53,7 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
 
     return (
         <DisenoPanel
+            modoClinico={modoClinico}
             barraLateral={
                 <SidebarHC
                     menu={menu}
@@ -61,8 +62,8 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
                 />
             }
         >
-            <div className="hc-main min-h-screen">
-                <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} onLogout={onLogout} />
+            <div className={`hc-main min-h-screen${modoClinico ? ' hc-main--clinical-mode' : ''}`}>
+                {!modoClinico ? <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} onLogout={onLogout} /> : null}
                 <main ref={contenidoRef} className="hc-contenido min-w-0" tabIndex={-1}>
                     {children}
                 </main>

@@ -30,6 +30,22 @@ export function SectionCard({ title, subtitle, children, actions, className = ''
   );
 }
 
+
+export function CollapsibleSection({ title, subtitle, summary, children, defaultOpen = false, status, className = '' }) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  return (
+    <section className={`clinical-collapsible ${open ? 'is-open' : ''} ${className}`}>
+      <button type="button" className="clinical-collapsible__trigger" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
+        <span className="clinical-collapsible__copy"><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span>
+        {!open && summary ? <span className="clinical-collapsible__summary">{summary}</span> : null}
+        {status ? <span className={`clinical-collapsible__status is-${status}`}>{status === 'complete' ? 'Completo' : status === 'progress' ? 'En progreso' : 'Pendiente'}</span> : null}
+        <span className="clinical-collapsible__chevron" aria-hidden="true">⌄</span>
+      </button>
+      {open ? <div className="clinical-collapsible__body">{children}</div> : null}
+    </section>
+  );
+}
+
 export function Field({ label, value = '', onChange, type = 'text', placeholder = '', required = false, min, max, step, className = '', help, readOnly = false, maxLength, inputMode }) {
   const id = React.useId();
   return (

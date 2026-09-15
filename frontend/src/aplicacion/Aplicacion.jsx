@@ -209,6 +209,7 @@ export default function Aplicacion() {
             usuario={sesion.usuario}
             rol={perfil}
             activo={route}
+            modoClinico={route === 'historia-clinica'}
             onNavigate={navigate}
             onLogout={() => {
                 navigate('inicio', { reemplazar: true });
