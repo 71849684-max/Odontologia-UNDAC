@@ -1482,7 +1482,7 @@
 @media(max-width:900px){.permisos-page{padding:18px}.permisos-layout{grid-template-columns:1fr}.usuarios-card{max-height:300px}.usuarios-lista{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:auto}.permisos-hero{flex-direction:column}.permiso-items{grid-template-columns:1fr}}@media(max-width:600px){.permisos-page{padding:12px}.permisos-user-head{align-items:flex-start;flex-direction:column}.permisos-resumen{grid-template-columns:1fr}.permisos-resumen div{border-right:0;border-bottom:1px solid rgba(100,116,139,.13)}.permisos-resumen div:last-child{border-bottom:0}.usuarios-lista{grid-template-columns:1fr}.permisos-footer{align-items:flex-start;flex-direction:column}.permisos-footer .btn-principal{width:100%;justify-content:center}}
 
 /* Dialogo de alta/edicion de usuarios */
-.admin-dialogo-fondo{position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:18px}
+.admin-dialogo-fondo{position:fixed;inset:0;z-index:var(--ou-z-modal);background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:18px}
 .admin-dialogo{width:min(720px,100%);max-height:min(90vh,820px);overflow:auto;background:var(--ou-surface,#fff);border-radius:16px;border:1px solid rgba(100,116,139,.18);box-shadow:0 24px 60px rgba(15,23,42,.22);padding:20px 22px}
 .admin-dialogo__cabecera{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
 .admin-dialogo__cabecera h2{margin:0;font-size:1.15rem}

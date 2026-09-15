@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Info, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Info, ShieldCheck, X } from 'lucide-react';
 import { CollapsibleSection, Field, SelectField, ChoiceGroup } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 import BusquedaPersonal from './BusquedaPersonal.jsx';
@@ -35,6 +35,7 @@ function status(values, keys) {
 
 export default function DatosPacienteSection({ values, onChange, meta }) {
   const { get, set } = useSection(values, onChange);
+  const [asignacionAbierta, setAsignacionAbierta] = useState(false);
   useEffect(() => {
     if (!values?.fechaPaciente) onChange?.('fechaPaciente', fechaRegistroActual());
   }, [values?.fechaPaciente, onChange]);
@@ -152,7 +153,16 @@ export default function DatosPacienteSection({ values, onChange, meta }) {
     <section className="clinical-operator-card">
       <span className="clinical-operator-card__icon"><ShieldCheck size={22} aria-hidden="true" /></span>
       <div className="clinical-operator-card__copy"><span>Operador responsable</span><strong>{operadorNombre}</strong><small>Semestre {meta?.semestre || '—'} · Año académico {meta?.anioAcademico || '—'} · asignación de la atención actual</small></div>
-      <details className="clinical-operator-card__change"><summary>Cambiar asignación</summary><div><BusquedaPersonal value={values?.personal} meta={meta} fecha={get('fechaPaciente', fechaRegistroActual())} onChange={(persona) => { onChange?.('personal', persona); onChange?.('operador', persona?.nombre || ''); }} /></div></details>
+      <button type="button" className="clinical-operator-card__change" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={() => setAsignacionAbierta(true)}>Cambiar asignación</button>
+      {asignacionAbierta && <div className="clinical-operator-modal-overlay" role="presentation" onClick={() => setAsignacionAbierta(false)}>
+        <section className="clinical-operator-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-cambiar-operador" onClick={(event) => event.stopPropagation()}>
+          <header className="clinical-operator-modal__header">
+            <div><h3 id="titulo-cambiar-operador">Cambiar operador responsable</h3><p>Busque y seleccione al responsable de esta historia clínica.</p></div>
+            <button type="button" className="hc-mini-button" onClick={() => setAsignacionAbierta(false)} aria-label="Cerrar"><X size={16} /></button>
+          </header>
+          <BusquedaPersonal value={values?.personal} meta={meta} fecha={get('fechaPaciente', fechaRegistroActual())} onChange={(persona) => { onChange?.('personal', persona); onChange?.('operador', persona?.nombre || ''); }} />
+        </section>
+      </div>}
     </section>
   </div>;
 }

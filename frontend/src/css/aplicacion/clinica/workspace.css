@@ -269,9 +269,12 @@
 .clinical-operator-card__copy > span { color: #0f766e; font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .clinical-operator-card__copy strong { color: #10233d; font-size: 12px; }
 .clinical-operator-card__copy small { color: #64748b; font-size: 9px; }
-.clinical-operator-card__change { position: relative; }
-.clinical-operator-card__change > summary { cursor: pointer; color: #0f766e; font-size: 9px; font-weight: 800; }
-.clinical-operator-card__change[open] > div { position: absolute; right: 0; z-index: 8; width: min(620px, 78vw); margin-top: 9px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; box-shadow: 0 16px 35px rgba(15,23,42,.12); }
+.clinical-operator-card__change { justify-self: end; border: 0; padding: 4px 0; color: #0f766e; background: transparent; cursor: pointer; font-size: 9px; font-weight: 800; }
+.clinical-operator-modal-overlay { position: fixed; inset: 0; z-index: var(--ou-z-modal); display: grid; place-items: center; padding: 24px; background: rgba(15,23,42,.45); }
+.clinical-operator-modal { width: min(620px, 100%); max-height: calc(100vh - 48px); overflow: auto; padding: 20px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; box-shadow: 0 24px 60px rgba(15,23,42,.22); }
+.clinical-operator-modal__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.clinical-operator-modal__header h3 { margin: 0; color: #10233d; font-size: 15px; }
+.clinical-operator-modal__header p { margin: 4px 0 0; color: #64748b; font-size: 11px; line-height: 1.4; }
 
 .clinical-health-summary { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 12px; border: 1px solid #cfe3eb; border-radius: 10px; padding: 12px 14px; background: #f8fcfd; }
 .clinical-health-summary__icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; color: #0d9488; background: #e6faf6; }
@@ -356,7 +359,7 @@
   .clinical-collapsible__summary { grid-column: 1 / -1; grid-row: 2; text-align: left; }
   .clinical-collapsible__status { grid-column: 2; grid-row: 1; }
   .clinical-operator-card { grid-template-columns: 38px minmax(0,1fr); }
-  .clinical-operator-card__change { grid-column: 1 / -1; }
+  .clinical-operator-card__change { grid-column: 1 / -1; justify-self: start; }
   .clinical-health-summary { grid-template-columns: 38px minmax(0,1fr); }
   .clinical-health-summary__alert { grid-column: 1 / -1; }
   .clinical-diagnosis-card { grid-template-columns: 28px minmax(0,1fr); }

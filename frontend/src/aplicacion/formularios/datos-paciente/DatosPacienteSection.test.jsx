@@ -42,6 +42,7 @@ test('la cascada filtra ubicaciones y limpia selecciones dependientes', () => {
 test('busca personal por nombre sin tildes y por DNI y guarda la selección', () => {
   render(<Formulario />);
   fireEvent.click(screen.getByText('Cambiar asignación'));
+  expect(screen.getByRole('dialog', { name: 'Cambiar operador responsable' })).toBeInTheDocument();
   const busqueda = screen.getByRole('searchbox');
   fireEvent.change(busqueda, { target: { value: 'fernandez maria' } });
   fireEvent.click(screen.getByRole('button', { name: /María Fernández/ }));
