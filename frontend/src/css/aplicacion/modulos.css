@@ -1318,3 +1318,34 @@
         width: 100%;
     }
 }
+
+/* Tabla genérica como tarjetas en móvil sin duplicar filas ni datos. */
+@media (max-width: 767px) {
+  .contenedor-tabla { overflow: visible; border: 0; background: transparent; box-shadow: none; }
+  .tabla-registros thead {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+  .tabla-registros,
+  .tabla-registros tbody,
+  .tabla-registros tr,
+  .tabla-registros td { display: block; width: 100%; }
+  .tabla-registros tr {
+    margin-bottom: 10px; padding: 10px 12px; border: 1px solid var(--ou-border); border-radius: 12px;
+    background: #fff; box-shadow: 0 5px 16px rgba(13,45,70,.04);
+  }
+  .tabla-registros td {
+    display: grid; grid-template-columns: minmax(92px, .72fr) minmax(0, 1.28fr); gap: 10px;
+    align-items: center; padding: 7px 0; border: 0; overflow-wrap: anywhere;
+  }
+  .tabla-registros td::before {
+    content: attr(data-label); color: #718296; font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase;
+  }
+}
+
+@media (max-width: 430px) {
+  .tabla-registros td { grid-template-columns: 84px minmax(0, 1fr); gap: 8px; }
+}
+
+@media (max-width: 360px) {
+  .tabla-registros td { grid-template-columns: minmax(0, 1fr); gap: 3px; }
+}

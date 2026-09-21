@@ -92,7 +92,7 @@ test('el administrador gestiona usuarios desde la API de administracion', async 
     await renderizarAplicacion();
     await ingresar(usuario);
 
-    await usuario.click(await screen.findByRole('button', { name: 'Administración' }));
+    expect(await screen.findByRole('button', { name: 'Administración' })).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Usuarios' }));
 
     expect(await screen.findByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();

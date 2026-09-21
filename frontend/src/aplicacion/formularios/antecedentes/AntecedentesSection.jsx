@@ -15,6 +15,13 @@ const blockStatus = (values, keys) => hasAny(values, keys) ? 'progress' : 'pendi
 export default function AntecedentesSection({ values, onChange }) {
   const { get, set } = useSection(values, onChange);
   return <div className="undac-section-stack clinical-antecedentes-flow">
+    <section className="clinical-antecedentes-summary" aria-label="Resumen de antecedentes terapéuticos">
+      <div><span className="clinical-kicker">Antecedentes terapéuticos</span><h3>Medicación y alergias registradas</h3><p>Revise los detalles en el bloque terapéutico.</p></div>
+      <dl>
+        <div><dt>Alergia a medicamentos</dt><dd>{get('alergiaMedicamento') === 'Sí' ? get('alergiaMedicamentoDetalle') || 'Sí · detalle pendiente' : get('alergiaMedicamento') === 'No' ? 'No refiere' : 'Pendiente de preguntar'}</dd></div>
+        <div><dt>Medicación actual</dt><dd>{get('medicacionActual') === 'Sí' ? get('medicacionActualNombre') || 'Sí · nombre pendiente' : get('medicacionActual') === 'No' ? 'No refiere' : 'Pendiente de preguntar'}</dd></div>
+      </dl>
+    </section>
     <CollapsibleSection title="Antecedentes personales · Generales" subtitle="Hábitos, vivienda, alimentación e inmunizaciones" defaultOpen status={blockStatus(values, ['vivienda','alimentacion','habitosNocivos','inmunizaciones'])}>
       <div className="undac-form-grid">
         <Field label="Hijos: número" type="number" min="0" value={get('hijosNumero')} onChange={set('hijosNumero')} /><Field label="Hijos vivos" type="number" min="0" value={get('hijosVivos')} onChange={set('hijosVivos')} />

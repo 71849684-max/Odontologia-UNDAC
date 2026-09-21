@@ -37,11 +37,12 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
     }, [menu, activo]);
 
     useEffect(() => {
+        contenidoRef.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
         contenidoRef.current?.focus({ preventScroll: true });
     }, [activo]);
 
     function handleSelect(id) {
-        setActivoInterno(id);
+        setActivoInterno(typeof id === 'string' ? id : id.view === 'historia' ? 'historia-clinica' : id.view);
         if (typeof onNavigate === 'function') {
             onNavigate(id);
             return;
@@ -51,6 +52,7 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
         }
     }
 
+    const Content = modoClinico ? 'div' : 'main';
     return (
         <DisenoPanel
             modoClinico={modoClinico}
@@ -63,10 +65,10 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
             }
         >
             <div className={`hc-main min-h-screen${modoClinico ? ' hc-main--clinical-mode' : ''}`}>
-                {!modoClinico ? <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} onLogout={onLogout} /> : null}
-                <main ref={contenidoRef} className="hc-contenido min-w-0" tabIndex={-1}>
+                <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} onLogout={onLogout} />
+                <Content ref={contenidoRef} className="hc-contenido min-w-0" tabIndex={-1}>
                     {children}
-                </main>
+                </Content>
             </div>
         </DisenoPanel>
     );

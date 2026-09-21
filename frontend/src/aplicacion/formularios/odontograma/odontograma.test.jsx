@@ -1,6 +1,6 @@
 import React from 'react';
 import { beforeEach, afterEach, describe, test, expect, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, within } from '@testing-library/react';
 import Odontograma from './Odontograma.jsx';
 import { CompactTooth, toothSurfacePolygon, surfacePolygons } from './GraficoOdontograma.jsx';
 import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition } from './odontograma.config.mjs';
@@ -78,6 +78,41 @@ describe('estructura NTS 188', () => {
     const record = createRecord('a'); delete record.examinations[0].teeth['11'];
     expect(() => readRecord(JSON.stringify(record), 'a')).toThrow();
   });
+});
+
+test('expone un viewport desplazable y conserva los controles de dentición', () => {
+  render(<Odontograma patientId="responsive" />);
+  const viewport = screen.getByRole('region', { name: 'Odontograma desplazable' });
+  expect(viewport).toHaveAttribute('tabindex', '0');
+  expect(screen.getByRole('group', { name: 'Dentición visible' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+  expect(screen.getByText(/Pieza 11/)).toBeInTheDocument();
+  const mobileSurfaces = document.querySelector('.nts-mobile-surface-picker');
+  expect(mobileSurfaces).not.toBeNull();
+  const mesial = [...mobileSurfaces.querySelectorAll('button')].find((button) => button.textContent === 'Mesial');
+  fireEvent.click(mesial);
+  expect(mesial).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('abre el odontograma móvil en una ventana modal y permite cerrarlo', () => {
+  render(<Odontograma patientId="modal-movil" />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Abrir odontograma', hidden: true }));
+  expect(screen.getByRole('dialog', { name: 'Odontograma' })).toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cerrar odontograma' }));
+  expect(screen.queryByRole('dialog', { name: 'Odontograma' })).not.toBeInTheDocument();
+});
+
+test('abre acciones de la superficie desde el odontograma móvil limpio', () => {
+  render(<Odontograma patientId="acciones-movil" />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Abrir odontograma', hidden: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+
+  const actions = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  expect(actions).toBeInTheDocument();
+  expect(within(actions).getByRole('button', { name: 'Caries' })).toBeInTheDocument();
 });
 
 test('interfaz guarda, recupera y separa el registro por historia', () => {

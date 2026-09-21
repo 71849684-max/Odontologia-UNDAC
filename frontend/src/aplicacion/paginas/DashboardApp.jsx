@@ -83,7 +83,7 @@ export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
 
         <section className="hc-dashboard-grid">
             <article className="hc-panel-card">
-                <div className="hc-panel-card__header"><div><h2>Actividad reciente</h2><p>Últimos movimientos registrados en la maqueta clínica.</p></div></div>
+                <div className="hc-panel-card__header"><div><h2>Actividad reciente</h2><p>Últimos movimientos registrados en la clínica.</p></div></div>
                 <div className="hc-activity-list">{ACTIVIDAD.map(({ icono: Icono, titulo, detalle, tono }) => <div className="hc-activity-row" key={titulo}><span className={`hc-activity-row__icon is-${tono}`}><Icono size={16} /></span><span><strong>{titulo}</strong><small>{detalle}</small></span><span aria-hidden="true">›</span></div>)}</div>
             </article>
             <article className="hc-panel-card">
@@ -97,7 +97,7 @@ export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
         </section>
 
         <section className="hc-panel-card">
-            <div className="hc-panel-card__header"><div><h2>Historias recientes</h2><p>Últimas historias clínicas modificadas.</p></div><button type="button" onClick={() => go(onNavigate, rol === 'alumno' ? 'mis-historias' : 'historias')}>Ver todas</button></div>
+            <div className="hc-panel-card__header"><div><h2>Historias recientes</h2><p>Últimas historias clínicas modificadas.</p></div><button type="button" onClick={() => go(onNavigate, rol === 'alumno' ? 'mis-historias' : 'historias')}>Ver todas →</button></div>
             <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Operador</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{mockHistorias.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Operador">{item.operador}</td><td data-label="Estado"><StatusBadge status={item.estado} /></td><td data-label="Actualización">{item.fecha}</td><td data-label="Progreso"><ProgressBar value={item.progreso} /></td><td data-label="Acción"><button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button></td></tr>)}</tbody></table></div>
         </section>
     </div>;

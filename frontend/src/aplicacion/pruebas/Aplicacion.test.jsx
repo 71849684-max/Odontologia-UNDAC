@@ -88,6 +88,8 @@ test('el sidebar despliega grupos y todas las vistas administrativas muestran co
     await screen.findByRole('button', { name: 'Gestión clínica' });
 
     const gestion = screen.getByRole('button', { name: 'Gestión clínica' });
+    expect(gestion).toHaveAttribute('aria-expanded', 'true');
+    await usuario.click(gestion);
     expect(gestion).toHaveAttribute('aria-expanded', 'false');
     await usuario.click(gestion);
     expect(gestion).toHaveAttribute('aria-expanded', 'true');
@@ -95,8 +97,7 @@ test('el sidebar despliega grupos y todas las vistas administrativas muestran co
     expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();
 
     const administracion = screen.getByRole('button', { name: 'Administración' });
-    await usuario.click(administracion);
-    expect(gestion).toHaveAttribute('aria-expanded', 'false');
+    expect(gestion).toHaveAttribute('aria-expanded', 'true');
     expect(administracion).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Usuarios' }));
     expect(screen.getByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();
@@ -106,8 +107,7 @@ test('el sidebar despliega grupos y todas las vistas administrativas muestran co
     expect(screen.getByRole('heading', { name: 'Auditoría del sistema' })).toBeInTheDocument();
 
     const sistema = screen.getByRole('button', { name: 'Sistema' });
-    await usuario.click(sistema);
-    expect(administracion).toHaveAttribute('aria-expanded', 'false');
+    expect(administracion).toHaveAttribute('aria-expanded', 'true');
     expect(sistema).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Configuración' }));
     expect(screen.getByRole('heading', { name: 'Configuración' })).toBeInTheDocument();
@@ -119,8 +119,7 @@ test('sincroniza la navegación con la URL y permite volver desde el breadcrumb'
     await renderizarAplicacion();
 
     await ingresar(usuario);
-    await usuario.click(await screen.findByRole('button', { name: 'Gestión clínica' }));
-    await usuario.click(screen.getByRole('button', { name: 'Pacientes' }));
+    await usuario.click(await screen.findByRole('button', { name: 'Pacientes' }));
 
     expect(window.location.hash).toBe('#/pacientes');
     expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();

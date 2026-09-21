@@ -108,8 +108,8 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                         </button>
                     </form>
                     <div className="ayuda-acceso"><span aria-hidden="true">i</span><p>¿Necesitas asistencia? Comunícate con el soporte de la clínica odontológica.</p></div>
+                    <p className="acceso-formulario__pie">© 2026 Universidad Nacional Daniel Alcides Carrión</p>
                 </div>
-                <p className="acceso-formulario__pie">© 2026 Universidad Nacional Daniel Alcides Carrión</p>
             </section>
         </main>
     );

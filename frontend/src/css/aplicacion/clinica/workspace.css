@@ -424,3 +424,76 @@
   .clinical-autosave.is-saving svg { animation: none; }
   .clinical-moment-nav, .clinical-collapsible__chevron { transition: none; }
 }
+
+.clinical-interview-summary { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 1fr); gap: 20px; padding: 20px; border: 1px solid #cde5eb; border-radius: 14px; background: linear-gradient(120deg, #fff, #f0fafb); }
+.clinical-interview-summary__reason { min-width: 0; }
+.clinical-interview-summary__reason p { margin: 8px 0; color: #183d50; font-weight: 600; overflow-wrap: anywhere; white-space: pre-wrap; }
+.clinical-interview-summary__reason small, .clinical-interview-summary__metrics small { color: #526b7a; }
+.clinical-interview-summary__metrics { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px; align-items: center; }
+.clinical-interview-summary__metrics > div { display: grid; gap: 7px; padding-left: 12px; border-left: 2px solid #c9e4e8; }
+.clinical-interview-summary__metrics strong { color: #126877; font-size: 15px; }
+.clinical-interview-summary__metrics .is-positive { border-color: #edc180; }
+.clinical-interview-summary__metrics .is-positive strong { color: #97520b; }
+.clinical-health-overview { padding: 18px; border: 1px solid #dce7ed; border-radius: 12px; background: #fff; }
+.clinical-health-overview__heading h3, .clinical-antecedentes-summary h3 { margin: 0 0 6px; font-size: 16px; color: #23485b; }
+.clinical-health-overview__heading p, .clinical-antecedentes-summary p { margin: 0; font-size: 13px; color: #526b7a; }
+.clinical-health-matrix { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 7px; margin: 16px 0 0; padding: 0; list-style: none; }
+.clinical-health-matrix li { display: grid; justify-items: center; gap: 4px; padding: 10px 3px; border: 1px solid #d6e1e8; border-radius: 9px; background: #f6f8fa; color: #526473; }
+.clinical-health-matrix li strong { font-size: 15px; }
+.clinical-health-matrix li span { font-size: 10px; }
+.clinical-health-matrix .is-positive { color: #8a480a; background: #fff4df; border-color: #edc180; }
+.clinical-health-matrix .is-negative { color: #126877; background: #eaf8f7; border-color: #a5d7d3; }
+.clinical-antecedentes-summary { padding: 20px; background: #f4fafc; border: 1px solid #d5e7ee; border-radius: 12px; }
+.clinical-antecedentes-summary dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0 0; }
+.clinical-antecedentes-summary dl > div { padding: 14px; border: 1px solid #dce7ed; background: #fff; border-radius: 9px; }
+.clinical-antecedentes-summary dt { font-size: 12px; color: #526b7a; }
+.clinical-antecedentes-summary dd { margin: 6px 0 0; color: #23485b; font-weight: 600; overflow-wrap: anywhere; }
+@media (max-width: 1200px) {
+  .clinical-interview-summary { grid-template-columns: 1fr; }
+  .clinical-health-matrix { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .clinical-interview-summary { padding: 14px; }
+  .clinical-interview-summary__metrics { grid-template-columns: 1fr; }
+  .clinical-health-matrix { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .clinical-antecedentes-summary dl { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .clinical-moment-header { grid-template-columns: minmax(0, 1fr); }
+  .clinical-workspace-actions { position: static; }
+}
+
+/* Ajustes de densidad y touch para el workspace refactorizado. */
+@media (min-width: 1200px) {
+  .clinical-active-section__content { padding: 13px; }
+  .clinical-active-section__content .undac-section-card__header { padding: 12px 14px 12px 17px; }
+  .clinical-active-section__content .undac-section-card__body { padding: 14px; }
+  .clinical-collapsible__trigger { min-height: 52px; padding: 9px 12px; }
+  .clinical-collapsible__body { padding: 14px; }
+}
+
+@media (max-width: 991px) {
+  .clinical-health-matrix { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .clinical-interview-summary { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; }
+}
+
+@media (max-width: 767px) {
+  .clinical-health-matrix { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .clinical-health-matrix li { min-height: 52px; padding: 8px 3px; }
+  .clinical-health-matrix li strong { font-size: 13px; }
+  .clinical-health-matrix li span { font-size: 9px; }
+  .clinical-health-overview,
+  .clinical-antecedentes-summary { padding: 12px; }
+  .clinical-interview-summary { padding: 12px; }
+  .clinical-interview-summary__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .clinical-interview-summary__metrics > div { padding-left: 8px; }
+  .clinical-collapsible__trigger { grid-template-columns: minmax(0, 1fr) auto 18px; min-height: 56px; padding: 11px 12px; }
+  .clinical-collapsible__summary { grid-column: 1 / -1; grid-row: 2; text-align: left; white-space: normal; }
+  .clinical-collapsible__status { grid-column: 2; grid-row: 1; }
+}
+
+@media (max-width: 430px) {
+  .clinical-health-matrix { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .clinical-interview-summary__metrics { grid-template-columns: minmax(0, 1fr); }
+  .clinical-interview-summary__metrics > div { padding: 7px 0 0; border-left: 0; border-top: 1px solid #dce7ed; }
+}

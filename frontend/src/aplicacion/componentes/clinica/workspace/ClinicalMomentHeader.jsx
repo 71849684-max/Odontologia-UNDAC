@@ -10,16 +10,10 @@ export default function ClinicalMomentHeader() {
   const momentReady = pendingSections === 0;
   return (
     <section className="clinical-moment-header">
-      <div className="clinical-moment-header__copy"><span className="clinical-moment-header__number" aria-hidden="true">{activeMoment.number}.</span><div><span className="clinical-kicker">Momento clínico de 6</span><h2>{activeMoment.label}</h2><p>{activeMoment.description}</p></div></div>
+      <div className="clinical-moment-header__copy"><span className="clinical-moment-header__number" aria-hidden="true">{activeMoment.number}.</span><div><span className="clinical-kicker">Momento clínico {activeMoment.number} de 6</span><h2>{activeMoment.label}</h2><p>{activeMoment.description}</p></div></div>
       <div className="clinical-moment-header__progress" role="status" aria-label={`Estado de ${activeMoment.label}`}>
         <span><b>Secciones revisadas</b><strong>{progress.complete} de {progress.total}</strong></span>
-        <div
-          role="progressbar"
-          aria-label={`Progreso de ${activeMoment.label}`}
-          aria-valuemin="0"
-          aria-valuemax="100"
-          aria-valuenow={progress.percent}
-        ><i style={{ width: `${progress.percent}%` }} /></div>
+        <div role="progressbar" aria-label={`Progreso de ${activeMoment.label}`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress.percent}><i style={{ width: `${progress.percent}%` }} /></div>
         <small>{pendingCopy} · {progress.started} iniciadas</small>
       </div>
       <aside className={`clinical-moment-header__readiness${momentReady ? ' is-ready' : ''}`} aria-label="Resumen de revisión del momento">

@@ -27,10 +27,11 @@ function obtenerGrupoActivo(menu, activo) {
 }
 
 export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected }) {
-    const [grupoAbierto, setGrupoAbierto] = useState(() => obtenerGrupoActivo(menu, activo));
+    const [gruposCerrados, setGruposCerrados] = useState([]);
 
     useEffect(() => {
-        setGrupoAbierto(obtenerGrupoActivo(menu, activo));
+        const grupo = obtenerGrupoActivo(menu, activo);
+        if (grupo) setGruposCerrados((actual) => actual.filter((id) => id !== grupo));
     }, [activo, menu]);
 
     function seleccionar(id) {
@@ -39,7 +40,7 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected 
     }
 
     function alternarGrupo(id) {
-        setGrupoAbierto((actual) => actual === id ? null : id);
+        setGruposCerrados((actual) => actual.includes(id) ? actual.filter((grupo) => grupo !== id) : [...actual, id]);
     }
 
     return (
@@ -50,11 +51,11 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected 
                     {menu.map((item) => {
                         const Icono = ICONOS[item.id] ?? ClipboardList;
                         const tieneHijos = Boolean(item.children?.length);
-                        const abierto = grupoAbierto === item.id;
+                        const abierto = !gruposCerrados.includes(item.id);
                         const grupoActivo = item.children?.some((sub) => sub.id === activo)
                             || (activo === 'historia-clinica' && item.id === 'gestion');
                         return (
-                        <li key={item.id} className={`menu-item${grupoActivo ? ' tiene-activo' : ''}`}>
+                        <li key={item.id} className={`menu-item${tieneHijos ? ' menu-item--group' : ''}${grupoActivo ? ' tiene-activo' : ''}`}>
                             <button
                                 type="button"
                                 className={activo === item.id ? 'esta-activo' : ''}
@@ -68,13 +69,15 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected 
                             </button>
                             {tieneHijos && abierto && (
                                 <ul className="submenu" id={`submenu-${item.id}`}>
-                                    {item.children.map((sub) => (
+                                    {item.children.map((sub) => {
+                                        const IconoSub = ICONOS[sub.id] ?? ClipboardList;
+                                        return (
                                         <li key={sub.id}>
                                             <button type="button" className={activo === sub.id ? 'esta-activo' : ''} aria-current={activo === sub.id ? 'page' : undefined} onClick={() => seleccionar(sub.id)}>
-                                                {sub.etiqueta}
+                                                <IconoSub size={17} aria-hidden="true" /><span>{sub.etiqueta}</span>
                                             </button>
                                         </li>
-                                    ))}
+                                    );})}
                                 </ul>
                             )}
                         </li>

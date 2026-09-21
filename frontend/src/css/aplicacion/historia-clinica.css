@@ -743,3 +743,54 @@
   .hc-form-actions { grid-template-columns: 1fr; }
   .hc-compact-stats, .hc-settings-fields { grid-template-columns: 1fr; }
 }
+
+/* Responsive clínico 2026: el formulario se recompone por dispositivo, no se escala. */
+@media (max-width: 1199px) {
+  .clinical-workspace-shell .undac-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .clinical-workspace-shell .undac-signature-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinical-workspace-shell .undac-tissue-row { grid-template-columns: minmax(120px, .7fr) minmax(0, 1fr); }
+  .clinical-workspace-shell .undac-tissue-row .undac-field,
+  .clinical-workspace-shell .undac-tissue-ok { grid-column: 1 / -1; }
+}
+
+@media (max-width: 991px) {
+  .clinical-workspace-shell :is(.undac-form-grid, .undac-question-detail, .undac-lab-grid) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinical-workspace-shell .undac-vitals-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .clinical-workspace-shell :is(.undac-field, .undac-choice, .undac-question-detail > *) { min-width: 0; }
+}
+
+@media (max-width: 767px) {
+  .clinical-workspace-shell :is(.undac-form-grid, .undac-question-detail, .undac-lab-grid, .undac-signature-grid, .undac-signature-grid--2, .undac-tissue-row) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clinical-workspace-shell .undac-col-2,
+  .clinical-workspace-shell .undac-tissue-row .undac-field,
+  .clinical-workspace-shell .undac-tissue-ok { grid-column: auto; }
+  .clinical-workspace-shell .undac-vitals-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinical-workspace-shell .undac-field :is(input, select, textarea) { min-width: 0; max-width: 100%; font-size: 16px; }
+  .clinical-workspace-shell .undac-field :is(input, select) { min-height: 44px; height: auto; padding-block: 8px; }
+  .clinical-workspace-shell .undac-field textarea { min-height: 96px; }
+  .clinical-workspace-shell .undac-choice__options { gap: 8px; }
+  .clinical-workspace-shell .undac-choice__options label,
+  .clinical-workspace-shell .undac-check-grid label { min-height: 44px; }
+  .clinical-workspace-shell .undac-choice__options span,
+  .clinical-workspace-shell .undac-check-grid span { min-height: 44px; padding: 9px 12px; font-size: 13px; }
+  .clinical-workspace-shell .undac-clinical-question { grid-template-columns: 30px minmax(0, 1fr); gap: 10px; padding: 12px; }
+  .clinical-workspace-shell .undac-clinical-question__number { width: 30px; height: 30px; }
+  .clinical-workspace-shell .undac-clinical-question__content { gap: 11px; }
+  .clinical-workspace-shell .undac-clinical-question__content > strong { font-size: 13px; line-height: 1.45; }
+  .clinical-workspace-shell .undac-question-detail { padding: 10px; }
+  .clinical-workspace-shell .undac-photo-grid { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
+  .clinical-workspace-shell .undac-photo-slot { min-height: 112px; }
+}
+
+@media (max-width: 430px) {
+  .clinical-workspace-shell .undac-vitals-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinical-workspace-shell .undac-photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .clinical-workspace-shell .undac-photo-slot { min-height: 104px; padding-inline: 6px; }
+}
+
+@media (max-width: 360px) {
+  .clinical-workspace-shell .undac-vitals-grid,
+  .clinical-workspace-shell .undac-photo-grid { grid-template-columns: minmax(0, 1fr); }
+}

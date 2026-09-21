@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { vi } from 'vitest';
 import AgendaSeguimientos from '../componentes/modulos/AgendaSeguimientos';
 import BibliotecaRecursos from '../componentes/modulos/BibliotecaRecursos';
 import CronologiaEventos from '../componentes/modulos/CronologiaEventos';
 import PanelConfiguracion from '../formularios/configuracion-panel/PanelConfiguracion.jsx';
 import TablaRegistros from '../componentes/modulos/TablaRegistros';
+import HistoriasApp from '../formularios/busqueda-historias/HistoriasApp.jsx';
 
 test('presenta registros con encabezados semánticos', () => {
     render(
@@ -18,6 +20,30 @@ test('presenta registros con encabezados semánticos', () => {
 
     expect(screen.getByRole('columnheader', { name: 'Paciente' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: 'Rosa Huamán' })).toBeInTheDocument();
+});
+
+test('conserva etiquetas móviles en tablas genéricas', () => {
+    const { container } = render(
+        <TablaRegistros
+            columnas={[
+                { clave: 'paciente', etiqueta: 'Paciente' },
+                { clave: 'estado', etiqueta: 'Estado' },
+            ]}
+            filas={[{ id: 'r1', paciente: 'Rosa Huamán', estado: 'Activa' }]}
+        />,
+    );
+    expect(container.querySelector('td[data-label="Paciente"]')).toBeInTheDocument();
+    expect(container.querySelector('td[data-label="Estado"]')).toBeInTheDocument();
+});
+
+test('historias mantiene datos y acción al transformarse visualmente en tarjetas', () => {
+    const onNavigate = vi.fn();
+    const { container } = render(<HistoriasApp rol="administrador" onNavigate={onNavigate} />);
+    for (const label of ['N.º historia', 'Paciente', 'Operador', 'Docente', 'Progreso', 'Estado', 'Fecha', 'Acciones']) {
+        expect(container.querySelector(`td[data-label="${label}"]`)).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getAllByRole('button', { name: 'Abrir' })[0]);
+    expect(onNavigate).toHaveBeenCalledWith({ view: 'historia', historiaId: 1, section: 'datos-paciente' });
 });
 
 test('presenta una cronología de auditoría', () => {

@@ -1,5 +1,8 @@
 /* NTS 188: selección gris; rojo y azul reservados a los hallazgos clínicos. */
 .nts-odontogram { min-width: 0; }
+.nts-mobile-launcher { display: none; }
+.nts-mobile-modal { min-width: 0; }
+body.nts-modal-open { overflow: hidden; }
 .nts-notice { padding: 12px 14px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 8px; color: #475569; font-size: 12px; line-height: 1.6; }
 .nts-record-toolbar, .nts-metadata { display: grid; grid-template-columns: 2fr 2fr 1fr; align-items: end; gap: 14px; margin: 18px 0; }
 .nts-metadata { grid-template-columns: 1fr 2fr 1fr; }
@@ -82,12 +85,98 @@
 .nts-more-findings summary { cursor: pointer; font-size: 12px; color: #475569; padding: 6px 0; }
 .nts-more-findings[open] summary { margin-bottom: 6px; }
 .nts-dentition { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0; }
+.nts-mobile-surface-picker { display: none; }
+.nts-mobile-surface-picker button { min-height: 44px; border: 1px solid #d5dfe7; border-radius: 8px; background: #fff; color: #334155; font-weight: 650; cursor: pointer; }
+.nts-mobile-surface-picker button[aria-pressed=true] { color: #0f766e; border-color: #5eead4; background: #f0fdfa; box-shadow: inset 0 0 0 1px #0f766e; }
 .nts-evaluation-details { margin-top: 12px; }
 .nts-evaluation-details summary, .nts-extra-details summary { cursor: pointer; color: #475569; font-size: 13px; padding: 8px 0; }
 .nts-extra-details .nts-editor-fields { padding-top: 10px; max-width: 620px; }
 .nts-extra-details .nts-shape-editor { max-width: 210px; }
-@media (max-width: 768px) {
-  .nts-record-toolbar, .nts-metadata, .nts-notes { grid-template-columns: 1fr; }
-  .nts-editor { grid-template-columns: 1fr; }
+@media (max-width: 991px) {
+  .nts-record-toolbar, .nts-metadata { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nts-notes { grid-template-columns: 1fr; }
+  .nts-editor { grid-template-columns: minmax(170px, 220px) minmax(0, 1fr); gap: 20px; }
+}
+
+@media (max-width: 1024px) {
+  .nts-mobile-launcher { display: grid; gap: 7px; padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; }
+  .nts-mobile-launcher .undac-btn { min-height: 46px; justify-content: center; }
+  .nts-mobile-launcher small { color: #64748b; font-size: 12px; line-height: 1.45; text-align: center; }
+  .nts-mobile-modal { display: none; }
+  .nts-odontogram.is-mobile-open .nts-mobile-modal {
+    position: fixed; inset: 0; z-index: var(--ou-z-modal, 1000); display: grid; place-items: center;
+    padding: clamp(16px, 4vw, 36px); overflow: hidden; background: rgb(15 23 42 / 48%);
+  }
+  .nts-mobile-modal__window { width: min(920px, 100%); max-height: calc(100dvh - 32px); overflow: auto; overscroll-behavior: contain; border: 1px solid #cbd5e1; border-radius: 14px; background: #fff; box-shadow: 0 24px 60px rgb(15 23 42 / 28%); }
+  .nts-mobile-modal__header {
+    position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 16px; border-bottom: 1px solid #dbe2e8; background: #fff;
+  }
+  .nts-mobile-modal__header strong, .nts-mobile-modal__header small { display: block; }
+  .nts-mobile-modal__header strong { color: #0f172a; font-size: 14px; }
+  .nts-mobile-modal__header small { margin-top: 2px; color: #64748b; font-size: 11px; }
+  .nts-mobile-modal__header .hc-mini-button { min-width: 42px; min-height: 42px; padding: 0; display: inline-grid; place-items: center; }
+  .nts-mobile-modal__window > .undac-section-card:not(:first-of-type), .nts-mobile-modal__window > .undac-section-card:first-of-type :is(.nts-notice, .nts-evaluation-details, .nts-tools, .nts-legend) { display: none; }
+  .nts-mobile-modal__window > .undac-section-card:first-of-type .undac-section-card__header { display: none; }
+  .nts-mobile-modal__window > .undac-section-card:first-of-type .undac-section-card__body { padding: 14px; }
+  .nts-mobile-modal__window .nts-chart-scroll { touch-action: pan-x; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+  .nts-mobile-modal__window .nts-chart { min-width: 760px; }
+  .nts-action-modal-overlay { position: fixed; inset: 0; z-index: 1; display: grid; place-items: center; padding: 20px; background: rgb(15 23 42 / 42%); }
+  .nts-action-modal { width: min(560px, 100%); max-height: calc(100dvh - 40px); overflow: auto; overscroll-behavior: contain; padding: 18px; border: 1px solid #cbd5e1; border-radius: 14px; background: #fff; box-shadow: 0 24px 60px rgb(15 23 42 / 28%); }
+  .nts-action-modal > header, .nts-action-modal > footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .nts-action-modal > header { margin-bottom: 14px; }
+  .nts-action-modal h3, .nts-action-modal p { margin: 0; }
+  .nts-action-modal h3 { color: #0f172a; font-size: 16px; }
+  .nts-action-modal p { margin-top: 3px; color: #64748b; font-size: 12px; }
+  .nts-action-modal > footer { justify-content: flex-end; margin-top: 16px; }
+}
+
+@media (max-width: 767px) {
+  .hc-odontogram, .nts-odontogram { min-width: 0; max-width: 100%; }
+  .nts-record-toolbar, .nts-metadata, .nts-notes, .nts-editor { grid-template-columns: 1fr; }
+  .nts-chart-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+  }
+  .nts-chart { min-width: 800px; padding: 14px 12px; }
+  .nts-tooth { width: 48px; flex-basis: 48px; }
+  .nts-tooth-map { --tooth-size: 46px; }
+  .nts-tooth-number { width: 36px; min-height: 30px; height: 30px; }
   .nts-shape-editor { max-width: 260px; margin: auto; }
+  .nts-quick-tools button, .nts-dentition button, .nts-close .undac-btn { min-height: 44px; }
+  .nts-dentition { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .nts-dentition button { justify-content: center; width: 100%; }
+  .nts-mobile-surface-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .nts-mobile-surface-picker button:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .nts-tool-options > label, .nts-more-findings { flex-basis: 100%; max-width: none; width: 100%; }
+  .nts-register { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+  .nts-register table { min-width: 620px; }
+  .nts-close { align-items: stretch; }
+}
+
+@media (max-width: 767px) and (orientation: landscape) {
+  .nts-mobile-modal__window { max-height: calc(100dvh - 20px); }
+  .nts-mobile-modal__window > .undac-section-card:first-of-type .undac-section-card__body { padding: 10px 14px; }
+  .nts-mobile-modal__window .nts-chart-scroll { min-height: calc(100dvh - 170px); display: grid; align-content: center; }
+}
+
+@media (max-width: 430px) {
+  .nts-notice { padding: 10px 11px; }
+  .nts-quick-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nts-quick-tools button { justify-content: center; width: 100%; }
+  .nts-dentition { grid-template-columns: 1fr; }
+  .nts-mobile-surface-picker { grid-template-columns: 1fr; }
+  .nts-mobile-surface-picker button:last-child:nth-child(odd) { grid-column: auto; }
+  .nts-legend { gap: 8px 12px; }
+  .nts-close { display: grid; grid-template-columns: 1fr; }
+  .nts-close .undac-btn { width: 100%; }
+}
+
+@media (max-width: 360px) {
+  .nts-quick-tools { grid-template-columns: 1fr; }
+  .nts-chart { padding-inline: 10px; }
 }

@@ -122,7 +122,6 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     const index = clinicalSections.findIndex((item) => item.id === activeSection);
     const nextIndex = Math.min(clinicalSections.length - 1, Math.max(0, index + offset));
     setActiveSection(clinicalSections[nextIndex].id);
-    document.querySelector('.clinical-workspace__main')?.scrollTo?.({ top: 0, behavior: 'smooth' });
   }, [activeSection]);
 
   const value = useMemo(() => ({

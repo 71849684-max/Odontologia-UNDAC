@@ -8,5 +8,5 @@ export default function AutoSaveIndicator({ status = 'saved', lastSavedAt }) {
       ? { Icon: AlertTriangle, label: 'No se pudo guardar localmente', className: 'is-error' }
       : { Icon: CheckCircle2, label: 'Guardado automáticamente', className: 'is-saved' };
   const time = lastSavedAt ? new Date(lastSavedAt).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' }) : 'en esta sesión';
-  return <div className={`clinical-autosave ${config.className}`} role="status"><config.Icon size={17} aria-hidden="true" /><span><strong>{config.label}</strong><small>{status === 'saved' ? time : 'Historia clínica en edición'}</small></span></div>;
+  return <div className={`clinical-autosave ${config.className}`} role="status" aria-label="Autoguardado"><config.Icon size={17} aria-hidden="true" /><span><strong>{config.label}</strong><small>{status === 'saved' ? time : 'Historia clínica en edición'}</small></span></div>;
 }

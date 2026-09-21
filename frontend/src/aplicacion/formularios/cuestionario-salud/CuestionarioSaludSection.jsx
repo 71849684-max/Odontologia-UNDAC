@@ -20,7 +20,7 @@ function answerFor(get, number) {
 
 export default function CuestionarioSaludSection({ values, onChange }) {
   const { get, set } = useSection(values, onChange);
-  const answered = healthQuestions.filter((question) => Boolean(answerFor(get, question.number))).length;
+  const answered = healthQuestions.filter((question) => yesNo.includes(answerFor(get, question.number))).length;
   const positive = healthQuestions.filter((question) => answerFor(get, question.number) === 'Sí');
 
   return <div className="undac-section-stack clinical-health-questionnaire">
@@ -30,9 +30,22 @@ export default function CuestionarioSaludSection({ values, onChange }) {
       {positive.length ? <span className="clinical-health-summary__alert"><AlertTriangle size={16} />{positive.length} respuesta{positive.length === 1 ? '' : 's'} positiva{positive.length === 1 ? '' : 's'}</span> : null}
     </section>
 
+    <section className="clinical-health-overview" aria-label="Mapa del cuestionario">
+      <div className="clinical-health-overview__heading"><h3>Estado de las preguntas</h3><p>Sí: respuesta afirmativa · No: respuesta negativa · Pendiente: sin respuesta</p></div>
+      <ol className="clinical-health-matrix" aria-label="Estado de las 24 preguntas">
+        {healthQuestions.map(({ number, text }) => {
+          const answer = answerFor(get, number);
+          const state = answer === 'Sí' ? 'positive' : answer === 'No' ? 'negative' : 'pending';
+          return <li key={number} className={`is-${state}`} aria-label={`Pregunta ${number}: ${text} — ${state === 'pending' ? 'Pendiente' : answer}`}>
+            <strong>{String(number).padStart(2, '0')}</strong><span>{state === 'pending' ? 'Pendiente' : answer}</span>
+          </li>;
+        })}
+      </ol>
+    </section>
+
     {GROUPS.map((group, groupIndex) => {
       const questions = group.numbers.map((number) => healthQuestions.find((question) => question.number === number)).filter(Boolean);
-      const groupAnswered = questions.filter((question) => Boolean(answerFor(get, question.number))).length;
+      const groupAnswered = questions.filter((question) => yesNo.includes(answerFor(get, question.number))).length;
       const groupPositive = questions.filter((question) => answerFor(get, question.number) === 'Sí').length;
       return <CollapsibleSection
         key={group.id}
