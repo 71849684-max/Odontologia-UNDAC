@@ -11,28 +11,25 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-test('el resumen de entrevista refleja el motivo editado sin sustituir el formulario', () => {
+test('la entrevista comienza directamente en el formulario sin resumen duplicado', () => {
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" />);
-  const summary = screen.getByRole('region', { name: 'Resumen de entrevista' });
-  expect(summary).toHaveTextContent('Motivo pendiente de registrar');
+
+  expect(screen.queryByRole('region', { name: 'Resumen de entrevista' })).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText('Motivo de consulta'), { target: { value: 'Control dental' } });
-  expect(summary).toHaveTextContent('Control dental');
-  expect(summary).toHaveTextContent('0 de 24 respondidas');
+  expect(screen.getByLabelText('Motivo de consulta')).toHaveValue('Control dental');
 });
 
-test('la matriz refleja Sí y No y conserva el detalle al cambiar la respuesta', () => {
+test('el cuestionario comienza en las preguntas y conserva el detalle al cambiar la respuesta', () => {
   render(<HistoriaClinica historiaId="1" initialSection="cuestionario-salud" />);
-  const matrix = screen.getByRole('list', { name: 'Estado de las 24 preguntas' });
-  expect(within(matrix).getAllByRole('listitem')).toHaveLength(24);
+
+  expect(screen.queryByText('Cuestionario de salud · 24 preguntas institucionales')).not.toBeInTheDocument();
+  expect(screen.queryByRole('list', { name: 'Estado de las 24 preguntas' })).not.toBeInTheDocument();
   const answer = screen.getByRole('group', { name: 'Respuesta de la pregunta 1' });
   fireEvent.click(within(answer).getByRole('radio', { name: 'Sí', exact: true }));
   expect(answer.closest('.undac-clinical-question')).toHaveClass('is-positive');
   fireEvent.change(screen.getByLabelText(/¿Hace qué tiempo/), { target: { value: 'Dos semanas' } });
-  expect(within(matrix).getAllByRole('listitem')[0]).toHaveTextContent('Sí');
-  expect(screen.getByRole('region', { name: 'Resumen de entrevista' })).toHaveTextContent('1 de 24 respondidas');
   fireEvent.click(within(answer).getByRole('radio', { name: 'No', exact: true }));
   expect(screen.queryByLabelText(/¿Hace qué tiempo/)).not.toBeInTheDocument();
-  expect(within(matrix).getAllByRole('listitem')[0]).toHaveTextContent('No');
   fireEvent.click(within(answer).getByRole('radio', { name: 'Sí', exact: true }));
   expect(screen.getByLabelText(/¿Hace qué tiempo/)).toHaveValue('Dos semanas');
 });
@@ -44,16 +41,43 @@ test.each(clinicalSections)('abre la sección $id con sus dependencias independi
   expect(screen.queryByText('Sección preparada para implementación.')).not.toBeInTheDocument();
 });
 
-test('el selector compacto de momentos reutiliza la navegación clínica', () => {
+test('muestra y oculta el navegador de los seis momentos con el botón hamburguesa', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
-  const trigger = screen.getByRole('button', { name: /1 de 6.*Ingreso y filiación/i });
-  expect(trigger).toHaveAttribute('aria-expanded', 'false');
+
+  const hide = screen.getByRole('button', { name: 'Ocultar momentos clínicos' });
+  expect(hide).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByRole('complementary', { name: 'Momentos de Historia Clínica' })).toBeInTheDocument();
+
+  fireEvent.click(hide);
+  expect(screen.getByRole('button', { name: 'Mostrar momentos clínicos' })).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByRole('complementary', { name: 'Momentos de Historia Clínica' })).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByRole('button', { name: 'Mostrar momentos clínicos' }));
+  const navigation = within(screen.getByRole('complementary', { name: 'Momentos de Historia Clínica' }));
+  expect(navigation.getAllByRole('button')).toHaveLength(6);
+});
+
+test('el drawer móvil se cierra con Escape o al seleccionar un momento y devuelve el foco', () => {
+  vi.stubGlobal('matchMedia', vi.fn((query) => ({
+    matches: query.includes('max-width'),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })));
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+
+  const trigger = screen.getByRole('button', { name: 'Mostrar momentos clínicos' });
   fireEvent.click(trigger);
-  const mobileNav = screen.getByRole('region', { name: 'Cambiar momento clínico' });
-  expect(within(mobileNav).getAllByRole('button')).toHaveLength(6);
-  fireEvent.click(within(mobileNav).getByRole('button', { name: /Evaluación estomatológica/i }));
-  expect(screen.getByRole('heading', { name: 'Evaluación estomatológica', level: 2 })).toBeInTheDocument();
-  expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('button', { name: 'Cerrar momentos clínicos' })).toBeInTheDocument();
+  fireEvent.keyDown(window, { key: 'Escape' });
+  expect(screen.queryByRole('complementary', { name: 'Momentos de Historia Clínica' })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+
+  fireEvent.click(trigger);
+  const navigation = within(screen.getByRole('complementary', { name: 'Momentos de Historia Clínica' }));
+  fireEvent.click(navigation.getByRole('button', { name: /Evaluación estomatológica/i }));
+  expect(screen.queryByRole('complementary', { name: 'Momentos de Historia Clínica' })).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Examen clínico general', level: 2 })).toBeInTheDocument();
 });
 
 test('el selector compacto de secciones cambia la sección sin duplicar estado', () => {
@@ -74,46 +98,52 @@ test('la navegación primaria se reduce a seis momentos clínicos', () => {
   expect(clinicalMoments).toHaveLength(6);
 });
 
-test('conserva contexto, alertas, progreso y autoguardado del paciente', () => {
-  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
-  expect(screen.getByRole('heading', { name: /Andrea Salazar Huamán/i, level: 1 })).toBeInTheDocument();
-  expect(screen.getByText(/HC-2026-001/i)).toBeInTheDocument();
-  expect(screen.getByLabelText('Alertas clínicas activas')).toBeInTheDocument();
-  expect(screen.getByLabelText('Progreso de la historia clínica')).toHaveAttribute('aria-valuemin', '0');
-  expect(screen.getByLabelText('Autoguardado')).toBeInTheDocument();
+test.each(clinicalMoments)('omite el encabezado redundante del momento $number', (moment) => {
+  render(<HistoriaClinica historiaId="1" initialSection={moment.sections[0]} />);
+
+  expect(screen.queryByText(new RegExp(`Momento clínico\\s+${moment.number}\\s+de\\s+6`, 'i'))).not.toBeInTheDocument();
+  expect(screen.queryByRole('status', { name: `Estado de ${moment.label}` })).not.toBeInTheDocument();
 });
 
-test('muestra un resumen visible de la atención actual junto al paciente', () => {
+test('la cabecera clínica conserva paciente y operador sin indicadores redundantes', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
-  const summary = screen.getByLabelText('Resumen de atención actual');
-  expect(summary).toHaveTextContent('Operador');
-  expect(summary).toHaveTextContent('María Fernández');
-  expect(summary).toHaveTextContent('En registro');
+  const header = screen.getByRole('banner');
+  expect(within(header).getByRole('heading', { name: /Andrea Salazar Huamán/i, level: 1 })).toBeInTheDocument();
+  expect(within(header).getByText(/DNI 70000001/i)).toBeInTheDocument();
+  expect(within(header).getByText('María Fernández')).toBeInTheDocument();
+  expect(within(header).queryByLabelText('Alertas clínicas activas')).not.toBeInTheDocument();
+  expect(within(header).queryByLabelText('Progreso de la historia clínica')).not.toBeInTheDocument();
+  expect(within(header).queryByLabelText('Autoguardado')).not.toBeInTheDocument();
+  expect(within(header).queryByText('Semestre')).not.toBeInTheDocument();
+  expect(within(header).queryByText('Estado')).not.toBeInTheDocument();
 });
 
-test('resume visualmente la ruta de ingreso del paciente', () => {
+test('cambia el operador desde la cabecera y no repite su ficha al final del formulario', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
-  const overview = screen.getByLabelText('Ruta de ingreso del paciente');
-  expect(overview).toHaveTextContent('Identificación');
-  expect(overview).toHaveTextContent('Contacto');
-  expect(overview).toHaveTextContent('Residencia');
-  expect(overview).toHaveTextContent('Acompañante');
+  const header = screen.getByRole('banner');
+  fireEvent.click(within(header).getByRole('button', { name: 'Cambiar asignación' }));
+  const search = screen.getByRole('searchbox');
+  fireEvent.change(search, { target: { value: '71000002' } });
+  fireEvent.click(screen.getByRole('button', { name: /Carlos Rojas/ }));
+
+  expect(within(header).getByText('Carlos Rojas')).toBeInTheDocument();
+  expect(within(screen.getByRole('main')).queryByText('Operador responsable')).not.toBeInTheDocument();
 });
 
-test('expone el progreso accesible del momento clínico activo', () => {
-  render(<HistoriaClinica historiaId="1" initialSection="anamnesis" />);
+test('mantiene fijo el contexto de escritorio y desplaza únicamente el contenido clínico', () => {
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
-  const progress = screen.getByRole('progressbar', {
-    name: 'Progreso de Entrevista y antecedentes',
-  });
+  expect(screen.getByRole('banner')).toHaveStyle({ position: 'sticky' });
+  expect(screen.getByRole('main')).toHaveStyle({ overflowY: 'auto' });
+});
 
-  expect(progress).toHaveAttribute('aria-valuemin', '0');
-  expect(progress).toHaveAttribute('aria-valuemax', '100');
-  expect(progress).toHaveAttribute('aria-valuenow', '0');
-  expect(screen.getByRole('status', { name: 'Estado de Entrevista y antecedentes' }))
-    .toHaveTextContent('3 secciones por revisar');
+test('inicia los datos del paciente directamente en el formulario de identificación', () => {
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+
+  expect(screen.queryByLabelText('Ruta de ingreso del paciente')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Identificación del paciente/i })).toBeInTheDocument();
 });
 
 test('muestra las evidencias visuales como vistas clínicas pendientes de adjuntar', () => {

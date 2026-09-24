@@ -1,13 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Save } from 'lucide-react';
 import { clinicalSections } from '../../../configuracion/historiaClinica.config.mjs';
 import { componentesSeccion } from '../../../formularios/registroFormularios.js';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
 import PatientContextBar from './PatientContextBar.jsx';
 import ClinicalMomentSidebar from './ClinicalMomentSidebar.jsx';
-import ClinicalMomentHeader from './ClinicalMomentHeader.jsx';
 import ClinicalSectionTabs from './ClinicalSectionTabs.jsx';
-import ClinicalInterviewSummary from './ClinicalInterviewSummary.jsx';
+
+const DESKTOP_NAVIGATION_QUERY = '(min-width: 992px)';
+
+function desktopNavigationMatches() {
+  if (typeof window === 'undefined' || !window.matchMedia) return true;
+  return window.matchMedia(DESKTOP_NAVIGATION_QUERY).matches;
+}
 
 export default function ClinicalWorkspace({ onExit }) {
   const { patient, history, meta, activeSection, formData, updateActiveSection, navigateRelative, markCurrentComplete, sectionStatuses } = useHistoriaClinica();
@@ -15,6 +20,10 @@ export default function ClinicalWorkspace({ onExit }) {
   const index = clinicalSections.findIndex((section) => section.id === active.id);
   const ActiveComponent = componentesSeccion[active.id];
   const mainRef = useRef(null);
+  const navigationTriggerRef = useRef(null);
+  const navigationId = useId();
+  const [desktopNavigation, setDesktopNavigation] = useState(desktopNavigationMatches);
+  const [navigationOpen, setNavigationOpen] = useState(desktopNavigationMatches);
   const previousSection = useRef(activeSection);
   useEffect(() => {
     if (previousSection.current === activeSection) return;
@@ -22,14 +31,54 @@ export default function ClinicalWorkspace({ onExit }) {
     mainRef.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
     mainRef.current?.focus({ preventScroll: true });
   }, [activeSection]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const media = window.matchMedia(DESKTOP_NAVIGATION_QUERY);
+    const handleChange = (event) => {
+      setDesktopNavigation(event.matches);
+      setNavigationOpen(event.matches);
+    };
+    media.addEventListener?.('change', handleChange);
+    return () => media.removeEventListener?.('change', handleChange);
+  }, []);
+
+  const mobileDrawerOpen = navigationOpen && !desktopNavigation;
+
+  function closeMobileNavigation() {
+    if (desktopNavigation) return;
+    setNavigationOpen(false);
+    navigationTriggerRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!mobileDrawerOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') closeMobileNavigation();
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [mobileDrawerOpen, desktopNavigation]);
+
   return (
-    <div className="clinical-workspace-shell">
-      <PatientContextBar onExit={onExit} />
-      <div className="clinical-workspace-layout">
-        <ClinicalMomentSidebar />
-        <main ref={mainRef} tabIndex={-1} className={`clinical-workspace__main clinical-section--${active.id}`}>
-          <ClinicalMomentHeader />
-          {['anamnesis', 'cuestionario-salud', 'antecedentes'].includes(active.id) ? <ClinicalInterviewSummary /> : null}
+    <div className="clinical-workspace-shell" style={desktopNavigation ? { height: '100dvh', overflow: 'hidden' } : undefined}>
+      <PatientContextBar
+        onExit={onExit}
+        navigationOpen={navigationOpen}
+        onToggleNavigation={() => setNavigationOpen((current) => !current)}
+        navigationId={navigationId}
+        navigationTriggerRef={navigationTriggerRef}
+        desktopNavigation={desktopNavigation}
+      />
+      {mobileDrawerOpen ? <button type="button" className="clinical-moment-overlay" aria-label="Cerrar momentos clínicos" onClick={closeMobileNavigation} /> : null}
+      <div className={`clinical-workspace-layout is-navigation-${navigationOpen ? 'open' : 'closed'}${mobileDrawerOpen ? ' is-mobile-drawer-open' : ''}`} style={desktopNavigation ? { height: 'calc(100dvh - 73px)', overflow: 'hidden' } : undefined}>
+        <ClinicalMomentSidebar id={navigationId} open={navigationOpen} onNavigate={closeMobileNavigation} />
+        <main ref={mainRef} tabIndex={-1} inert={mobileDrawerOpen ? true : undefined} className={`clinical-workspace__main clinical-section--${active.id}`} style={desktopNavigation ? { height: '100%', overflowY: 'auto' } : undefined}>
           <ClinicalSectionTabs />
           <section className="clinical-active-section" aria-labelledby="clinical-active-title">
             <div className="clinical-active-section__heading">

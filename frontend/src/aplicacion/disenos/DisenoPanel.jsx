@@ -6,6 +6,7 @@ export default function DisenoPanel({ barraLateral, children, modoClinico = fals
     const lateralRef = useRef(null);
     const triggerRef = useRef(null);
     const lateralId = useId();
+    const tieneBarraLateral = Boolean(barraLateral);
     const barraConCierre = isValidElement(barraLateral)
         ? cloneElement(barraLateral, { onItemSelected: () => establecerMenuAbierto(false) })
         : barraLateral;
@@ -45,13 +46,13 @@ export default function DisenoPanel({ barraLateral, children, modoClinico = fals
 
     return (
         <div className={`diseno-panel${modoClinico ? ' diseno-panel--clinical-mode' : ''}`} onKeyDown={mantenerFoco}>
-            <button ref={triggerRef} type="button" className="boton-menu-movil"
+            {tieneBarraLateral ? <button ref={triggerRef} type="button" className="boton-menu-movil"
                 aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'} aria-expanded={menuAbierto}
                 aria-controls={lateralId} onClick={() => establecerMenuAbierto((estado) => !estado)}>
                 {menuAbierto ? <X size={21} /> : <Menu size={21} />}
-            </button>
-            {menuAbierto && <button type="button" className="fondo-menu" tabIndex={-1} aria-label="Cerrar menú lateral" onClick={() => establecerMenuAbierto(false)} />}
-            <div id={lateralId} ref={lateralRef} className={`diseno-panel__lateral${menuAbierto ? ' esta-abierto' : ''}`}>{barraConCierre}</div>
+            </button> : null}
+            {tieneBarraLateral && menuAbierto ? <button type="button" className="fondo-menu" tabIndex={-1} aria-label="Cerrar menú lateral" onClick={() => establecerMenuAbierto(false)} /> : null}
+            {tieneBarraLateral ? <div id={lateralId} ref={lateralRef} className={`diseno-panel__lateral${menuAbierto ? ' esta-abierto' : ''}`}>{barraConCierre}</div> : null}
             <div className="diseno-panel__principal" inert={menuAbierto ? true : undefined}>{children}</div>
         </div>
     );

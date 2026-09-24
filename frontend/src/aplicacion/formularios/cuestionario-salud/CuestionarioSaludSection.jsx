@@ -1,5 +1,4 @@
 import React from 'react';
-import { AlertTriangle, HeartPulse } from 'lucide-react';
 import { CollapsibleSection, Field, ChoiceGroup } from '../compartidos/ControlesClinicos.jsx';
 import { healthQuestions } from './cuestionario-salud.config.mjs';
 import { yesNo } from '../compartidos/opcionesClinicas.js';
@@ -20,29 +19,8 @@ function answerFor(get, number) {
 
 export default function CuestionarioSaludSection({ values, onChange }) {
   const { get, set } = useSection(values, onChange);
-  const answered = healthQuestions.filter((question) => yesNo.includes(answerFor(get, question.number))).length;
-  const positive = healthQuestions.filter((question) => answerFor(get, question.number) === 'Sí');
 
   return <div className="undac-section-stack clinical-health-questionnaire">
-    <section className="clinical-health-summary">
-      <span className="clinical-health-summary__icon"><HeartPulse size={22} aria-hidden="true" /></span>
-      <div><strong>Cuestionario de salud · 24 preguntas institucionales</strong><p>{answered} respondidas · {24 - answered} pendientes. Las respuestas afirmativas habilitan su detalle sin eliminar ni resumir preguntas del documento institucional.</p></div>
-      {positive.length ? <span className="clinical-health-summary__alert"><AlertTriangle size={16} />{positive.length} respuesta{positive.length === 1 ? '' : 's'} positiva{positive.length === 1 ? '' : 's'}</span> : null}
-    </section>
-
-    <section className="clinical-health-overview" aria-label="Mapa del cuestionario">
-      <div className="clinical-health-overview__heading"><h3>Estado de las preguntas</h3><p>Sí: respuesta afirmativa · No: respuesta negativa · Pendiente: sin respuesta</p></div>
-      <ol className="clinical-health-matrix" aria-label="Estado de las 24 preguntas">
-        {healthQuestions.map(({ number, text }) => {
-          const answer = answerFor(get, number);
-          const state = answer === 'Sí' ? 'positive' : answer === 'No' ? 'negative' : 'pending';
-          return <li key={number} className={`is-${state}`} aria-label={`Pregunta ${number}: ${text} — ${state === 'pending' ? 'Pendiente' : answer}`}>
-            <strong>{String(number).padStart(2, '0')}</strong><span>{state === 'pending' ? 'Pendiente' : answer}</span>
-          </li>;
-        })}
-      </ol>
-    </section>
-
     {GROUPS.map((group, groupIndex) => {
       const questions = group.numbers.map((number) => healthQuestions.find((question) => question.number === number)).filter(Boolean);
       const groupAnswered = questions.filter((question) => yesNo.includes(answerFor(get, question.number))).length;

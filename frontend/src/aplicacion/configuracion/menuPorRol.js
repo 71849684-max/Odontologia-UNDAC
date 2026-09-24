@@ -24,7 +24,6 @@ export const MENU_POR_ROL = {
         { id: 'gestion', etiqueta: 'Gestión clínica', children: [
             { id: 'pacientes', etiqueta: 'Pacientes' },
             { id: 'historias', etiqueta: 'Historias clínicas' },
-            { id: 'nueva-historia', etiqueta: 'Nueva historia clínica' },
         ]},
         { id: 'administracion', etiqueta: 'Administración', children: [
             { id: 'usuarios', etiqueta: 'Usuarios' },
@@ -49,7 +48,6 @@ export const MENU_POR_ROL = {
         { id: 'gestion', etiqueta: 'Gestión clínica', children: [
             { id: 'mis-pacientes', etiqueta: 'Mis pacientes' },
             { id: 'mis-historias', etiqueta: 'Mis historias clínicas' },
-            { id: 'nueva-historia', etiqueta: 'Nueva historia clínica' },
         ]},
         { id: 'seguimiento', etiqueta: 'Seguimiento', children: [ { id: 'mis-seguimientos', etiqueta: 'Mis seguimientos' } ] },
     ],

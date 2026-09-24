@@ -39,21 +39,6 @@ test('la cascada filtra ubicaciones y limpia selecciones dependientes', () => {
   expect(screen.getByLabelText('Distrito')).toBeDisabled();
 });
 
-test('busca personal por nombre sin tildes y por DNI y guarda la selección', () => {
-  render(<Formulario />);
-  fireEvent.click(screen.getByText('Cambiar asignación'));
-  expect(screen.getByRole('dialog', { name: 'Cambiar operador responsable' })).toBeInTheDocument();
-  const busqueda = screen.getByRole('searchbox');
-  fireEvent.change(busqueda, { target: { value: 'fernandez maria' } });
-  fireEvent.click(screen.getByRole('button', { name: /María Fernández/ }));
-  expect(JSON.parse(screen.getByTestId('values').textContent).operador).toBe('María Fernández');
-  fireEvent.change(busqueda, { target: { value: '71000002' } });
-  expect(screen.getByRole('button', { name: /Carlos Rojas/ })).toBeInTheDocument();
-  fireEvent.change(busqueda, { target: { value: 'inexistente' } });
-  expect(screen.getByText('No se encontró personal con esos datos.')).toBeInTheDocument();
-  expect(screen.queryByLabelText('Semestre')).not.toBeInTheDocument();
-});
-
 test('calcula la edad al cambiar la fecha de nacimiento', () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 8, 12, 12));
@@ -75,11 +60,3 @@ test('al cambiar la modalidad conserva los datos del acompañante', () => {
   expect(screen.getByLabelText('Nombre completo del informante')).toHaveValue('Rosa');
 });
 
-test('permite cambiar el operador desde su ficha y vuelve al buscador', () => {
-  render(<Formulario initial={{ personal: { nombre: 'María Fernández', dni: '71000001', rol: 'Alumno' } }} />);
-  fireEvent.click(screen.getByText('Cambiar asignación'));
-  expect(screen.getByRole('status', { name: 'Personal seleccionado' })).toHaveTextContent('71000001');
-  fireEvent.click(screen.getByRole('button', { name: 'Cambiar' }));
-  expect(screen.queryByRole('status', { name: 'Personal seleccionado' })).not.toBeInTheDocument();
-  expect(screen.getByRole('searchbox')).toHaveFocus();
-});

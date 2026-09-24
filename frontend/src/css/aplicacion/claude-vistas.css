@@ -1,8 +1,9 @@
 /* Listados y administración: medidas y colores del diseño de referencia. */
 .hc-dashboard, .hc-page, .permisos-page {
-  width: min(1440px, 100%);
+  width: 100%;
+  max-width: none;
   min-width: 0;
-  margin: 0 auto;
+  margin: 0;
   padding: 28px clamp(16px, 2.6vw, 38px) 44px;
   color: #1e293b;
 }
@@ -82,7 +83,40 @@
 .hc-page .hc-settings-card p { font-size: 11px; }
 .hc-page .hc-settings-fields label { color: #475569; font-size: 11px; }
 .hc-page .hc-settings-fields :is(input, select) { min-height: 42px; border-color: #e2e8f0; background: #f8fafc; font-size: 12px; }
-.hc-page.hc-new-record { width: min(1280px, 100%); }
+.hc-page.hc-new-record { width: 100%; max-width: none; }
+
+.hc-patient-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ou-z-modal);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 48%);
+}
+.hc-patient-dialog {
+  width: min(900px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  border: 1px solid #dbe4ea;
+  border-radius: 16px;
+  padding: 22px;
+  background: #fff;
+  box-shadow: 0 28px 70px rgb(15 23 42 / 24%);
+}
+.hc-patient-dialog > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.hc-patient-dialog > header h2 { margin: 0; color: #0a192f; font-size: 21px; }
+.hc-patient-dialog > header p { margin: 5px 0 0; color: #64748b; font-size: 12px; }
+.hc-patient-dialog .paciente-form { padding: 0; border: 0; box-shadow: none; }
+.hc-patient-dialog .paciente-form > h3 { display: none; }
+.hc-patient-dialog .form-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.hc-patient-dialog .acciones-form { margin-top: 20px; }
+
+@media (max-width: 767px) {
+  .hc-patient-dialog-overlay { padding: 0; place-items: stretch; }
+  .hc-patient-dialog { width: 100%; max-height: 100dvh; border: 0; border-radius: 0; padding: 18px 16px; }
+  .hc-patient-dialog .form-grid { grid-template-columns: minmax(0, 1fr); }
+}
 .hc-new-record .hc-stepper { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
 .hc-new-record .hc-stepper li { display: flex; flex: 1 1 140px; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 8px; font-size: 11px; }
 .hc-new-record .hc-stepper li::before { display: none; }

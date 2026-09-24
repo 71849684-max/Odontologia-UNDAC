@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, CircleUserRound, ClipboardList, FileClock, FilePlus2, Home, Settings, Stethoscope, UsersRound } from 'lucide-react';
+import { ChevronDown, CircleUserRound, ClipboardList, FileClock, Home, LogOut, Settings, Stethoscope, UsersRound } from 'lucide-react';
 
 const ICONOS = {
     inicio: Home,
@@ -12,7 +12,6 @@ const ICONOS = {
     'mis-pacientes': CircleUserRound,
     historias: ClipboardList,
     'mis-historias': ClipboardList,
-    'nueva-historia': FilePlus2,
     usuarios: UsersRound,
     'permisos-usuarios': UsersRound,
     auditoria: FileClock,
@@ -26,7 +25,7 @@ function obtenerGrupoActivo(menu, activo) {
     return null;
 }
 
-export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected }) {
+export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected, onLogout }) {
     const [gruposCerrados, setGruposCerrados] = useState([]);
 
     useEffect(() => {
@@ -84,7 +83,10 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected 
                     );})}
                 </ul>
             </nav>
-            <div className="barra-footer">Facultad de Ciencias de la Salud · UNDAC</div>
+            <div className="barra-footer">
+                <button type="button" className="barra-footer__logout" onClick={onLogout}><LogOut size={17} aria-hidden="true" /><span>Cerrar sesión</span></button>
+                <span>Facultad de Ciencias de la Salud · UNDAC</span>
+            </div>
         </aside>
     );
 }

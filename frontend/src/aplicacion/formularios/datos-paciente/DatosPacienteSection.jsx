@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { CircleCheck, Info, MapPin, Phone, ShieldCheck, UserRound, UsersRound, X } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Info } from 'lucide-react';
 import { CollapsibleSection, Field, SelectField, ChoiceGroup } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
-import BusquedaPersonal from './BusquedaPersonal.jsx';
 import departamentos from './ubigeo/departamentos.json';
 import provincias from './ubigeo/provincias.json';
 import distritos from './ubigeo/distritos.json';
@@ -35,7 +34,6 @@ function status(values, keys) {
 
 export default function DatosPacienteSection({ values, onChange, meta }) {
   const { get, set } = useSection(values, onChange);
-  const [asignacionAbierta, setAsignacionAbierta] = useState(false);
   useEffect(() => {
     if (!values?.fechaPaciente) onChange?.('fechaPaciente', fechaRegistroActual());
   }, [values?.fechaPaciente, onChange]);
@@ -47,23 +45,7 @@ export default function DatosPacienteSection({ values, onChange, meta }) {
   const nombres = (items) => items.map((item) => item.nombre_ubigeo);
   const campo = (label, key, props = {}) => <Field label={label} value={get(key)} onChange={set(key)} {...props} />;
   const conAcompanante = get('modalidadAsistencia', 'acompanado') === 'acompanado';
-  const operadorNombre = values?.personal?.nombre || get('operador') || meta?.operador || 'Sin asignar';
-  const admissionBlocks = [
-    { label: 'Identificación', detail: 'Documento y datos personales', icon: UserRound, state: status(values, ['dni', 'nombres', 'apellidos']) },
-    { label: 'Contacto', detail: 'Teléfono y datos básicos', icon: Phone, state: status(values, ['celular', 'correo', 'ocupacion']) },
-    { label: 'Residencia', detail: 'Dirección y procedencia', icon: MapPin, state: status(values, ['departamento', 'provincia', 'distrito', 'domicilio']) },
-    { label: 'Acompañante', detail: 'Apoyo o contacto de emergencia', icon: UsersRound, state: status(values, ['acompanante', 'informante', 'tutorCelular']) },
-  ];
-
   return <div className="undac-section-stack hc-admission clinical-admission-flow">
-    <section className="clinical-admission-overview" aria-label="Ruta de ingreso del paciente">
-      <div className="clinical-admission-overview__heading"><span>Ruta de ingreso</span><strong>Organice la filiación antes de continuar con la entrevista clínica.</strong></div>
-      <div className="clinical-admission-overview__steps">
-        {admissionBlocks.map(({ label, detail, icon: Icon, state }) => <div className={`clinical-admission-overview__step is-${state}`} key={label}>
-          <span><Icon size={18} aria-hidden="true" /></span><div><strong>{label}</strong><small>{detail}</small></div>{state === 'progress' ? <CircleCheck size={16} aria-label={`${label} en progreso`} /> : <i aria-label={`${label} pendiente`} />}
-        </div>)}
-      </div>
-    </section>
     <CollapsibleSection
       title="Identificación del paciente"
       subtitle="Datos institucionales y de identidad"
@@ -163,20 +145,5 @@ export default function DatosPacienteSection({ values, onChange, meta }) {
         </section>)}
       </div>
     </CollapsibleSection>
-
-    <section className="clinical-operator-card">
-      <span className="clinical-operator-card__icon"><ShieldCheck size={22} aria-hidden="true" /></span>
-      <div className="clinical-operator-card__copy"><span>Operador responsable</span><strong>{operadorNombre}</strong><small>Semestre {meta?.semestre || '—'} · Año académico {meta?.anioAcademico || '—'} · asignación de la atención actual</small></div>
-      <button type="button" className="clinical-operator-card__change" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={() => setAsignacionAbierta(true)}>Cambiar asignación</button>
-      {asignacionAbierta && <div className="clinical-operator-modal-overlay" role="presentation" onClick={() => setAsignacionAbierta(false)}>
-        <section className="clinical-operator-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-cambiar-operador" onClick={(event) => event.stopPropagation()}>
-          <header className="clinical-operator-modal__header">
-            <div><h3 id="titulo-cambiar-operador">Cambiar operador responsable</h3><p>Busque y seleccione al responsable de esta historia clínica.</p></div>
-            <button type="button" className="hc-mini-button" onClick={() => setAsignacionAbierta(false)} aria-label="Cerrar"><X size={16} /></button>
-          </header>
-          <BusquedaPersonal value={values?.personal} meta={meta} fecha={get('fechaPaciente', fechaRegistroActual())} onChange={(persona) => { onChange?.('personal', persona); onChange?.('operador', persona?.nombre || ''); }} />
-        </section>
-      </div>}
-    </section>
   </div>;
 }

@@ -56,16 +56,17 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
     return (
         <DisenoPanel
             modoClinico={modoClinico}
-            barraLateral={
+            barraLateral={modoClinico ? null : (
                 <SidebarHC
                     menu={menu}
                     activo={activo}
                     onSelect={handleSelect}
+                    onLogout={onLogout}
                 />
-            }
+            )}
         >
             <div className={`hc-main min-h-screen${modoClinico ? ' hc-main--clinical-mode' : ''}`}>
-                <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} onLogout={onLogout} />
+                {modoClinico ? null : <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} />}
                 <Content ref={contenidoRef} className="hc-contenido min-w-0" tabIndex={-1}>
                     {children}
                 </Content>
