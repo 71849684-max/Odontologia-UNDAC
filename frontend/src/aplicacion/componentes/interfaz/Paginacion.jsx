@@ -18,7 +18,7 @@ export default function Paginacion({ elementos = [], tamanos = [10, 25, 50], ini
   return <>
     {Children.toArray(children(visibles))}
     <nav className="hc-pagination" aria-label={`Paginación de ${etiqueta}`}>
-      <span>Mostrando {desde}–{hasta} de {elementos.length} {etiqueta}</span>
+      <span className="hc-pagination__summary">Mostrando {desde}–{hasta} de {elementos.length} {etiqueta}</span>
       <div className="hc-pagination__controls">
         <label><span className="sr-only">Registros por página</span><select aria-label="Registros por página" value={porPagina} onChange={(event) => setPorPagina(Number(event.target.value))}>{tamanos.map((tamano) => <option key={tamano} value={tamano}>{tamano} por página</option>)}</select></label>
         <button type="button" className="hc-mini-button" disabled={paginaActual <= 1} onClick={() => setPagina((actual) => actual - 1)}>Anterior</button>

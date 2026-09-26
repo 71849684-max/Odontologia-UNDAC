@@ -63,7 +63,7 @@
 .hc-dashboard .hc-table-card--flush { border: 0; border-radius: 0; box-shadow: none; }
 :is(.hc-dashboard, .hc-page) .hc-table th { padding: 11px 15px; background: #f8fafc; color: #718296; font-size: 9px; font-weight: 800; letter-spacing: .06em; }
 :is(.hc-dashboard, .hc-page) .hc-table td { padding: 12px 15px; border-color: #f1f5f9; color: #475569; font-size: 11px; }
-:is(.hc-dashboard, .hc-page) .hc-mini-button { min-height: 32px; padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #0f766e; font-size: 11px; font-weight: 700; }
+:is(.hc-dashboard, .hc-page) .hc-mini-button { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #0f766e; font-size: 11px; font-weight: 700; white-space: nowrap; }
 :is(.hc-dashboard, .hc-page) .hc-mini-button:hover { border-color: #99f6e4; background: #f0fdfa; }
 .hc-page .hc-button--primary { background: #0d9488; box-shadow: 0 9px 20px rgb(13 148 136 / 20%); }
 .hc-page .hc-button--primary:hover { background: #0f766e; }
