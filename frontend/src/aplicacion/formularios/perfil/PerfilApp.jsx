@@ -9,43 +9,65 @@ function nombreSesion(usuario) {
 
 function prepararPerfil(estado, usuario, rol) {
   const usuarioId = String(usuario?.id ?? usuario?.nombre_usuario ?? 'actual');
-  if (String(estado.perfil.usuarioId ?? '') === usuarioId) return estado.perfil;
+  const guardado = estado.perfiles?.[usuarioId];
+  if (guardado) return guardado;
+  const nombre = nombreSesion(usuario);
+  const nombreCompleto = `${nombre.nombres} ${nombre.apellidos}`.trim().toLocaleLowerCase();
+  const persona = estado.personas.find((item) => item.documento === usuario?.documento)
+    || estado.personas.find((item) => item.nombre.replace(/^(Dr|Dra)\.\s*/i, '').toLocaleLowerCase() === nombreCompleto);
   return {
-    ...estado.perfil,
-    ...nombreSesion(usuario),
+    ...nombre,
     usuarioId,
-    documento: usuario?.documento ?? '',
-    correo: '',
+    personaId: persona?.id,
+    documento: usuario?.documento ?? persona?.documento ?? '',
+    correo: usuario?.correo ?? '',
     telefono: '',
     roles: [rol],
   };
 }
 
-function detalleAsignaciones(estado, documento) {
-  const persona = estado.personas.find((item) => item.documento === documento);
+function seSuperponen(inicioA, finA, inicioB, finB) {
+  return inicioA <= finB && (!finA || finA >= inicioB);
+}
+
+function detalleAsignaciones(estado, perfil) {
+  const persona = estado.personas.find((item) => item.id === perfil.personaId)
+    || estado.personas.find((item) => item.documento === perfil.documento);
   if (!persona) return [];
-  return estado.membresias
+  const membresias = estado.membresias.filter((item) => item.personaId === persona.id);
+  const rotacionesAlumno = membresias.flatMap((membresia) => estado.rotaciones.filter((rotacion) => (
+    rotacion.grupoId === membresia.grupoId
+    && seSuperponen(membresia.fechaInicio, membresia.fechaFin, rotacion.fechaInicio, rotacion.fechaFin)
+  )).map((rotacion) => ({ membresia, rotacion })));
+  const rotacionesDocente = estado.docentesRotacion
     .filter((item) => item.personaId === persona.id)
-    .map((membresia) => {
-      const grupo = estado.grupos.find((item) => item.id === membresia.grupoId);
-      const rotaciones = estado.rotaciones.filter((item) => item.grupoId === membresia.grupoId);
-      return rotaciones.map((rotacion) => ({
-        id: `${membresia.id}-${rotacion.id}`,
+    .map((asignacion) => ({ rotacion: estado.rotaciones.find((item) => item.id === asignacion.rotacionId) }))
+    .filter((item) => item.rotacion);
+  const rotacionesExcepcionales = (estado.asignacionesExcepcionales || [])
+    .filter((item) => item.personaId === persona.id)
+    .map((asignacion) => ({ rotacion: estado.rotaciones.find((item) => item.id === asignacion.rotacionId) }))
+    .filter((item) => item.rotacion);
+
+  return [...rotacionesAlumno, ...rotacionesDocente, ...rotacionesExcepcionales]
+    .map(({ rotacion }) => {
+      const grupo = estado.grupos.find((item) => item.id === rotacion.grupoId);
+      return {
+        id: `${persona.id}-${rotacion.id}`,
         grupo: grupo?.nombre || grupo?.codigo || 'Grupo',
         curso: estado.cursos.find((item) => item.id === rotacion.cursoId)?.nombre || 'Curso',
         periodo: estado.periodos.find((item) => item.id === rotacion.periodoId)?.codigo || 'Periodo',
         vigencia: `${rotacion.fechaInicio} — ${rotacion.fechaFin}`,
         actual: rotacion.estado === 'activa',
-      }));
+      };
     })
-    .flat();
+    .filter((item, indice, items) => items.findIndex((otro) => otro.id === item.id) === indice);
 }
 
 export default function PerfilApp({ usuario, rol }) {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
   const [formulario, setFormulario] = useState(() => prepararPerfil(estado, usuario, rol));
   const [mensaje, setMensaje] = useState('');
-  const asignaciones = useMemo(() => detalleAsignaciones(estado, formulario.documento), [estado, formulario.documento]);
+  const asignaciones = useMemo(() => detalleAsignaciones(estado, formulario), [estado, formulario]);
 
   function change(campo, valor) {
     setMensaje('');
@@ -54,9 +76,13 @@ export default function PerfilApp({ usuario, rol }) {
 
   function guardar(event) {
     event.preventDefault();
-    actualizarPerfil(formulario);
-    setEstado(obtenerEstadoAcademico());
-    setMensaje('Perfil actualizado');
+    try {
+      actualizarPerfil(formulario);
+      setEstado(obtenerEstadoAcademico());
+      setMensaje('Perfil actualizado');
+    } catch (error) {
+      setMensaje(error?.mensaje || 'No se pudo guardar el perfil.');
+    }
   }
 
   return <div className="hc-page hc-profile-page space-y-5">

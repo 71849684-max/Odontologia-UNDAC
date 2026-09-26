@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   actualizarPerfil,
+  crearPeriodo,
   crearCurso,
   crearGrupo,
   crearRotacion,
+  finalizarMembresia,
+  guardarAsignacionesExcepcionales,
   guardarDocentesRotacion,
   guardarMembresias,
   obtenerEstadoAcademico,
@@ -56,6 +59,23 @@ describe('repositorio académico local', () => {
     });
   });
 
+  test('conserva un perfil independiente por cada cuenta', () => {
+    actualizarPerfil({ usuarioId: 'usuario-1', nombres: 'Ana', apellidos: 'Uno', telefono: '111' });
+    actualizarPerfil({ usuarioId: 'usuario-2', nombres: 'Bea', apellidos: 'Dos', telefono: '222' });
+
+    const estado = obtenerEstadoAcademico();
+    expect(estado.perfiles['usuario-1']).toMatchObject({ nombres: 'Ana', telefono: '111' });
+    expect(estado.perfiles['usuario-2']).toMatchObject({ nombres: 'Bea', telefono: '222' });
+  });
+
+  test('reemplaza estructuras inválidas aunque el JSON y la versión sean válidos', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, perfil: {}, personas: 'incorrecto' }));
+
+    const estado = obtenerEstadoAcademico();
+    expect(Array.isArray(estado.personas)).toBe(true);
+    expect(Array.isArray(estado.rotaciones)).toBe(true);
+  });
+
   test('rechaza códigos duplicados de curso y grupo sin sobrescribirlos', () => {
     crearCurso({ codigo: 'PROS', nombre: 'Prostodoncia', descripcion: '', estado: 'activo' });
     expect(() => crearCurso({ codigo: ' pros ', nombre: 'Otra asignatura' })).toThrow(expect.objectContaining({ codigo: 'DUPLICADO' }));
@@ -92,6 +112,26 @@ describe('repositorio académico local', () => {
       .toThrow(expect.objectContaining({ codigo: 'ASIGNACION_DUPLICADA' }));
   });
 
+  test('finaliza una membresía y permite una reincorporación posterior', () => {
+    const estado = obtenerEstadoAcademico();
+    const estudiante = estado.personas.find((persona) => persona.tipo === 'estudiante');
+    const grupo = estado.grupos[0];
+    const [membresia] = guardarMembresias(grupo.id, [{ personaId: estudiante.id, fechaInicio: '2026-08-01' }]);
+
+    finalizarMembresia(membresia.id, '2026-09-30');
+    guardarMembresias(grupo.id, [{ personaId: estudiante.id, fechaInicio: '2027-03-01' }]);
+
+    expect(obtenerEstadoAcademico().membresias.filter((item) => item.personaId === estudiante.id)).toHaveLength(2);
+  });
+
+  test('permite registrar periodos académicos sin duplicar su código', () => {
+    crearPeriodo({ codigo: '2027-I', nombre: 'Periodo 2027-I', fechaInicio: '2027-03-01', fechaFin: '2027-07-31' });
+
+    expect(obtenerEstadoAcademico().periodos.some((item) => item.codigo === '2027-I')).toBe(true);
+    expect(() => crearPeriodo({ codigo: '2027-i', nombre: 'Duplicado', fechaInicio: '2027-03-01', fechaFin: '2027-07-31' }))
+      .toThrow(expect.objectContaining({ codigo: 'DUPLICADO' }));
+  });
+
   test('admite varios docentes y conserva sus asignaciones entre rotaciones', () => {
     const estado = obtenerEstadoAcademico();
     const docentes = estado.personas.filter((persona) => persona.tipo === 'docente');
@@ -112,6 +152,18 @@ describe('repositorio académico local', () => {
 
     expect(obtenerEstadoAcademico().docentesRotacion).toHaveLength(3);
     expect(() => guardarDocentesRotacion(primera.id, [{ personaId: docentes[0].id, funcion: 'responsable' }]))
+      .toThrow(expect.objectContaining({ codigo: 'ASIGNACION_DUPLICADA' }));
+  });
+
+  test('conserva estudiantes asignados excepcionalmente a una rotación', () => {
+    const estado = obtenerEstadoAcademico();
+    const rotacion = crearRotacion({ grupoId: estado.grupos[0].id, cursoId: estado.cursos[0].id, periodoId: estado.periodos[0].id, fechaInicio: '2026-10-01', fechaFin: '2026-10-31' });
+    const estudiante = estado.personas.find((item) => item.tipo === 'estudiante');
+
+    guardarAsignacionesExcepcionales(rotacion.id, [{ personaId: estudiante.id }]);
+
+    expect(obtenerEstadoAcademico().asignacionesExcepcionales).toHaveLength(1);
+    expect(() => guardarAsignacionesExcepcionales(rotacion.id, [{ personaId: estudiante.id }]))
       .toThrow(expect.objectContaining({ codigo: 'ASIGNACION_DUPLICADA' }));
   });
 });

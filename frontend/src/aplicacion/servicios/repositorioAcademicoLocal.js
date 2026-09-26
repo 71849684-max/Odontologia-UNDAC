@@ -42,6 +42,7 @@ function seedState() {
       telefono: '900 000 001',
       roles: ['Alumno'],
     },
+    perfiles: {},
     personas: [
       { id: 'persona-estudiante-maria', nombre: 'María Fernández', documento: '71000001', tipo: 'estudiante' },
       { id: 'persona-estudiante-jose', nombre: 'José Paredes', documento: '71000002', tipo: 'estudiante' },
@@ -62,12 +63,23 @@ function seedState() {
     membresias: [],
     rotaciones: [],
     docentesRotacion: [],
+    asignacionesExcepcionales: [],
   };
 }
 
 function validState(value) {
   const arrays = ['personas', 'cursos', 'periodos', 'grupos', 'membresias', 'rotaciones', 'docentesRotacion'];
-  return value && value.version === SCHEMA_VERSION && value.perfil && arrays.every((field) => Array.isArray(value[field]));
+  return Boolean(value && value.version === SCHEMA_VERSION
+    && value.perfil && typeof value.perfil === 'object' && !Array.isArray(value.perfil)
+    && arrays.every((field) => Array.isArray(value[field]) && value[field].every((item) => item && typeof item === 'object' && !Array.isArray(item))));
+}
+
+function normalizeState(value) {
+  return {
+    ...value,
+    perfiles: value.perfiles && typeof value.perfiles === 'object' && !Array.isArray(value.perfiles) ? value.perfiles : {},
+    asignacionesExcepcionales: Array.isArray(value.asignacionesExcepcionales) ? value.asignacionesExcepcionales : [],
+  };
 }
 
 function persist(state) {
@@ -90,7 +102,7 @@ function read() {
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-      if (validState(parsed)) return parsed;
+      if (validState(parsed)) return normalizeState(parsed);
     } catch {
       // El contenido inválido se reemplaza por el estado inicial versionado.
     }
@@ -118,17 +130,37 @@ export function obtenerEstadoAcademico() {
 
 export function actualizarPerfil(datos = {}) {
   return update((state) => {
-    state.perfil = {
-      ...state.perfil,
-      usuarioId: datos.usuarioId ?? state.perfil.usuarioId,
+    const usuarioId = String(datos.usuarioId ?? 'actual');
+    const anterior = state.perfiles[usuarioId] || (usuarioId === 'actual' ? state.perfil : {});
+    const perfil = {
+      ...anterior,
+      usuarioId,
+      personaId: datos.personaId ?? anterior.personaId,
       nombres: text(datos.nombres),
       apellidos: text(datos.apellidos),
-      documento: datos.documento == null ? state.perfil.documento : text(datos.documento),
+      documento: datos.documento == null ? text(anterior.documento) : text(datos.documento),
       correo: text(datos.correo),
       telefono: text(datos.telefono),
-      roles: Array.isArray(datos.roles) ? [...datos.roles] : state.perfil.roles,
+      roles: Array.isArray(datos.roles) ? [...datos.roles] : (anterior.roles || []),
     };
-    return state.perfil;
+    state.perfiles[usuarioId] = perfil;
+    if (usuarioId === 'actual') state.perfil = perfil;
+    return perfil;
+  });
+}
+
+export function crearPeriodo(datos = {}) {
+  const fechaInicio = text(datos.fechaInicio);
+  const fechaFin = text(datos.fechaFin);
+  if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) {
+    throw new ErrorAcademico('FECHAS_INVALIDAS', 'La fecha final debe ser igual o posterior a la fecha inicial.');
+  }
+  return update((state) => {
+    const codigo = code(datos.codigo);
+    if (state.periodos.some((item) => item.codigo === codigo)) duplicate('Ya existe un periodo con ese código.');
+    const periodo = { id: id('periodo'), codigo, nombre: text(datos.nombre), fechaInicio, fechaFin, estado: text(datos.estado) || 'activo' };
+    state.periodos.push(periodo);
+    return periodo;
   });
 }
 
@@ -160,6 +192,17 @@ export function crearGrupo(datos = {}) {
       estado: text(datos.estado) || 'activo',
     };
     state.grupos.push(grupo);
+    return grupo;
+  });
+}
+
+export function actualizarGrupo(grupoId, datos = {}) {
+  return update((state) => {
+    const grupo = state.grupos.find((item) => item.id === grupoId);
+    if (!grupo) throw new ErrorAcademico('NO_ENCONTRADO', 'No se encontró el grupo.');
+    const codigo = code(datos.codigo);
+    if (state.grupos.some((item) => item.id !== grupoId && item.codigo === codigo)) duplicate('Ya existe un grupo con ese código.');
+    Object.assign(grupo, { codigo, nombre: text(datos.nombre), semestre: text(datos.semestre), estado: text(datos.estado) || 'activo' });
     return grupo;
   });
 }
@@ -196,6 +239,20 @@ export function guardarMembresias(grupoId, membresias = []) {
 
     state.membresias.push(...prepared);
     return prepared;
+  });
+}
+
+export function finalizarMembresia(membresiaId, fechaFin) {
+  return update((state) => {
+    const membresia = state.membresias.find((item) => item.id === membresiaId);
+    if (!membresia) throw new ErrorAcademico('NO_ENCONTRADO', 'No se encontró la membresía.');
+    const fin = text(fechaFin);
+    if (!fin || fin < membresia.fechaInicio) {
+      throw new ErrorAcademico('FECHAS_INVALIDAS', 'La fecha final debe ser igual o posterior a la fecha inicial.');
+    }
+    membresia.fechaFin = fin;
+    membresia.estado = 'finalizada';
+    return membresia;
   });
 }
 
@@ -239,6 +296,20 @@ export function guardarDocentesRotacion(rotacionId, docentes = []) {
     }
 
     state.docentesRotacion.push(...prepared);
+    return prepared;
+  });
+}
+
+export function guardarAsignacionesExcepcionales(rotacionId, personas = []) {
+  return update((state) => {
+    const prepared = personas.map((item) => ({ id: id('asignacion-excepcional'), rotacionId, personaId: text(item.personaId) }));
+    const actuales = state.asignacionesExcepcionales || [];
+    for (const assignment of prepared) {
+      if (actuales.some((item) => item.rotacionId === rotacionId && item.personaId === assignment.personaId)) {
+        throw new ErrorAcademico('ASIGNACION_DUPLICADA', 'La persona ya está asignada a esta rotación.');
+      }
+    }
+    state.asignacionesExcepcionales = [...actuales, ...prepared];
     return prepared;
   });
 }
