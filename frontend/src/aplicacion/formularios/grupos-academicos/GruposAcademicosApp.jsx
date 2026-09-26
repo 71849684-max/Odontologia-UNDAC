@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Search, UsersRound, X } from 'lucide-react';
+import { Pencil, Plus, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import useModalDialog from '../../componentes/interfaz/useModalDialog.js';
-import Paginacion from '../../componentes/interfaz/Paginacion.jsx';
+import ListaGrupos from './ListaGrupos.jsx';
+import TablaRotacionesGrupo from './TablaRotacionesGrupo.jsx';
 import {
   crearGrupo,
   actualizarGrupo,
@@ -217,11 +218,7 @@ function RotationsBlock({ estado, grupo, onRefresh }) {
         <button type="submit" className="hc-button hc-button--primary">Agregar rotación</button>
       </form>
       {error && <p className="hc-form-error" role="alert">{error}</p>}
-      <Paginacion elementos={rotaciones} tamanos={[5, 10, 20]} inicial={5} etiqueta="rotaciones">
-        {(visibles) => <div className="hc-table-card"><table className="hc-table" aria-label="Historial de rotaciones"><thead><tr><th>Curso</th><th>Periodo</th><th>Vigencia</th><th>Estado</th><th>Docentes</th></tr></thead><tbody>
-          {visibles.map((rotacion) => <tr key={rotacion.id}><td data-label="Curso">{estado.cursos.find((item) => item.id === rotacion.cursoId)?.nombre}</td><td data-label="Periodo">{estado.periodos.find((item) => item.id === rotacion.periodoId)?.codigo}</td><td data-label="Vigencia">{rotacion.fechaInicio} — {rotacion.fechaFin}</td><td data-label="Estado">{rotacion.estado}</td><td data-label="Docentes"><button type="button" className="hc-mini-button" onClick={() => setSeleccionada(rotacion.id)}>{estado.docentesRotacion.filter((item) => item.rotacionId === rotacion.id).length} · Gestionar</button></td></tr>)}
-        </tbody></table></div>}
-      </Paginacion>
+      <TablaRotacionesGrupo estado={estado} grupo={grupo} onManage={setSeleccionada} />
     </section>
     {rotacionSeleccionada && <><TeachersBlock key={`teachers-${rotacionSeleccionada.id}`} estado={estado} rotacionId={rotacionSeleccionada.id} onRefresh={onRefresh} /><ExceptionalStudentsBlock key={`students-${rotacionSeleccionada.id}`} estado={estado} rotacionId={rotacionSeleccionada.id} onRefresh={onRefresh} /></>}
   </>;
@@ -236,8 +233,6 @@ export default function GruposAcademicosApp() {
   const [dialogoPeriodo, setDialogoPeriodo] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [filtroPeriodo, setFiltroPeriodo] = useState('');
-  const [filtroCurso, setFiltroCurso] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('');
   const triggerRef = useRef(null);
   const triggerPeriodoRef = useRef(null);
   const cerrar = useCallback(() => setDialogo(false), []);
@@ -247,24 +242,18 @@ export default function GruposAcademicosApp() {
     const term = busqueda.trim().toLowerCase();
     const rotaciones = estado.rotaciones.filter((rotacion) => rotacion.grupoId === item.id);
     return (!term || `${item.codigo} ${item.nombre}`.toLowerCase().includes(term))
-      && (!filtroEstado || item.estado === filtroEstado)
-      && rotaciones.concat({ periodoId: '', cursoId: '' }).some((rotacion) => (
-        (!filtroPeriodo || rotacion.periodoId === filtroPeriodo)
-        && (!filtroCurso || rotacion.cursoId === filtroCurso)
-      ));
-  }), [estado, busqueda, filtroPeriodo, filtroCurso, filtroEstado]);
+      && (!filtroPeriodo || rotaciones.some((rotacion) => rotacion.periodoId === filtroPeriodo));
+  }), [estado, busqueda, filtroPeriodo]);
+
+  const rotacionesGrupo = grupo ? estado.rotaciones.filter((item) => item.grupoId === grupo.id) : [];
+  const integrantesGrupo = grupo ? estado.membresias.filter((item) => item.grupoId === grupo.id && item.estado !== 'finalizada').length : 0;
+  const periodoGrupo = estado.periodos.find((item) => item.id === rotacionesGrupo.at(-1)?.periodoId)?.codigo || 'Sin periodo';
 
   return <div className="hc-page hc-academic-page space-y-5">
-    <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Sistema</p><h1 className="hc-page-title">Grupos académicos</h1><p className="hc-page-subtitle">Organice integrantes, cursos, periodos y responsables sin perder asignaciones anteriores.</p></div><div className="flex gap-2"><button ref={triggerPeriodoRef} type="button" className="hc-button hc-button--ghost" onClick={() => setDialogoPeriodo(true)}><Plus size={17} /> Nuevo periodo</button><button ref={triggerRef} type="button" className="hc-button hc-button--primary" onClick={() => { setGrupoEditar(null); setDialogo(true); }}><Plus size={17} /> Nuevo grupo</button></div></header>
-    <div className="hc-filterbar">
-      <label className="hc-search"><Search size={17} /><span className="sr-only">Buscar grupo</span><input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar grupo..." /></label>
-      <label className="hc-select-filter"><span>Periodo</span><select value={filtroPeriodo} onChange={(event) => setFiltroPeriodo(event.target.value)}><option value="">Todos</option>{estado.periodos.map((item) => <option key={item.id} value={item.id}>{item.codigo}</option>)}</select></label>
-      <label className="hc-select-filter"><span>Curso</span><select value={filtroCurso} onChange={(event) => setFiltroCurso(event.target.value)}><option value="">Todos</option>{estado.cursos.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}</select></label>
-      <label className="hc-select-filter"><span>Estado</span><select value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}><option value="">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></label>
-    </div>
+    <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Sistema</p><h1 className="hc-page-title">Grupos académicos</h1><p className="hc-page-subtitle">Gestión de grupos, rotaciones y periodos académicos.</p></div><button ref={triggerRef} type="button" className="hc-button hc-button--primary" onClick={() => { setGrupoEditar(null); setDialogo(true); }}><Plus size={17} /> Nuevo grupo</button></header>
     <div className="hc-academic-layout">
-      <aside className="hc-panel-card hc-group-list" aria-label="Lista de grupos"><Paginacion elementos={grupos} tamanos={[6, 12, 24]} inicial={6} etiqueta="grupos">{(visibles) => <div>{visibles.map((item) => <button type="button" className={item.id === grupoId ? 'is-active' : ''} key={item.id} onClick={() => { setGrupoId(item.id); setPestana('resumen'); }}><span><UsersRound size={17} /></span><strong>{item.nombre}</strong><small>{item.codigo} · {item.semestre}</small></button>)}</div>}</Paginacion></aside>
-      {grupo ? <article className="hc-panel-card hc-group-detail"><header><div><span>{grupo.codigo} · Semestre {grupo.semestre}</span><h2>{grupo.nombre}</h2></div><div className="flex items-center gap-2"><small>{grupo.estado}</small><button type="button" className="hc-mini-button" onClick={() => { setGrupoEditar(grupo); setDialogo(true); }}>Editar grupo</button></div></header>
+      <ListaGrupos estado={estado} grupos={grupos} grupoId={grupoId} busqueda={busqueda} periodoId={filtroPeriodo} onBusquedaChange={setBusqueda} onPeriodoChange={setFiltroPeriodo} onSelect={(id) => { setGrupoId(id); setPestana('resumen'); }} />
+      {grupo ? <article className="hc-panel-card hc-group-detail"><header><div className="hc-group-detail__identity"><div><span>{grupo.codigo}</span><h2>{grupo.nombre}</h2></div><small className="hc-status-pill is-active">{grupo.estado}</small><p><strong>Periodo:</strong> {periodoGrupo}<i />{integrantesGrupo} estudiantes<i />{rotacionesGrupo.length} rotaciones</p></div><div className="hc-group-detail__actions"><button type="button" className="hc-button hc-button--ghost" onClick={() => { setGrupoEditar(grupo); setDialogo(true); }}><Pencil size={15} /> Editar grupo</button><button type="button" className="hc-button hc-button--primary" onClick={() => setPestana('rotaciones')}><Plus size={16} /> Nueva rotación</button><button ref={triggerPeriodoRef} type="button" className="hc-button hc-button--primary" onClick={() => setDialogoPeriodo(true)}><Plus size={16} /> Nuevo periodo</button></div></header>
         <nav className="hc-detail-tabs" aria-label="Secciones del grupo">{['resumen', 'integrantes', 'rotaciones', 'docentes', 'historial'].map((item) => <button type="button" key={item} className={pestana === item ? 'is-active' : ''} onClick={() => setPestana(item)}>{item[0].toUpperCase() + item.slice(1)}</button>)}</nav>
         {pestana === 'resumen' && <section className="hc-group-summary"><div><strong>{estado.membresias.filter((item) => item.grupoId === grupo.id && item.estado !== 'finalizada').length}</strong><span>Integrantes activos</span></div><div><strong>{estado.rotaciones.filter((item) => item.grupoId === grupo.id).length}</strong><span>Rotaciones</span></div><div><strong>{new Set(estado.docentesRotacion.filter((asignacion) => estado.rotaciones.some((rotacion) => rotacion.id === asignacion.rotacionId && rotacion.grupoId === grupo.id)).map((item) => item.personaId)).size}</strong><span>Docentes</span></div></section>}
         {pestana === 'integrantes' && <MembersBlock key={`members-${grupo.id}`} estado={estado} grupo={grupo} onRefresh={refrescar} />}

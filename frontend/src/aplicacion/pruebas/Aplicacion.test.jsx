@@ -171,10 +171,30 @@ test('crea un grupo con varios estudiantes, docentes y rotaciones históricas', 
     await usuario.type(screen.getByLabelText('Fin de la rotación'), '2026-09-30');
     await usuario.click(screen.getByRole('button', { name: 'Agregar rotación' }));
 
-    const historial = screen.getByRole('table', { name: 'Historial de rotaciones' });
+    const historial = screen.getByRole('table', { name: 'Rotaciones del grupo' });
     expect(screen.getByRole('navigation', { name: 'Paginación de rotaciones' })).toBeInTheDocument();
     expect(within(historial).getByText('Rayos X')).toBeInTheDocument();
     expect(within(historial).getByText('Cirugía Dental')).toBeInTheDocument();
+});
+
+test('organiza los grupos en un selector lateral y muestra las rotaciones en una tabla completa', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Grupos académicos' }));
+
+    const lista = screen.getByRole('complementary', { name: 'Lista de grupos' });
+    expect(within(lista).getByPlaceholderText('Buscar grupo...')).toBeInTheDocument();
+    expect(within(lista).getByLabelText('Periodo académico')).toBeInTheDocument();
+    expect(within(lista).getByText('Mostrando 1–1 de 1 grupos')).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: 'Rotaciones' }));
+    const tabla = screen.getByRole('table', { name: 'Rotaciones del grupo' });
+    ['Periodo', 'Curso', 'Fechas', 'Docentes', 'Estudiantes', 'Estado', 'Acciones'].forEach((encabezado) => {
+        expect(within(tabla).getByRole('columnheader', { name: encabezado })).toBeInTheDocument();
+    });
 });
 
 test('muestra primero el acceso sin selector manual de perfil', async () => {
