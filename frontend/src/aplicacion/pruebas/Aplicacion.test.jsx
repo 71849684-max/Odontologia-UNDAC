@@ -33,6 +33,13 @@ vi.mock('../servicios/servicioAdministracion', () => ({
 
 beforeEach(() => {
     vi.clearAllMocks();
+    const storage = new Map();
+    vi.stubGlobal('localStorage', {
+        getItem: (key) => storage.get(key) ?? null,
+        setItem: (key, value) => storage.set(key, String(value)),
+        removeItem: (key) => storage.delete(key),
+        clear: () => storage.clear(),
+    });
     obtenerSesion.mockResolvedValue(null);
     cerrarSesion.mockResolvedValue({ mensaje: 'Sesion finalizada.' });
     admin.listarRoles.mockResolvedValue({ data: [] });
@@ -46,6 +53,31 @@ beforeEach(() => {
     });
     admin.listarAuditoria.mockResolvedValue({ data: [], accesos_recientes: [], acciones: [], indicadores: {} });
     admin.listarConfiguracion.mockResolvedValue({ data: [] });
+});
+
+test('edita el perfil desde la cabecera y conserva los datos al remontar', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    const primeraVista = await renderizarAplicacion();
+
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Abrir mi perfil' }));
+    expect(screen.getByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
+
+    await usuario.clear(screen.getByLabelText('Correo electrónico'));
+    await usuario.clear(screen.getByLabelText('Teléfono'));
+    await usuario.type(screen.getByLabelText('Correo electrónico'), 'carlos@undac.edu.pe');
+    await usuario.type(screen.getByLabelText('Teléfono'), '999 111 222');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Perfil actualizado');
+
+    primeraVista.unmount();
+    obtenerSesion.mockResolvedValue(SESIONES.administrador);
+    window.history.replaceState({}, '', '#/perfil');
+    await renderizarAplicacion();
+
+    expect(screen.getByLabelText('Correo electrónico')).toHaveValue('carlos@undac.edu.pe');
+    expect(screen.getByLabelText('Teléfono')).toHaveValue('999 111 222');
 });
 
 test('muestra primero el acceso sin selector manual de perfil', async () => {

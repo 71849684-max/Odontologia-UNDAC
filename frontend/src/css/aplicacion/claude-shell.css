@@ -49,7 +49,7 @@
 .hc-global-search__result strong { font-size: 12px; }
 .hc-global-search__result small, .hc-global-search__results p { color: #64748b; font-size: 11px; }
 .hc-global-search__results p { padding: 14px; margin: 0; }
-.user-menu { gap: 10px; }
+.user-menu { gap: 10px; border: 0; padding: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .user-menu__avatar { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #0d9488; font-size: 11px; font-weight: 800; }
 .user-menu__texto strong { font-size: 12px; color: #1e293b; }
 .user-menu__texto small { font-size: 10px; color: #64748b; }
@@ -87,7 +87,8 @@
 .clinical-patient-bar .clinical-care-summary > button { min-height: 32px; border: 1px solid #a7f3d0; border-radius: 7px; padding: 5px 9px; color: #a7f3d0; background: transparent; cursor: pointer; font-size: 9px; font-weight: 800; white-space: nowrap; }
 .clinical-workspace-layout.is-navigation-open { grid-template-columns: 262px minmax(0, 1fr); }
 .clinical-workspace-layout.is-navigation-closed { grid-template-columns: minmax(0, 1fr); }
-.clinical-moment-sidebar { position: sticky; top: 82px; height: calc(100dvh - 82px); overflow-y: auto; padding: 20px 14px; }
+.clinical-workspace-layout { align-items: stretch; }
+.clinical-moment-sidebar { position: relative; top: auto; height: auto; min-height: 0; overflow-y: auto; padding: 20px 14px; }
 .clinical-moment-overlay { display: none; }
 .clinical-workspace__main { min-width: 0; height: auto; overflow: visible; padding: 20px clamp(16px, 2.4vw, 38px) 32px; }
 .clinical-active-section__heading { flex-wrap: wrap; }
@@ -205,6 +206,10 @@
 @media (max-width: 380px) {
   .clinical-patient-avatar { display: none; }
 }
+
+@media (max-width: 767px) {
+  .clinical-patient-bar .clinical-care-summary { display: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .diseno-panel__lateral, .barra-lateral--hc .submenu { transition: none; animation: none; }
 }
@@ -316,10 +321,7 @@
   .clinical-patient-bar__identity-copy { min-width: 0; }
   .clinical-patient-bar__identity h1 { font-size: 15px; line-height: 1.25; }
   .clinical-patient-bar__identity p { gap: 4px 6px; font-size: 11px; line-height: 1.4; }
-  .clinical-patient-bar .clinical-care-summary { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .clinical-patient-bar .clinical-care-summary > div { min-width: 0; display: grid; gap: 3px; padding: 8px; border: 1px solid #e6edf2; background: #fbfdff; }
-  .clinical-patient-bar .clinical-care-summary dt { font-size: 9px; }
-  .clinical-patient-bar .clinical-care-summary dd { min-width: 0; overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .clinical-patient-bar .clinical-care-summary { display: none; }
 
   .clinical-workspace__main { padding: 10px 10px calc(22px + env(safe-area-inset-bottom)); }
   .clinical-section-tabs { display: none; }

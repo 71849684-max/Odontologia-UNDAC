@@ -18,6 +18,7 @@ function buscarRuta(menu, id) {
         { id: 'historias', etiqueta: 'Historias clínicas' },
         { etiqueta: 'Historia clínica' },
     ];
+    if (id === 'perfil') return [{ id: 'inicio', etiqueta: 'Inicio' }, { etiqueta: 'Mi perfil' }];
     return [{ id: 'inicio', etiqueta: 'Inicio' }, { etiqueta: 'Vista no disponible' }];
 }
 

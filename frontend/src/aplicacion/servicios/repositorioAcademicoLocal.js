@@ -120,10 +120,13 @@ export function actualizarPerfil(datos = {}) {
   return update((state) => {
     state.perfil = {
       ...state.perfil,
+      usuarioId: datos.usuarioId ?? state.perfil.usuarioId,
       nombres: text(datos.nombres),
       apellidos: text(datos.apellidos),
+      documento: datos.documento == null ? state.perfil.documento : text(datos.documento),
       correo: text(datos.correo),
       telefono: text(datos.telefono),
+      roles: Array.isArray(datos.roles) ? [...datos.roles] : state.perfil.roles,
     };
     return state.perfil;
   });

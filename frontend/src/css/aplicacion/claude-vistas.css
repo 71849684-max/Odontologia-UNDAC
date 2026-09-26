@@ -84,6 +84,21 @@
 .hc-page .hc-settings-fields label { color: #475569; font-size: 11px; }
 .hc-page .hc-settings-fields :is(input, select) { min-height: 42px; border-color: #e2e8f0; background: #f8fafc; font-size: 12px; }
 .hc-page.hc-new-record { width: 100%; max-width: none; }
+.hc-profile-card { display: grid; grid-template-columns: minmax(210px, .55fr) minmax(0, 1.45fr); gap: 24px; padding: 22px; }
+.hc-profile-card__identity { display: flex; align-items: flex-start; gap: 12px; }
+.hc-profile-card__identity > span { display: grid; width: 44px; height: 44px; place-items: center; flex: 0 0 auto; border-radius: 12px; color: #0f766e; background: #f0fdfa; }
+.hc-profile-card__identity div { display: grid; gap: 4px; }
+.hc-profile-card__identity strong { color: #0a192f; font-size: 15px; }
+.hc-profile-card__identity small { color: #64748b; font-size: 11px; }
+.hc-profile-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.hc-profile-form label { display: grid; gap: 6px; color: #475569; font-size: 11px; font-weight: 700; }
+.hc-profile-form input { min-width: 0; min-height: 42px; border: 1px solid #dbe4ea; border-radius: 9px; padding: 0 12px; background: #f8fafc; color: #1e293b; }
+.hc-profile-form input[readonly] { color: #64748b; }
+.hc-profile-form__actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 14px; }
+.hc-profile-form__actions [role="status"] { color: #0f766e; font-size: 12px; font-weight: 700; }
+.hc-profile-assignments > header { padding: 16px 18px; border-bottom: 1px solid #edf2f7; }
+.hc-profile-assignments h2 { margin: 0; color: #0a192f; font-size: 14px; }
+.hc-profile-assignments > p { margin: 0; padding: 18px; color: #64748b; font-size: 12px; }
 
 .hc-patient-dialog-overlay {
   position: fixed;
@@ -111,6 +126,7 @@
 .hc-patient-dialog .paciente-form > h3 { display: none; }
 .hc-patient-dialog .form-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .hc-patient-dialog .acciones-form { margin-top: 20px; }
+.hc-form-error { margin: 0 0 16px; border: 1px solid #fecaca; border-radius: 9px; padding: 10px 12px; color: #b42318; background: #fff1f2; font-size: 12px; }
 
 @media (max-width: 767px) {
   .hc-patient-dialog-overlay { padding: 0; place-items: stretch; }
@@ -139,6 +155,7 @@
 :is(.hc-page, .permisos-page) .admin-dialogo { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; border-radius: 14px; }
 @media (max-width: 767px) {
   .hc-dashboard, .hc-page, .permisos-page { padding: 22px 16px 34px; }
+  .hc-profile-card, .hc-profile-form { grid-template-columns: minmax(0, 1fr); }
   .hc-dashboard-welcome { align-items: stretch; flex-direction: column; }
   .hc-dashboard-context { text-align: left; }
   .hc-dashboard .hc-dashboard-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
