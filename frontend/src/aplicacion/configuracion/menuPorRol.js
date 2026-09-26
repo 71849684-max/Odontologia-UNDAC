@@ -30,7 +30,10 @@ export const MENU_POR_ROL = {
             { id: 'permisos-usuarios', etiqueta: 'Permisos por usuario' },
             { id: 'auditoria', etiqueta: 'Auditoría' },
         ]},
-        { id: 'sistema', etiqueta: 'Sistema', children: [ { id: 'configuracion', etiqueta: 'Configuración' } ] },
+        { id: 'sistema', etiqueta: 'Sistema', children: [
+            { id: 'cursos', etiqueta: 'Cursos' },
+            { id: 'configuracion', etiqueta: 'Configuración' },
+        ] },
     ],
     docente: [
         { id: 'inicio', etiqueta: 'Inicio' },

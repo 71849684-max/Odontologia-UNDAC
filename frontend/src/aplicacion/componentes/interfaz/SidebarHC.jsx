@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, CircleUserRound, ClipboardList, FileClock, Home, LogOut, Settings, Stethoscope, UsersRound } from 'lucide-react';
+import { BookOpen, ChevronDown, CircleUserRound, ClipboardList, FileClock, Home, LogOut, Settings, Stethoscope, UsersRound } from 'lucide-react';
 
 const ICONOS = {
     inicio: Home,
@@ -15,6 +15,7 @@ const ICONOS = {
     usuarios: UsersRound,
     'permisos-usuarios': UsersRound,
     auditoria: FileClock,
+    cursos: BookOpen,
     configuracion: Settings,
 };
 

@@ -17,6 +17,7 @@ import ConfiguracionApp from './paginas/ConfiguracionApp';
 import SeguimientoApp from './paginas/SeguimientoApp';
 import VistaNoDisponible from './paginas/VistaNoDisponible';
 import PerfilApp from './paginas/PerfilApp';
+import CursosApp from './paginas/CursosApp';
 
 const routeAliases = {
     dashboard: 'inicio',
@@ -80,6 +81,7 @@ const VIEW_COMPONENTS = {
     seguimiento: SeguimientoApp,
     'mis-seguimientos': SeguimientoApp,
     perfil: PerfilApp,
+    cursos: CursosApp,
 };
 
 function PantallaCargandoSesion() {

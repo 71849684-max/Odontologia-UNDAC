@@ -80,6 +80,37 @@ test('edita el perfil desde la cabecera y conserva los datos al remontar', async
     expect(screen.getByLabelText('Teléfono')).toHaveValue('999 111 222');
 });
 
+test('crea un curso, lo conserva y muestra el error de código duplicado', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Cursos' }));
+    expect(screen.getByRole('heading', { name: 'Cursos' })).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: 'Nuevo curso' }));
+    await usuario.type(screen.getByLabelText('Código'), 'CIR-TEST');
+    await usuario.type(screen.getByLabelText('Nombre'), 'Cirugía Dental');
+    await usuario.type(screen.getByLabelText('Descripción'), 'Rotación clínica quirúrgica');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar curso' }));
+
+    const filaCreada = screen.getByText('CIR-TEST').closest('tr');
+    expect(filaCreada).not.toBeNull();
+    expect(within(filaCreada).getByText('Cirugía Dental')).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: 'Nuevo curso' }));
+    await usuario.type(screen.getByLabelText('Código'), 'cir-test');
+    await usuario.type(screen.getByLabelText('Nombre'), 'Curso duplicado');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar curso' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('Ya existe un curso con ese código');
+
+    await usuario.click(screen.getByRole('button', { name: 'Cerrar' }));
+    await usuario.click(screen.getByRole('button', { name: 'Configuración' }));
+    await usuario.click(screen.getByRole('button', { name: 'Cursos' }));
+    expect(screen.getByText('CIR-TEST')).toBeInTheDocument();
+});
+
 test('muestra primero el acceso sin selector manual de perfil', async () => {
     await renderizarAplicacion();
 
