@@ -3,7 +3,7 @@ import { ChevronDown, RotateCcw, Save, ShieldCheck, UserRound } from 'lucide-rea
 export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efectivos, grupoAbierto, guardando, mensaje, onToggleGroup, onTogglePermission, onRestore, onSave, onViewProfile }) {
   const grupos = [...new Set(catalogo.map((item) => item.modulo))];
 
-  return <main className="permisos-card permisos-editor" aria-label="Editor de permisos">
+  return <section className="permisos-card permisos-editor" aria-label="Editor de permisos">
     <header className="permisos-user-head">
       <div className="permisos-user-main">
         <span className="usuario-avatar grande"><UserRound size={22} /></span>
@@ -41,5 +41,5 @@ export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efect
     </section>
 
     <footer className="permisos-footer"><span>{mensaje || 'Los cambios se guardan en la base de datos institucional.'}</span><div><button type="button" className="btn-secundario" onClick={onRestore} disabled={guardando}><RotateCcw size={16} /> Restaurar rol</button><button type="button" className="btn-principal" onClick={onSave} disabled={guardando}><Save size={17} /> {guardando ? 'Guardando…' : 'Guardar cambios'}</button></div></footer>
-  </main>;
+  </section>;
 }

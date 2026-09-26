@@ -169,7 +169,8 @@ test('permite elegir un usuario y guardar sus permisos desde módulos con progre
     expect(await screen.findByRole('heading', { name: 'Elena Vargas' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ver perfil' })).toBeInTheDocument();
 
-    const editor = screen.getByRole('main', { name: 'Editor de permisos' });
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    const editor = screen.getByRole('region', { name: 'Editor de permisos' });
     await usuario.click(within(editor).getByRole('button', { name: /Pacientes/ }));
     expect(within(editor).getByRole('progressbar', { name: 'Permisos activos de Pacientes' })).toHaveAttribute('aria-valuenow', '2');
     await usuario.click(within(editor).getByRole('checkbox', { name: 'Ver pacientes' }));

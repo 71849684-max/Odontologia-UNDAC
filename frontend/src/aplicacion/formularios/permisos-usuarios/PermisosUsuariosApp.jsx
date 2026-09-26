@@ -137,7 +137,7 @@ export default function PermisosUsuariosApp({ onNavigate }) {
 
             <div className="permisos-layout">
                 <ListaUsuariosPermisos usuarios={filtrados} roles={roles} seleccionadoId={usuarioId} busqueda={busqueda} rol={filtroRol} onBusquedaChange={setBusqueda} onRolChange={setFiltroRol} onSelect={seleccionarUsuario} />
-                {cargando && <main className="permisos-card"><p role="status" style={{ padding: 24 }}>Cargando permisos…</p></main>}
+                {cargando && <section className="permisos-card" aria-label="Editor de permisos"><p role="status" style={{ padding: 24 }}>Cargando permisos…</p></section>}
                 {!cargando && usuarioActual && <EditorPermisosUsuario usuario={usuarioActual} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onRestore={restaurarRol} onSave={guardar} onViewProfile={() => onNavigate?.('perfil')} />}
             </div>
 
