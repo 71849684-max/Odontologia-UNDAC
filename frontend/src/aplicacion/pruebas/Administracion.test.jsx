@@ -122,3 +122,17 @@ test('el administrador ve permisos, auditoria y configuracion reales', async () 
     await waitFor(() => expect(admin.listarConfiguracion).toHaveBeenCalled());
     expect(await screen.findByDisplayValue('UNDAC')).toBeInTheDocument();
 });
+
+test('los permisos usan maestro detalle paginado y despliegan módulos en línea', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+    await ingresar(usuario);
+    await act(async () => { window.onNavigate('permisos-usuarios'); });
+
+    expect(await screen.findByRole('navigation', { name: 'Paginación de usuarios' })).toBeInTheDocument();
+    const botonesInicio = screen.getAllByRole('button', { name: /Inicio/ });
+    await usuario.click(botonesInicio.at(-1));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Inicio/ })).toBeInTheDocument();
+});

@@ -180,6 +180,17 @@ export function crearCurso(datos = {}) {
   });
 }
 
+export function actualizarCurso(cursoId, datos = {}) {
+  return update((state) => {
+    const curso = state.cursos.find((item) => item.id === cursoId);
+    if (!curso) throw new ErrorAcademico('NO_ENCONTRADO', 'No se encontró el curso.');
+    const codigo = code(datos.codigo);
+    if (state.cursos.some((item) => item.id !== cursoId && item.codigo === codigo)) duplicate('Ya existe un curso con ese código.');
+    Object.assign(curso, { codigo, nombre: text(datos.nombre), descripcion: text(datos.descripcion), estado: text(datos.estado) || 'activo' });
+    return curso;
+  });
+}
+
 export function crearGrupo(datos = {}) {
   return update((state) => {
     const codigo = code(datos.codigo);

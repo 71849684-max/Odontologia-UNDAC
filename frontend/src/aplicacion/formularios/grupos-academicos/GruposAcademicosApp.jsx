@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, Search, UsersRound, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import useModalDialog from '../../componentes/interfaz/useModalDialog.js';
+import Paginacion from '../../componentes/interfaz/Paginacion.jsx';
 import {
   crearGrupo,
   actualizarGrupo,
@@ -216,9 +217,11 @@ function RotationsBlock({ estado, grupo, onRefresh }) {
         <button type="submit" className="hc-button hc-button--primary">Agregar rotación</button>
       </form>
       {error && <p className="hc-form-error" role="alert">{error}</p>}
-      <div className="hc-table-card"><table className="hc-table" aria-label="Historial de rotaciones"><thead><tr><th>Curso</th><th>Periodo</th><th>Vigencia</th><th>Estado</th><th>Docentes</th></tr></thead><tbody>
-        {rotaciones.map((rotacion) => <tr key={rotacion.id}><td data-label="Curso">{estado.cursos.find((item) => item.id === rotacion.cursoId)?.nombre}</td><td data-label="Periodo">{estado.periodos.find((item) => item.id === rotacion.periodoId)?.codigo}</td><td data-label="Vigencia">{rotacion.fechaInicio} — {rotacion.fechaFin}</td><td data-label="Estado">{rotacion.estado}</td><td data-label="Docentes"><button type="button" className="hc-mini-button" onClick={() => setSeleccionada(rotacion.id)}>{estado.docentesRotacion.filter((item) => item.rotacionId === rotacion.id).length} · Gestionar</button></td></tr>)}
-      </tbody></table></div>
+      <Paginacion elementos={rotaciones} tamanos={[5, 10, 20]} inicial={5} etiqueta="rotaciones">
+        {(visibles) => <div className="hc-table-card"><table className="hc-table" aria-label="Historial de rotaciones"><thead><tr><th>Curso</th><th>Periodo</th><th>Vigencia</th><th>Estado</th><th>Docentes</th></tr></thead><tbody>
+          {visibles.map((rotacion) => <tr key={rotacion.id}><td data-label="Curso">{estado.cursos.find((item) => item.id === rotacion.cursoId)?.nombre}</td><td data-label="Periodo">{estado.periodos.find((item) => item.id === rotacion.periodoId)?.codigo}</td><td data-label="Vigencia">{rotacion.fechaInicio} — {rotacion.fechaFin}</td><td data-label="Estado">{rotacion.estado}</td><td data-label="Docentes"><button type="button" className="hc-mini-button" onClick={() => setSeleccionada(rotacion.id)}>{estado.docentesRotacion.filter((item) => item.rotacionId === rotacion.id).length} · Gestionar</button></td></tr>)}
+        </tbody></table></div>}
+      </Paginacion>
     </section>
     {rotacionSeleccionada && <><TeachersBlock key={`teachers-${rotacionSeleccionada.id}`} estado={estado} rotacionId={rotacionSeleccionada.id} onRefresh={onRefresh} /><ExceptionalStudentsBlock key={`students-${rotacionSeleccionada.id}`} estado={estado} rotacionId={rotacionSeleccionada.id} onRefresh={onRefresh} /></>}
   </>;
@@ -229,6 +232,7 @@ export default function GruposAcademicosApp() {
   const [grupoId, setGrupoId] = useState(() => estado.grupos[0]?.id || null);
   const [dialogo, setDialogo] = useState(false);
   const [grupoEditar, setGrupoEditar] = useState(null);
+  const [pestana, setPestana] = useState('resumen');
   const [dialogoPeriodo, setDialogoPeriodo] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [filtroPeriodo, setFiltroPeriodo] = useState('');
@@ -259,8 +263,15 @@ export default function GruposAcademicosApp() {
       <label className="hc-select-filter"><span>Estado</span><select value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}><option value="">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></label>
     </div>
     <div className="hc-academic-layout">
-      <aside className="hc-panel-card hc-group-list" aria-label="Lista de grupos">{grupos.map((item) => <button type="button" className={item.id === grupoId ? 'is-active' : ''} key={item.id} onClick={() => setGrupoId(item.id)}><span><UsersRound size={17} /></span><strong>{item.nombre}</strong><small>{item.codigo} · {item.semestre}</small></button>)}</aside>
-      {grupo ? <article className="hc-panel-card hc-group-detail"><header><div><span>{grupo.codigo} · Semestre {grupo.semestre}</span><h2>{grupo.nombre}</h2></div><div className="flex items-center gap-2"><small>{grupo.estado}</small><button type="button" className="hc-mini-button" onClick={() => { setGrupoEditar(grupo); setDialogo(true); }}>Editar</button></div></header><MembersBlock key={`members-${grupo.id}`} estado={estado} grupo={grupo} onRefresh={refrescar} /><RotationsBlock key={`rotations-${grupo.id}`} estado={estado} grupo={grupo} onRefresh={refrescar} /></article> : <section className="hc-panel-card hc-group-empty"><p>Seleccione un grupo para gestionar su estructura académica.</p></section>}
+      <aside className="hc-panel-card hc-group-list" aria-label="Lista de grupos"><Paginacion elementos={grupos} tamanos={[6, 12, 24]} inicial={6} etiqueta="grupos">{(visibles) => <div>{visibles.map((item) => <button type="button" className={item.id === grupoId ? 'is-active' : ''} key={item.id} onClick={() => { setGrupoId(item.id); setPestana('resumen'); }}><span><UsersRound size={17} /></span><strong>{item.nombre}</strong><small>{item.codigo} · {item.semestre}</small></button>)}</div>}</Paginacion></aside>
+      {grupo ? <article className="hc-panel-card hc-group-detail"><header><div><span>{grupo.codigo} · Semestre {grupo.semestre}</span><h2>{grupo.nombre}</h2></div><div className="flex items-center gap-2"><small>{grupo.estado}</small><button type="button" className="hc-mini-button" onClick={() => { setGrupoEditar(grupo); setDialogo(true); }}>Editar grupo</button></div></header>
+        <nav className="hc-detail-tabs" aria-label="Secciones del grupo">{['resumen', 'integrantes', 'rotaciones', 'docentes', 'historial'].map((item) => <button type="button" key={item} className={pestana === item ? 'is-active' : ''} onClick={() => setPestana(item)}>{item[0].toUpperCase() + item.slice(1)}</button>)}</nav>
+        {pestana === 'resumen' && <section className="hc-group-summary"><div><strong>{estado.membresias.filter((item) => item.grupoId === grupo.id && item.estado !== 'finalizada').length}</strong><span>Integrantes activos</span></div><div><strong>{estado.rotaciones.filter((item) => item.grupoId === grupo.id).length}</strong><span>Rotaciones</span></div><div><strong>{new Set(estado.docentesRotacion.filter((asignacion) => estado.rotaciones.some((rotacion) => rotacion.id === asignacion.rotacionId && rotacion.grupoId === grupo.id)).map((item) => item.personaId)).size}</strong><span>Docentes</span></div></section>}
+        {pestana === 'integrantes' && <MembersBlock key={`members-${grupo.id}`} estado={estado} grupo={grupo} onRefresh={refrescar} />}
+        {pestana === 'rotaciones' && <RotationsBlock key={`rotations-${grupo.id}`} estado={estado} grupo={grupo} onRefresh={refrescar} />}
+        {pestana === 'docentes' && <section className="hc-academic-block"><h3>Docentes</h3><p>Gestione los responsables desde cada rotación registrada.</p></section>}
+        {pestana === 'historial' && <section className="hc-academic-block"><h3>Historial</h3><p>Las membresías y rotaciones finalizadas se conservan en este grupo.</p></section>}
+      </article> : <section className="hc-panel-card hc-group-empty"><p>Seleccione un grupo para gestionar su estructura académica.</p></section>}
     </div>
     <GroupDialog open={dialogo} triggerRef={triggerRef} grupo={grupoEditar} onClose={cerrar} onSaved={(guardado) => { refrescar(); setGrupoId(guardado.id); cerrar(); }} />
     <PeriodDialog open={dialogoPeriodo} triggerRef={triggerPeriodoRef} onClose={() => setDialogoPeriodo(false)} onCreated={() => { refrescar(); setDialogoPeriodo(false); }} />

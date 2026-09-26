@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
   actualizarPerfil,
+  actualizarCurso,
   crearPeriodo,
   crearCurso,
   crearGrupo,
@@ -84,6 +85,16 @@ describe('repositorio académico local', () => {
     crearGrupo({ codigo: 'IX-B', nombre: 'Noveno B', semestre: 'IX', estado: 'activo' });
     expect(() => crearGrupo({ codigo: 'ix-b', nombre: 'Reemplazo' })).toThrow(expect.objectContaining({ codigo: 'DUPLICADO' }));
     expect(obtenerEstadoAcademico().grupos.filter((grupo) => grupo.codigo === 'IX-B')).toHaveLength(1);
+  });
+
+  test('actualiza un curso existente sin perder su identidad', () => {
+    const curso = obtenerEstadoAcademico().cursos[0];
+    actualizarCurso(curso.id, { ...curso, nombre: 'Radiología actualizada', estado: 'inactivo' });
+
+    expect(obtenerEstadoAcademico().cursos.find((item) => item.id === curso.id)).toMatchObject({
+      nombre: 'Radiología actualizada',
+      estado: 'inactivo',
+    });
   });
 
   test('rechaza una rotación cuya fecha final antecede a la inicial', () => {

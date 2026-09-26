@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronRight, RotateCcw, Save, Search, ShieldCheck, UserRound, X } from 'lucide-react';
+import { Check, ChevronRight, RotateCcw, Save, Search, ShieldCheck, UserRound } from 'lucide-react';
+import Paginacion from '../../componentes/interfaz/Paginacion.jsx';
 import {
     guardarPermisosUsuario,
     listarUsuarios,
@@ -12,10 +13,11 @@ export default function PermisosUsuariosApp() {
     const [usuarios, setUsuarios] = useState([]);
     const [usuarioId, setUsuarioId] = useState(null);
     const [busqueda, setBusqueda] = useState('');
+    const [filtroRol, setFiltroRol] = useState('');
     const [catalogo, setCatalogo] = useState([]);
     const [delRol, setDelRol] = useState(new Set());
     const [efectivos, setEfectivos] = useState(new Set());
-    const [grupoModal, setGrupoModal] = useState(null);
+    const [grupoAbierto, setGrupoAbierto] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
     const [mensaje, setMensaje] = useState('');
@@ -24,13 +26,11 @@ export default function PermisosUsuariosApp() {
 
     const grupos = useMemo(() => [...new Set(catalogo.map((p) => p.modulo))], [catalogo]);
 
-    const itemsModal = useMemo(
-        () => (grupoModal ? catalogo.filter((p) => p.modulo === grupoModal) : []),
-        [catalogo, grupoModal],
-    );
+    const roles = useMemo(() => [...new Set(usuarios.map((item) => item.rol).filter(Boolean))], [usuarios]);
 
     const filtrados = usuarios.filter((item) =>
-        `${item.nombre} ${item.rol ?? ''} ${item.nombre_usuario}`.toLowerCase().includes(busqueda.toLowerCase()),
+        `${item.nombre} ${item.rol ?? ''} ${item.nombre_usuario}`.toLowerCase().includes(busqueda.toLowerCase())
+        && (!filtroRol || item.rol === filtroRol),
     );
 
     async function cargarUsuarios() {
@@ -46,7 +46,7 @@ export default function PermisosUsuariosApp() {
         setCatalogo(respuesta.catalogo ?? []);
         setDelRol(new Set(respuesta.del_rol ?? []));
         setEfectivos(new Set(respuesta.efectivos ?? []));
-        setGrupoModal(null);
+        setGrupoAbierto(null);
         setMensaje('');
     }
 
@@ -93,18 +93,6 @@ export default function PermisosUsuariosApp() {
         });
     }
 
-    function marcarTodosDelGrupo(activar) {
-        setMensaje('');
-        setEfectivos((prev) => {
-            const next = new Set(prev);
-            itemsModal.forEach((permiso) => {
-                if (activar) next.add(permiso.id);
-                else next.delete(permiso.id);
-            });
-            return next;
-        });
-    }
-
     async function restaurarRol() {
         if (!usuarioId) return;
         setGuardando(true);
@@ -113,7 +101,7 @@ export default function PermisosUsuariosApp() {
             const respuesta = await restaurarPermisosUsuario(usuarioId);
             setDelRol(new Set(respuesta.del_rol ?? []));
             setEfectivos(new Set(respuesta.efectivos ?? []));
-            setGrupoModal(null);
+            setGrupoAbierto(null);
             setMensaje('Permisos restaurados al rol base.');
         } catch (err) {
             setError(err instanceof ErrorHttp ? err.message : 'No se pudieron restaurar los permisos.');
@@ -144,8 +132,6 @@ export default function PermisosUsuariosApp() {
         adicionales: [...efectivos].filter((id) => !delRol.has(id)).length,
     };
 
-    const activosModal = itemsModal.filter((p) => efectivos.has(p.id)).length;
-
     return (
         <section className="permisos-page">
             <div className="permisos-hero">
@@ -171,8 +157,10 @@ export default function PermisosUsuariosApp() {
                         <Search size={17} />
                         <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar usuario..." />
                     </label>
-                    <div className="usuarios-lista">
-                        {filtrados.map((item) => (
+                    <label className="permisos-role-filter"><span className="sr-only">Filtrar por rol</span><select aria-label="Filtrar por rol" value={filtroRol} onChange={(event) => setFiltroRol(event.target.value)}><option value="">Todos los roles</option>{roles.map((rolItem) => <option key={rolItem} value={rolItem}>{rolItem}</option>)}</select></label>
+                    <Paginacion elementos={filtrados} tamanos={[8, 16, 24]} inicial={8} etiqueta="usuarios">
+                      {(visibles) => <div className="usuarios-lista">
+                        {visibles.map((item) => (
                             <button
                                 key={item.id}
                                 type="button"
@@ -187,7 +175,8 @@ export default function PermisosUsuariosApp() {
                                 {item.id === usuarioId && <span className="usuario-check"><Check size={16} /></span>}
                             </button>
                         ))}
-                    </div>
+                      </div>}
+                    </Paginacion>
                 </aside>
 
                 <main className="permisos-card">
@@ -221,7 +210,7 @@ export default function PermisosUsuariosApp() {
                             <div className="permisos-title-row">
                                 <div>
                                     <h3>Módulos</h3>
-                                    <p>Selecciona un módulo para revisar y ajustar sus permisos en el modal.</p>
+                                    <p>Selecciona un módulo para revisar y ajustar sus permisos en línea.</p>
                                 </div>
                             </div>
 
@@ -229,25 +218,18 @@ export default function PermisosUsuariosApp() {
                                 {grupos.map((grupo) => {
                                     const items = catalogo.filter((p) => p.modulo === grupo);
                                     const activosGrupo = items.filter((p) => efectivos.has(p.id)).length;
-                                    const seleccionado = grupoModal === grupo;
+                                    const seleccionado = grupoAbierto === grupo;
                                     return (
-                                        <button
-                                            key={grupo}
-                                            type="button"
-                                            className={`permiso-grupo-head permiso-grupo-head--modal ${seleccionado ? 'seleccionado' : ''}`}
-                                            onClick={() => setGrupoModal(grupo)}
-                                            aria-haspopup="dialog"
-                                            aria-expanded={seleccionado}
-                                        >
-                                            <span>
-                                                <strong>{grupo}</strong>
-                                                <small>{activosGrupo} de {items.length} activos</small>
-                                            </span>
-                                            <em>
-                                                {activosGrupo}/{items.length}
-                                                <ChevronRight size={17} aria-hidden="true" />
-                                            </em>
-                                        </button>
+                                        <div className="permiso-grupo" key={grupo}>
+                                          <button type="button" className={`permiso-grupo-head ${seleccionado ? 'seleccionado' : ''}`} onClick={() => setGrupoAbierto(seleccionado ? null : grupo)} aria-expanded={seleccionado}>
+                                              <span><strong>{grupo}</strong><small>{activosGrupo} de {items.length} activos</small></span>
+                                              <em>{activosGrupo}/{items.length}<ChevronRight className={seleccionado ? 'rotada' : ''} size={17} aria-hidden="true" /></em>
+                                          </button>
+                                          {seleccionado && <div className="permiso-items">{items.map((permiso) => <label key={permiso.id} className={`permiso-item ${efectivos.has(permiso.id) ? 'activo' : ''}`}>
+                                            <input type="checkbox" checked={efectivos.has(permiso.id)} onChange={() => cambiarPermiso(permiso.id)} />
+                                            <span className="permiso-box"><Check size={14} /></span><span><strong>{permiso.seccion}</strong><small>{permiso.accion}{!delRol.has(permiso.id) && efectivos.has(permiso.id) ? ' · adicional' : ''}</small></span>
+                                          </label>)}</div>}
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -263,65 +245,6 @@ export default function PermisosUsuariosApp() {
                 </main>
             </div>
 
-            {grupoModal && (
-                <div className="admin-dialogo-fondo" role="presentation" onClick={() => setGrupoModal(null)}>
-                    <div
-                        className="admin-dialogo admin-dialogo--permisos"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="titulo-permisos-modulo"
-                        onClick={(evento) => evento.stopPropagation()}
-                    >
-                        <header className="admin-dialogo__cabecera">
-                            <div>
-                                <h2 id="titulo-permisos-modulo">{grupoModal}</h2>
-                                <p className="admin-dialogo__subtitulo">
-                                    {activosModal} de {itemsModal.length} permisos activos
-                                    {usuarioActual ? ` · ${usuarioActual.nombre}` : ''}
-                                </p>
-                            </div>
-                            <button type="button" className="hc-mini-button" onClick={() => setGrupoModal(null)} aria-label="Cerrar">
-                                <X size={16} />
-                            </button>
-                        </header>
-
-                        <div className="permisos-modal-acciones">
-                            <button type="button" className="hc-mini-button" onClick={() => marcarTodosDelGrupo(true)}>
-                                Activar todos
-                            </button>
-                            <button type="button" className="hc-mini-button" onClick={() => marcarTodosDelGrupo(false)}>
-                                Desactivar todos
-                            </button>
-                        </div>
-
-                        <div className="permiso-items permiso-items--modal">
-                            {itemsModal.map((permiso) => (
-                                <label key={permiso.id} className={`permiso-item ${efectivos.has(permiso.id) ? 'activo' : ''}`}>
-                                    <input
-                                        type="checkbox"
-                                        checked={efectivos.has(permiso.id)}
-                                        onChange={() => cambiarPermiso(permiso.id)}
-                                    />
-                                    <span className="permiso-box"><Check size={14} /></span>
-                                    <span>
-                                        <strong>{permiso.seccion}</strong>
-                                        <small>
-                                            {permiso.accion}
-                                            {!delRol.has(permiso.id) && efectivos.has(permiso.id) ? ' · adicional' : ''}
-                                        </small>
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <footer className="admin-dialogo__acciones">
-                            <button type="button" className="hc-button hc-button--primary" onClick={() => setGrupoModal(null)}>
-                                Listo
-                            </button>
-                        </footer>
-                    </div>
-                </div>
-            )}
         </section>
     );
 }

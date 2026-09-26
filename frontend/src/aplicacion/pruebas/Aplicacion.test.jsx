@@ -111,6 +111,25 @@ test('crea un curso, lo conserva y muestra el error de código duplicado', async
     expect(screen.getByText('CIR-TEST')).toBeInTheDocument();
 });
 
+test('edita un curso desde la tabla paginada', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Cursos' }));
+
+    expect(screen.getByRole('navigation', { name: 'Paginación de cursos' })).toBeInTheDocument();
+    const fila = screen.getByText('Rayos X').closest('tr');
+    await usuario.click(within(fila).getByRole('button', { name: 'Editar' }));
+    expect(screen.getByRole('heading', { name: 'Editar curso' })).toBeInTheDocument();
+    const nombre = screen.getByLabelText('Nombre');
+    await usuario.clear(nombre);
+    await usuario.type(nombre, 'Radiología clínica');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar curso' }));
+
+    expect(screen.getByText('Radiología clínica')).toBeInTheDocument();
+});
+
 test('crea un grupo con varios estudiantes, docentes y rotaciones históricas', async () => {
     const usuario = userEvent.setup();
     iniciarSesion.mockResolvedValue(SESIONES.administrador);
@@ -125,11 +144,14 @@ test('crea un grupo con varios estudiantes, docentes y rotaciones históricas', 
     await usuario.click(screen.getByRole('button', { name: 'Guardar grupo' }));
 
     expect(screen.getByRole('heading', { name: 'Rotación clínica A' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Paginación de grupos' })).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: 'Integrantes' }));
     await usuario.click(screen.getByRole('checkbox', { name: 'María Fernández' }));
     await usuario.click(screen.getByRole('checkbox', { name: 'José Paredes' }));
     await usuario.click(screen.getByRole('button', { name: 'Agregar estudiantes' }));
     expect(screen.getByText('2 integrantes activos')).toBeInTheDocument();
 
+    await usuario.click(screen.getByRole('button', { name: 'Rotaciones' }));
     await usuario.selectOptions(screen.getByLabelText('Curso de la rotación'), 'curso-rx');
     await usuario.selectOptions(screen.getByLabelText('Periodo de la rotación'), 'periodo-2026-ii');
     await usuario.type(screen.getByLabelText('Inicio de la rotación'), '2026-08-01');
@@ -150,6 +172,7 @@ test('crea un grupo con varios estudiantes, docentes y rotaciones históricas', 
     await usuario.click(screen.getByRole('button', { name: 'Agregar rotación' }));
 
     const historial = screen.getByRole('table', { name: 'Historial de rotaciones' });
+    expect(screen.getByRole('navigation', { name: 'Paginación de rotaciones' })).toBeInTheDocument();
     expect(within(historial).getByText('Rayos X')).toBeInTheDocument();
     expect(within(historial).getByText('Cirugía Dental')).toBeInTheDocument();
 });
