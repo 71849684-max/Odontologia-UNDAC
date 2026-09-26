@@ -99,12 +99,16 @@
 .hc-page .hc-settings-fields label { color: #475569; font-size: 11px; }
 .hc-page .hc-settings-fields :is(input, select) { min-height: 42px; border-color: #e2e8f0; background: #f8fafc; font-size: 12px; }
 .hc-page.hc-new-record { width: 100%; max-width: none; }
-.hc-profile-card { display: grid; grid-template-columns: minmax(210px, .55fr) minmax(0, 1.45fr); gap: 24px; padding: 22px; }
-.hc-profile-card__identity { display: flex; align-items: flex-start; gap: 12px; }
+.hc-profile-card { display: grid; grid-template-columns: minmax(210px, .55fr) minmax(0, 1.45fr); gap: 0; overflow: hidden; }
+.hc-profile-card__identity { display: flex; align-items: flex-start; gap: 12px; padding: 22px; border-right: 1px solid #edf2f7; background: #f8fafc; }
 .hc-profile-card__identity > span { display: grid; width: 44px; height: 44px; place-items: center; flex: 0 0 auto; border-radius: 12px; color: #0f766e; background: #f0fdfa; }
 .hc-profile-card__identity div { display: grid; gap: 4px; }
 .hc-profile-card__identity strong { color: #0a192f; font-size: 15px; }
 .hc-profile-card__identity small { color: #64748b; font-size: 11px; }
+.hc-profile-card__content { display: grid; gap: 18px; padding: 22px; }
+.hc-profile-card__content > header { display: grid; gap: 4px; }
+.hc-profile-card__content h2 { margin: 0; color: #0a192f; font-size: 16px; }
+.hc-profile-card__content p { margin: 0; color: #64748b; font-size: 11px; }
 .hc-profile-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .hc-profile-form label { display: grid; gap: 6px; color: #475569; font-size: 11px; font-weight: 700; }
 .hc-profile-form input { min-width: 0; min-height: 42px; border: 1px solid #dbe4ea; border-radius: 9px; padding: 0 12px; background: #f8fafc; color: #1e293b; }
@@ -267,6 +271,7 @@
 @media (max-width: 767px) {
   .hc-dashboard, .hc-page, .permisos-page { padding: 22px 16px 34px; }
   .hc-profile-card, .hc-profile-form { grid-template-columns: minmax(0, 1fr); }
+  .hc-profile-card__identity { border-right: 0; border-bottom: 1px solid #edf2f7; }
   .hc-academic-layout, .hc-rotation-form { grid-template-columns: minmax(0, 1fr); }
   .hc-group-list { min-height: 0; max-height: none; }
   .hc-group-list__items { grid-auto-columns: minmax(230px, 78vw); grid-auto-flow: column; overflow-x: auto; }

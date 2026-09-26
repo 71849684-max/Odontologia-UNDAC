@@ -176,3 +176,28 @@ test('permite elegir un usuario y guardar sus permisos desde módulos con progre
     await usuario.click(within(editor).getByRole('button', { name: 'Guardar cambios' }));
     await waitFor(() => expect(admin.guardarPermisosUsuario).toHaveBeenCalledWith(4, [2]));
 });
+
+test('abre el perfil como página desde permisos sin superponer un diálogo', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    Object.defineProperty(globalThis, 'localStorage', {
+        configurable: true,
+        value: {
+            getItem: vi.fn(() => null),
+            setItem: vi.fn(),
+            removeItem: vi.fn(),
+            clear: vi.fn(),
+        },
+    });
+
+    await renderizarAplicacion();
+    await ingresar(usuario);
+    await act(async () => { window.onNavigate('permisos-usuarios'); });
+
+    await usuario.click(await screen.findByRole('button', { name: 'Ver perfil' }));
+
+    expect(await screen.findByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Datos personales' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Asignaciones académicas' })).toBeInTheDocument();
+});

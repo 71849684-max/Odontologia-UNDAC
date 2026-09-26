@@ -92,22 +92,32 @@ export default function PerfilApp({ usuario, rol }) {
       <p className="hc-page-subtitle">Actualice sus datos personales y consulte sus asignaciones académicas.</p>
     </header>
 
-    <section className="hc-panel-card hc-profile-card">
+    <section className="hc-panel-card hc-profile-card" aria-labelledby="perfil-datos">
       <div className="hc-profile-card__identity">
         <span><UserRound size={24} aria-hidden="true" /></span>
-        <div><strong>{formulario.nombres} {formulario.apellidos}</strong><small>{(formulario.roles || [rol]).join(' · ')}</small></div>
-      </div>
-      <form className="hc-profile-form" onSubmit={guardar}>
-        <label>Nombres<input value={formulario.nombres ?? ''} onChange={(event) => change('nombres', event.target.value)} required /></label>
-        <label>Apellidos<input value={formulario.apellidos ?? ''} onChange={(event) => change('apellidos', event.target.value)} required /></label>
-        <label>Documento<input value={formulario.documento || 'No registrado'} readOnly /></label>
-        <label>Correo electrónico<input type="email" value={formulario.correo ?? ''} onChange={(event) => change('correo', event.target.value)} /></label>
-        <label>Teléfono<input type="tel" value={formulario.telefono ?? ''} onChange={(event) => change('telefono', event.target.value)} /></label>
-        <div className="hc-profile-form__actions">
-          {mensaje && <span role="status">{mensaje}</span>}
-          <button type="submit" className="hc-button hc-button--primary"><Save size={16} /> Guardar cambios</button>
+        <div>
+          <strong>{formulario.nombres} {formulario.apellidos}</strong>
+          <small>{(formulario.roles || [rol]).join(' · ')}</small>
+          <small>{formulario.documento || 'Documento no registrado'}</small>
         </div>
-      </form>
+      </div>
+      <div className="hc-profile-card__content">
+        <header>
+          <h2 id="perfil-datos">Datos personales</h2>
+          <p>Información de contacto asociada a su cuenta.</p>
+        </header>
+        <form className="hc-profile-form" onSubmit={guardar}>
+          <label>Nombres<input value={formulario.nombres ?? ''} onChange={(event) => change('nombres', event.target.value)} required /></label>
+          <label>Apellidos<input value={formulario.apellidos ?? ''} onChange={(event) => change('apellidos', event.target.value)} required /></label>
+          <label>Documento<input value={formulario.documento || 'No registrado'} readOnly /></label>
+          <label>Correo electrónico<input type="email" value={formulario.correo ?? ''} onChange={(event) => change('correo', event.target.value)} /></label>
+          <label>Teléfono<input type="tel" value={formulario.telefono ?? ''} onChange={(event) => change('telefono', event.target.value)} /></label>
+          <div className="hc-profile-form__actions">
+            {mensaje && <span role="status">{mensaje}</span>}
+            <button type="submit" className="hc-button hc-button--primary"><Save size={16} /> Guardar cambios</button>
+          </div>
+        </form>
+      </div>
     </section>
 
     <section className="hc-panel-card hc-profile-assignments" aria-labelledby="perfil-asignaciones">
