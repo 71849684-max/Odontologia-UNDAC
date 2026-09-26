@@ -1,16 +1,23 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Menu, PanelLeftClose, ShieldCheck, UserRound, X } from 'lucide-react';
+import React, { useCallback, useRef, useState } from 'react';
+import { ArrowLeft, Menu, PanelLeftClose, ShieldCheck, UserRound } from 'lucide-react';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
-import BusquedaPersonal from '../../../formularios/datos-paciente/BusquedaPersonal.jsx';
+import OperatorAssignmentDialog from './OperatorAssignmentDialog.jsx';
 
 export default function PatientContextBar({ onExit, navigationOpen = false, onToggleNavigation, navigationId, navigationTriggerRef, desktopNavigation = true }) {
   const { patient, history, formData, meta, updateSection } = useHistoriaClinica();
   const [asignacionAbierta, setAsignacionAbierta] = useState(false);
+  const [personalBorrador, setPersonalBorrador] = useState(null);
+  const assignmentTriggerRef = useRef(null);
+  const cerrarAsignacion = useCallback(() => setAsignacionAbierta(false), []);
   const datosPaciente = formData['datos-paciente'] || {};
-  const operadorNombre = datosPaciente.personal?.nombre || datosPaciente.operador || history.operador || 'Sin asignar';
+  const operadorNombre = (datosPaciente.personal?.nombre || datosPaciente.operador || history.operador || 'Sin asignar').replace(/^Dr\.\s*/i, '');
   const initials = String(patient.nombres ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
   const NavigationIcon = navigationOpen ? PanelLeftClose : Menu;
-  return (
+  function abrirAsignacion() {
+    setPersonalBorrador(datosPaciente.personal || null);
+    setAsignacionAbierta(true);
+  }
+  return <>
     <header className="clinical-patient-bar" style={{ position: desktopNavigation ? 'sticky' : 'relative' }}>
       <div className="clinical-patient-bar__context">
         <div className="clinical-patient-bar__identity">
@@ -38,26 +45,24 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
         <section className="clinical-care-summary" aria-label="Operador responsable">
           <span className="clinical-care-summary__icon"><ShieldCheck size={18} aria-hidden="true" /></span>
           <div><span>Operador responsable</span><strong>{operadorNombre}</strong></div>
-          <button type="button" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={() => setAsignacionAbierta(true)}>Cambiar asignación</button>
+          <button ref={assignmentTriggerRef} type="button" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={abrirAsignacion}>Cambiar asignación</button>
         </section>
       </div>
-      {asignacionAbierta && <div className="clinical-operator-modal-overlay" role="presentation" onClick={() => setAsignacionAbierta(false)}>
-        <section className="clinical-operator-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-cambiar-operador" onClick={(event) => event.stopPropagation()}>
-          <header className="clinical-operator-modal__header">
-            <div><h3 id="titulo-cambiar-operador">Cambiar operador responsable</h3><p>Busque y seleccione al responsable de esta historia clínica.</p></div>
-            <button type="button" className="hc-mini-button" onClick={() => setAsignacionAbierta(false)} aria-label="Cerrar"><X size={16} /></button>
-          </header>
-          <BusquedaPersonal
-            value={datosPaciente.personal}
-            meta={meta}
-            fecha={datosPaciente.fechaPaciente}
-            onChange={(persona) => {
-              updateSection('datos-paciente', 'personal', persona);
-              updateSection('datos-paciente', 'operador', persona?.nombre || '');
-            }}
-          />
-        </section>
-      </div>}
     </header>
-  );
+    <OperatorAssignmentDialog
+      open={asignacionAbierta}
+      value={personalBorrador}
+      meta={meta}
+      fecha={datosPaciente.fechaPaciente}
+      triggerRef={assignmentTriggerRef}
+      onClose={cerrarAsignacion}
+      onSelect={(persona) => {
+        setPersonalBorrador(persona);
+        if (!persona) return;
+        updateSection('datos-paciente', 'personal', persona);
+        updateSection('datos-paciente', 'operador', persona.nombre || '');
+        cerrarAsignacion();
+      }}
+    />
+  </>;
 }

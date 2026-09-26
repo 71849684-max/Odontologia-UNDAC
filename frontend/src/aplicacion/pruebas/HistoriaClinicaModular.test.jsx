@@ -132,11 +132,60 @@ test('cambia el operador desde la cabecera y no repite su ficha al final del for
   expect(within(screen.getByRole('main')).queryByText('Operador responsable')).not.toBeInTheDocument();
 });
 
-test('mantiene fijo el contexto de escritorio y desplaza únicamente el contenido clínico', () => {
+test('cancelar un segundo cambio conserva el operador ya seleccionado', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+
+  const header = screen.getByRole('banner');
+  fireEvent.click(within(header).getByRole('button', { name: 'Cambiar asignación' }));
+  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '71000002' } });
+  fireEvent.click(screen.getByRole('button', { name: /Carlos Rojas/ }));
+  fireEvent.click(within(header).getByRole('button', { name: 'Cambiar asignación' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cambiar' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+  expect(within(header).getByText('Carlos Rojas')).toBeInTheDocument();
+});
+
+test('el selector de operador cierra con Escape y devuelve el foco al botón que lo abrió', () => {
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+
+  const trigger = screen.getByRole('button', { name: 'Cambiar asignación' });
+  trigger.focus();
+  fireEvent.click(trigger);
+  expect(screen.getByRole('dialog', { name: 'Cambiar operador responsable' })).toBeInTheDocument();
+  fireEvent.keyDown(window, { key: 'Escape' });
+
+  expect(screen.queryByRole('dialog', { name: 'Cambiar operador responsable' })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+});
+
+test('el selector de operador se monta fuera de la cabecera fija', () => {
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cambiar asignación' }));
+  const dialog = screen.getByRole('dialog', { name: 'Cambiar operador responsable' });
+
+  expect(dialog.parentElement).toHaveClass('clinical-operator-modal-overlay');
+  expect(dialog.parentElement?.parentElement).toBe(document.body);
+});
+
+test('mantiene fijo el contexto de escritorio y desplaza únicamente el contenido clínico', () => {
+  const { container } = render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
   expect(screen.getByRole('banner')).toHaveStyle({ position: 'sticky' });
   expect(screen.getByRole('main')).toHaveStyle({ overflowY: 'auto' });
+  expect(container.querySelector('.clinical-workspace-shell')).toHaveStyle({ display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)' });
+  expect(container.querySelector('.clinical-workspace-layout')).not.toHaveStyle({ height: 'calc(100dvh - 73px)' });
+});
+
+test('al cambiar de sección reinicia el scroll del contenido clínico', () => {
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+  const main = screen.getByRole('main');
+  main.scrollTop = 480;
+
+  fireEvent.click(screen.getByRole('button', { name: /Continuar/i }));
+
+  expect(main.scrollTop).toBe(0);
 });
 
 test('inicia los datos del paciente directamente en el formulario de identificación', () => {
@@ -211,9 +260,9 @@ test('el resumen terapéutico distingue pendiente, respuesta negativa y detalle 
 test('al continuar enfoca y muestra el inicio de la nueva sección', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
   const main = screen.getByRole('main');
-  main.scrollIntoView = vi.fn();
+  main.scrollTop = 320;
   fireEvent.click(screen.getByRole('button', { name: 'Continuar' }));
-  expect(main.scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'instant' });
+  expect(main.scrollTop).toBe(0);
   expect(main).toHaveFocus();
   expect(screen.getByRole('heading', { name: 'Anamnesis y enfermedad actual', level: 2 })).toBeInTheDocument();
 });
