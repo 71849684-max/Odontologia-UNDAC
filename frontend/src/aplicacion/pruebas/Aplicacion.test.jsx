@@ -95,9 +95,9 @@ test('crea un curso, lo conserva y muestra el error de código duplicado', async
     await usuario.type(screen.getByLabelText('Descripción'), 'Rotación clínica quirúrgica');
     await usuario.click(screen.getByRole('button', { name: 'Guardar curso' }));
 
-    const filaCreada = screen.getByText('CIR-TEST').closest('tr');
-    expect(filaCreada).not.toBeNull();
-    expect(within(filaCreada).getByText('Cirugía Dental')).toBeInTheDocument();
+    const tarjetaCreada = screen.getByText('CIR-TEST').closest('article');
+    expect(tarjetaCreada).not.toBeNull();
+    expect(within(tarjetaCreada).getByText('Cirugía Dental')).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: 'Nuevo curso' }));
     await usuario.type(screen.getByLabelText('Código'), 'cir-test');
@@ -111,7 +111,7 @@ test('crea un curso, lo conserva y muestra el error de código duplicado', async
     expect(screen.getByText('CIR-TEST')).toBeInTheDocument();
 });
 
-test('edita un curso desde la tabla paginada', async () => {
+test('edita un curso desde el catálogo paginado', async () => {
     const usuario = userEvent.setup();
     iniciarSesion.mockResolvedValue(SESIONES.administrador);
     await renderizarAplicacion();
@@ -119,8 +119,8 @@ test('edita un curso desde la tabla paginada', async () => {
     await usuario.click(await screen.findByRole('button', { name: 'Cursos' }));
 
     expect(screen.getByRole('navigation', { name: 'Paginación de cursos' })).toBeInTheDocument();
-    const fila = screen.getByText('Rayos X').closest('tr');
-    await usuario.click(within(fila).getByRole('button', { name: 'Editar' }));
+    const tarjeta = screen.getByText('Rayos X').closest('article');
+    await usuario.click(within(tarjeta).getByRole('button', { name: 'Editar' }));
     expect(screen.getByRole('heading', { name: 'Editar curso' })).toBeInTheDocument();
     const nombre = screen.getByLabelText('Nombre');
     await usuario.clear(nombre);
@@ -128,6 +128,24 @@ test('edita un curso desde la tabla paginada', async () => {
     await usuario.click(screen.getByRole('button', { name: 'Guardar curso' }));
 
     expect(screen.getByText('Radiología clínica')).toBeInTheDocument();
+});
+
+test('presenta los cursos como tarjetas y filtra el catálogo por nombre', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Cursos' }));
+
+    const catalogo = screen.getByRole('list', { name: 'Catálogo de cursos' });
+    expect(within(catalogo).getAllByRole('listitem')).toHaveLength(2);
+    expect(within(catalogo).getByText('Diagnóstico por imágenes')).toBeInTheDocument();
+
+    await usuario.type(screen.getByPlaceholderText('Buscar curso...'), 'Rayos');
+    expect(within(catalogo).getAllByRole('listitem')).toHaveLength(1);
+    expect(within(catalogo).getByText('Rayos X')).toBeInTheDocument();
+    expect(within(catalogo).queryByText('Cirugía Dental')).not.toBeInTheDocument();
 });
 
 test('crea un grupo con varios estudiantes, docentes y rotaciones históricas', async () => {
