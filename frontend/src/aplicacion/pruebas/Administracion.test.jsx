@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, test, vi } from 'vitest';
 import { ingresar, renderizarAplicacion, SESIONES } from './ayudas/sesionDePrueba';
@@ -135,4 +135,44 @@ test('los permisos usan maestro detalle paginado y despliegan módulos en línea
     await usuario.click(botonesInicio.at(-1));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Inicio/ })).toBeInTheDocument();
+});
+
+test('permite elegir un usuario y guardar sus permisos desde módulos con progreso', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    admin.listarUsuarios.mockResolvedValueOnce({
+        data: [
+            USUARIO_DEMO,
+            { ...USUARIO_DEMO, id: 4, nombre: 'Elena Vargas', nombre_usuario: 'elena', rol: 'Docente', roles: ['DOCENTE'], correo: 'elena@undac.edu.pe' },
+        ],
+        indicadores: { total: 2, activos: 2 },
+    });
+    admin.obtenerPermisosUsuario.mockImplementation(async (id) => ({
+        usuario: id === 4
+            ? { id: 4, nombre: 'Elena Vargas', nombre_usuario: 'elena', roles: ['DOCENTE'], estado: true, correo: 'elena@undac.edu.pe' }
+            : { id: 3, nombre: 'Carlos Mendoza', nombre_usuario: 'admin', roles: ['ADMINISTRADOR'], estado: true, correo: 'admin@undac.edu.pe' },
+        catalogo: [
+            { id: 1, codigo: 'PACIENTES.VER', nombre: 'Ver pacientes', accion: 'VER', modulo: 'Pacientes', seccion: 'Ver pacientes' },
+            { id: 2, codigo: 'PACIENTES.EDITAR', nombre: 'Editar pacientes', accion: 'EDITAR', modulo: 'Pacientes', seccion: 'Editar pacientes' },
+        ],
+        del_rol: [1, 2],
+        efectivos: [1, 2],
+    }));
+    admin.guardarPermisosUsuario.mockResolvedValue({ del_rol: [1, 2], efectivos: [2] });
+
+    await renderizarAplicacion();
+    await ingresar(usuario);
+    await act(async () => { window.onNavigate('permisos-usuarios'); });
+
+    const lista = await screen.findByRole('complementary', { name: 'Usuarios con permisos' });
+    await usuario.click(within(lista).getByRole('button', { name: /Elena Vargas/ }));
+    expect(await screen.findByRole('heading', { name: 'Elena Vargas' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver perfil' })).toBeInTheDocument();
+
+    const editor = screen.getByRole('main', { name: 'Editor de permisos' });
+    await usuario.click(within(editor).getByRole('button', { name: /Pacientes/ }));
+    expect(within(editor).getByRole('progressbar', { name: 'Permisos activos de Pacientes' })).toHaveAttribute('aria-valuenow', '2');
+    await usuario.click(within(editor).getByRole('checkbox', { name: 'Ver pacientes' }));
+    await usuario.click(within(editor).getByRole('button', { name: 'Guardar cambios' }));
+    await waitFor(() => expect(admin.guardarPermisosUsuario).toHaveBeenCalledWith(4, [2]));
 });
