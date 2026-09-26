@@ -41,20 +41,24 @@ test.each(clinicalSections)('abre la sección $id con sus dependencias independi
   expect(screen.queryByText('Sección preparada para implementación.')).not.toBeInTheDocument();
 });
 
-test('muestra y oculta el navegador de los seis momentos con el botón hamburguesa', () => {
+test('ubica la hamburguesa en el sidebar de escritorio y la mueve a la cabecera cuando se pliega', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
-  const hide = screen.getByRole('button', { name: 'Ocultar momentos clínicos' });
+  const header = screen.getByRole('banner');
+  const sidebar = screen.getByRole('complementary', { name: 'Momentos de Historia Clínica' });
+  const hide = within(sidebar).getByRole('button', { name: 'Ocultar momentos clínicos' });
   expect(hide).toHaveAttribute('aria-expanded', 'true');
-  expect(screen.getByRole('complementary', { name: 'Momentos de Historia Clínica' })).toBeInTheDocument();
+  expect(within(header).queryByRole('button', { name: 'Ocultar momentos clínicos' })).not.toBeInTheDocument();
 
   fireEvent.click(hide);
-  expect(screen.getByRole('button', { name: 'Mostrar momentos clínicos' })).toHaveAttribute('aria-expanded', 'false');
+  const show = within(header).getByRole('button', { name: 'Mostrar momentos clínicos' });
+  expect(show).toHaveAttribute('aria-expanded', 'false');
   expect(screen.queryByRole('complementary', { name: 'Momentos de Historia Clínica' })).not.toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole('button', { name: 'Mostrar momentos clínicos' }));
+  fireEvent.click(show);
   const navigation = within(screen.getByRole('complementary', { name: 'Momentos de Historia Clínica' }));
-  expect(navigation.getAllByRole('button')).toHaveLength(6);
+  expect(within(navigation.getByRole('navigation', { name: 'Secciones de Historia Clínica' })).getAllByRole('button')).toHaveLength(6);
+  expect(navigation.getByRole('button', { name: 'Ocultar momentos clínicos' })).toBeInTheDocument();
 });
 
 test('el drawer móvil se cierra con Escape o al seleccionar un momento y devuelve el foco', () => {

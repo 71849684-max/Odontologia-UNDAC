@@ -21,9 +21,11 @@ export default function ClinicalWorkspace({ onExit }) {
   const ActiveComponent = componentesSeccion[active.id];
   const mainRef = useRef(null);
   const navigationTriggerRef = useRef(null);
+  const sidebarNavigationTriggerRef = useRef(null);
   const navigationId = useId();
   const [desktopNavigation, setDesktopNavigation] = useState(desktopNavigationMatches);
   const [navigationOpen, setNavigationOpen] = useState(desktopNavigationMatches);
+  const previousNavigationOpen = useRef(navigationOpen);
   const previousSection = useRef(activeSection);
   useEffect(() => {
     if (previousSection.current === activeSection) return;
@@ -42,6 +44,14 @@ export default function ClinicalWorkspace({ onExit }) {
     media.addEventListener?.('change', handleChange);
     return () => media.removeEventListener?.('change', handleChange);
   }, []);
+
+  useEffect(() => {
+    if (previousNavigationOpen.current === navigationOpen) return;
+    previousNavigationOpen.current = navigationOpen;
+    if (!desktopNavigation) return;
+    const target = navigationOpen ? sidebarNavigationTriggerRef.current : navigationTriggerRef.current;
+    target?.focus({ preventScroll: true });
+  }, [desktopNavigation, navigationOpen]);
 
   const mobileDrawerOpen = navigationOpen && !desktopNavigation;
 
@@ -74,10 +84,18 @@ export default function ClinicalWorkspace({ onExit }) {
         navigationId={navigationId}
         navigationTriggerRef={navigationTriggerRef}
         desktopNavigation={desktopNavigation}
+        showNavigationToggle={!desktopNavigation || !navigationOpen}
       />
       {mobileDrawerOpen ? <button type="button" className="clinical-moment-overlay" aria-label="Cerrar momentos clínicos" onClick={closeMobileNavigation} /> : null}
       <div className={`clinical-workspace-layout is-navigation-${navigationOpen ? 'open' : 'closed'}${mobileDrawerOpen ? ' is-mobile-drawer-open' : ''}`} style={desktopNavigation ? { minHeight: 0, overflow: 'hidden' } : undefined}>
-        <ClinicalMomentSidebar id={navigationId} open={navigationOpen} onNavigate={closeMobileNavigation} />
+        <ClinicalMomentSidebar
+          id={navigationId}
+          open={navigationOpen}
+          onNavigate={closeMobileNavigation}
+          onToggle={() => setNavigationOpen(false)}
+          desktopNavigation={desktopNavigation}
+          navigationTriggerRef={sidebarNavigationTriggerRef}
+        />
         <main ref={mainRef} tabIndex={-1} inert={mobileDrawerOpen ? true : undefined} className={`clinical-workspace__main clinical-section--${active.id}`} style={desktopNavigation ? { height: '100%', minHeight: 0, overflowY: 'auto' } : undefined}>
           <ClinicalSectionTabs />
           <section className="clinical-active-section" aria-labelledby="clinical-active-title">

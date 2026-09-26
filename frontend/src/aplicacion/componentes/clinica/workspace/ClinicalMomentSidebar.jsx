@@ -1,5 +1,5 @@
 import React from 'react';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Menu } from 'lucide-react';
 import { clinicalMoments } from '../../../configuracion/historiaClinica.config.mjs';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
 import { SECTION_STATUS } from '../logica/clinicalStatus.mjs';
@@ -11,7 +11,7 @@ function momentState(moment, statuses) {
   return 'pending';
 }
 
-export default function ClinicalMomentSidebar({ id, open, onNavigate }) {
+export default function ClinicalMomentSidebar({ id, open, onNavigate, onToggle, desktopNavigation, navigationTriggerRef }) {
   const { activeMoment, sectionStatuses, navigateToMoment, history } = useHistoriaClinica();
 
   function selectMoment(momentId) {
@@ -23,7 +23,19 @@ export default function ClinicalMomentSidebar({ id, open, onNavigate }) {
 
   return (
       <aside id={id} className="clinical-moment-sidebar" aria-label="Momentos de Historia Clínica">
-        <div className="clinical-moment-sidebar__heading"><span>Historia clínica</span><strong>{history.codigo}</strong></div>
+        <div className="clinical-moment-sidebar__heading">
+          <span>Historia clínica</span>
+          <strong>{history.codigo}</strong>
+          {desktopNavigation ? <button
+            ref={navigationTriggerRef}
+            type="button"
+            className="clinical-moment-sidebar__toggle"
+            aria-label="Ocultar momentos clínicos"
+            aria-expanded="true"
+            aria-controls={id}
+            onClick={onToggle}
+          ><Menu size={18} aria-hidden="true" /></button> : null}
+        </div>
         <nav aria-label="Secciones de Historia Clínica">
           {clinicalMoments.map((moment) => {
             const active = moment.id === activeMoment.id;

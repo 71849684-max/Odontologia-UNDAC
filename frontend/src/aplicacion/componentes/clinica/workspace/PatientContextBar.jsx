@@ -1,9 +1,9 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { ArrowLeft, Menu, PanelLeftClose, ShieldCheck, UserRound } from 'lucide-react';
+import { ArrowLeft, Menu, ShieldCheck, UserRound } from 'lucide-react';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
 import OperatorAssignmentDialog from './OperatorAssignmentDialog.jsx';
 
-export default function PatientContextBar({ onExit, navigationOpen = false, onToggleNavigation, navigationId, navigationTriggerRef, desktopNavigation = true }) {
+export default function PatientContextBar({ onExit, navigationOpen = false, onToggleNavigation, navigationId, navigationTriggerRef, desktopNavigation = true, showNavigationToggle = true }) {
   const { patient, history, formData, meta, updateSection } = useHistoriaClinica();
   const [asignacionAbierta, setAsignacionAbierta] = useState(false);
   const [personalBorrador, setPersonalBorrador] = useState(null);
@@ -12,7 +12,6 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
   const datosPaciente = formData['datos-paciente'] || {};
   const operadorNombre = (datosPaciente.personal?.nombre || datosPaciente.operador || history.operador || 'Sin asignar').replace(/^Dr\.\s*/i, '');
   const initials = String(patient.nombres ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
-  const NavigationIcon = navigationOpen ? PanelLeftClose : Menu;
   function abrirAsignacion() {
     setPersonalBorrador(datosPaciente.personal || null);
     setAsignacionAbierta(true);
@@ -23,7 +22,7 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
         <div className="clinical-patient-bar__identity">
           <div className="clinical-patient-bar__controls">
             <button type="button" className="clinical-patient-bar__back" onClick={onExit} aria-label="Volver a historias clínicas"><ArrowLeft size={19} /></button>
-            <button
+            {showNavigationToggle ? <button
               ref={navigationTriggerRef}
               type="button"
               className="clinical-patient-bar__navigation-toggle"
@@ -32,8 +31,8 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
               aria-controls={navigationId}
               onClick={onToggleNavigation}
             >
-              <NavigationIcon size={19} aria-hidden="true" />
-            </button>
+              <Menu size={19} aria-hidden="true" />
+            </button> : null}
           </div>
           <span className="clinical-patient-avatar" aria-hidden="true">{initials || <UserRound size={18} />}</span>
           <div className="clinical-patient-bar__identity-copy">
