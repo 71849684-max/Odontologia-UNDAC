@@ -28,7 +28,7 @@ export default function ClinicalWorkspace({ onExit }) {
   useEffect(() => {
     if (previousSection.current === activeSection) return;
     previousSection.current = activeSection;
-    mainRef.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
+    if (mainRef.current) mainRef.current.scrollTop = 0;
     mainRef.current?.focus({ preventScroll: true });
   }, [activeSection]);
 
@@ -66,7 +66,7 @@ export default function ClinicalWorkspace({ onExit }) {
   }, [mobileDrawerOpen, desktopNavigation]);
 
   return (
-    <div className="clinical-workspace-shell" style={desktopNavigation ? { height: '100dvh', overflow: 'hidden' } : undefined}>
+    <div className="clinical-workspace-shell" style={desktopNavigation ? { height: '100dvh', overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)' } : undefined}>
       <PatientContextBar
         onExit={onExit}
         navigationOpen={navigationOpen}
@@ -76,9 +76,9 @@ export default function ClinicalWorkspace({ onExit }) {
         desktopNavigation={desktopNavigation}
       />
       {mobileDrawerOpen ? <button type="button" className="clinical-moment-overlay" aria-label="Cerrar momentos clínicos" onClick={closeMobileNavigation} /> : null}
-      <div className={`clinical-workspace-layout is-navigation-${navigationOpen ? 'open' : 'closed'}${mobileDrawerOpen ? ' is-mobile-drawer-open' : ''}`} style={desktopNavigation ? { height: 'calc(100dvh - 73px)', overflow: 'hidden' } : undefined}>
+      <div className={`clinical-workspace-layout is-navigation-${navigationOpen ? 'open' : 'closed'}${mobileDrawerOpen ? ' is-mobile-drawer-open' : ''}`} style={desktopNavigation ? { minHeight: 0, overflow: 'hidden' } : undefined}>
         <ClinicalMomentSidebar id={navigationId} open={navigationOpen} onNavigate={closeMobileNavigation} />
-        <main ref={mainRef} tabIndex={-1} inert={mobileDrawerOpen ? true : undefined} className={`clinical-workspace__main clinical-section--${active.id}`} style={desktopNavigation ? { height: '100%', overflowY: 'auto' } : undefined}>
+        <main ref={mainRef} tabIndex={-1} inert={mobileDrawerOpen ? true : undefined} className={`clinical-workspace__main clinical-section--${active.id}`} style={desktopNavigation ? { height: '100%', minHeight: 0, overflowY: 'auto' } : undefined}>
           <ClinicalSectionTabs />
           <section className="clinical-active-section" aria-labelledby="clinical-active-title">
             <div className="clinical-active-section__heading">

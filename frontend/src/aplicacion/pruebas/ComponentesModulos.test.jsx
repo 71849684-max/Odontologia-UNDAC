@@ -87,6 +87,19 @@ test('registra un paciente independiente, sin crear historia, y lo recupera del 
     expect(screen.getByRole('cell', { name: /Lucía Ramos Vega/ })).toBeInTheDocument();
 });
 
+test('el formulario de paciente cierra con Escape y devuelve el foco al botón de apertura', () => {
+    render(<PacientesApp />);
+    const trigger = screen.getByRole('button', { name: 'Nuevo paciente' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(screen.getByRole('dialog', { name: 'Registrar nuevo paciente' })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    expect(screen.queryByRole('dialog', { name: 'Registrar nuevo paciente' })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+});
+
 test('las vistas principales aprovechan todo el ancho disponible', () => {
     const { container } = render(<PacientesApp />);
     expect(window.getComputedStyle(container.firstElementChild).width).toBe('100%');
