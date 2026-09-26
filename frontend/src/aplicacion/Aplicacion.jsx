@@ -18,6 +18,7 @@ import SeguimientoApp from './paginas/SeguimientoApp';
 import VistaNoDisponible from './paginas/VistaNoDisponible';
 import PerfilApp from './paginas/PerfilApp';
 import CursosApp from './paginas/CursosApp';
+import GruposAcademicosApp from './paginas/GruposAcademicosApp';
 
 const routeAliases = {
     dashboard: 'inicio',
@@ -82,6 +83,7 @@ const VIEW_COMPONENTS = {
     'mis-seguimientos': SeguimientoApp,
     perfil: PerfilApp,
     cursos: CursosApp,
+    'grupos-academicos': GruposAcademicosApp,
 };
 
 function PantallaCargandoSesion() {

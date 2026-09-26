@@ -111,6 +111,49 @@ test('crea un curso, lo conserva y muestra el error de código duplicado', async
     expect(screen.getByText('CIR-TEST')).toBeInTheDocument();
 });
 
+test('crea un grupo con varios estudiantes, docentes y rotaciones históricas', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Grupos académicos' }));
+    await usuario.click(screen.getByRole('button', { name: 'Nuevo grupo' }));
+    await usuario.type(screen.getByLabelText('Código del grupo'), 'ROT-A');
+    await usuario.type(screen.getByLabelText('Nombre del grupo'), 'Rotación clínica A');
+    await usuario.type(screen.getByLabelText('Semestre'), 'VIII');
+    await usuario.click(screen.getByRole('button', { name: 'Guardar grupo' }));
+
+    expect(screen.getByRole('heading', { name: 'Rotación clínica A' })).toBeInTheDocument();
+    await usuario.click(screen.getByRole('checkbox', { name: 'María Fernández' }));
+    await usuario.click(screen.getByRole('checkbox', { name: 'José Paredes' }));
+    await usuario.click(screen.getByRole('button', { name: 'Agregar estudiantes' }));
+    expect(screen.getByText('2 integrantes activos')).toBeInTheDocument();
+
+    await usuario.selectOptions(screen.getByLabelText('Curso de la rotación'), 'curso-rx');
+    await usuario.selectOptions(screen.getByLabelText('Periodo de la rotación'), 'periodo-2026-ii');
+    await usuario.type(screen.getByLabelText('Inicio de la rotación'), '2026-08-01');
+    await usuario.type(screen.getByLabelText('Fin de la rotación'), '2026-08-31');
+    await usuario.click(screen.getByRole('button', { name: 'Agregar rotación' }));
+
+    await usuario.click(screen.getByRole('checkbox', { name: 'Dr. Carlos Rojas' }));
+    await usuario.click(screen.getByRole('checkbox', { name: 'Dra. Elena Vargas' }));
+    await usuario.selectOptions(screen.getByLabelText('Función de Dra. Elena Vargas'), 'colaborador');
+    await usuario.click(screen.getByRole('button', { name: 'Asignar docentes' }));
+    expect(screen.getByText('2 docentes asignados')).toBeInTheDocument();
+
+    await usuario.selectOptions(screen.getByLabelText('Curso de la rotación'), 'curso-cd');
+    await usuario.clear(screen.getByLabelText('Inicio de la rotación'));
+    await usuario.type(screen.getByLabelText('Inicio de la rotación'), '2026-09-01');
+    await usuario.clear(screen.getByLabelText('Fin de la rotación'));
+    await usuario.type(screen.getByLabelText('Fin de la rotación'), '2026-09-30');
+    await usuario.click(screen.getByRole('button', { name: 'Agregar rotación' }));
+
+    const historial = screen.getByRole('table', { name: 'Historial de rotaciones' });
+    expect(within(historial).getByText('Rayos X')).toBeInTheDocument();
+    expect(within(historial).getByText('Cirugía Dental')).toBeInTheDocument();
+});
+
 test('muestra primero el acceso sin selector manual de perfil', async () => {
     await renderizarAplicacion();
 

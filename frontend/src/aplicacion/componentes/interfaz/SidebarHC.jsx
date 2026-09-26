@@ -16,6 +16,7 @@ const ICONOS = {
     'permisos-usuarios': UsersRound,
     auditoria: FileClock,
     cursos: BookOpen,
+    'grupos-academicos': UsersRound,
     configuracion: Settings,
 };
 

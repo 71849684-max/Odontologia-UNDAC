@@ -31,6 +31,7 @@ export const MENU_POR_ROL = {
             { id: 'auditoria', etiqueta: 'Auditoría' },
         ]},
         { id: 'sistema', etiqueta: 'Sistema', children: [
+            { id: 'grupos-academicos', etiqueta: 'Grupos académicos' },
             { id: 'cursos', etiqueta: 'Cursos' },
             { id: 'configuracion', etiqueta: 'Configuración' },
         ] },

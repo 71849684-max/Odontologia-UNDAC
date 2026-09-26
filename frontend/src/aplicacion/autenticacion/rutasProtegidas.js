@@ -3,7 +3,7 @@
  * middleware rol:ADMINISTRADOR del backend; esto evita además que la vista se
  * renderice en el navegador.
  */
-export const RUTAS_ADMIN = ['usuarios', 'permisos-usuarios', 'auditoria', 'cursos', 'configuracion'];
+export const RUTAS_ADMIN = ['usuarios', 'permisos-usuarios', 'auditoria', 'grupos-academicos', 'cursos', 'configuracion'];
 
 export function esRutaAdmin(ruta) {
     return RUTAS_ADMIN.includes(ruta);
