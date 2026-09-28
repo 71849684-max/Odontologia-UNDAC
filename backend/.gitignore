@@ -9,6 +9,7 @@
 # Dependencias
 /vendor
 /composer.phar
+/node_modules
 
 # Enlaces públicos
 /public/storage

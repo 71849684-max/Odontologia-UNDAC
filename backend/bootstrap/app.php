@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Middleware\AsegurarRol;
-use App\Http\Middleware\AsegurarUsuarioActivo;
+use App\Identidad\Http\Middleware\AsegurarRol;
+use App\Identidad\Http\Middleware\AsegurarUsuarioActivo;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;

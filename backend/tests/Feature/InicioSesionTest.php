@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Usuario;
+use App\Identidad\Infraestructura\Persistencia\Eloquent\Usuario;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\CreaUsuarios;

@@ -2,9 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Persona;
-use App\Models\Rol;
-use App\Models\Usuario;
+use App\Identidad\Dominio\CodigoRol;
+use App\Identidad\Infraestructura\Persistencia\Eloquent\Persona;
+use App\Identidad\Infraestructura\Persistencia\Eloquent\Rol;
+use App\Identidad\Infraestructura\Persistencia\Eloquent\Usuario;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +28,7 @@ class SeederAdministrador extends Seeder
             );
         }
 
-        $rol = Rol::where('codigo_rol', Rol::ADMINISTRADOR)->first();
+        $rol = Rol::where('codigo_rol', CodigoRol::ADMINISTRADOR)->first();
 
         if ($rol === null) {
             throw new RuntimeException(

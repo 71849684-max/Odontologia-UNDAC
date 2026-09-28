@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Servicios\ServicioAccesos;
+use App\Identidad\Dominio\Contratos\ConsultaAccesos;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\CreaUsuarios;
@@ -63,7 +63,7 @@ class AccesoAdministracionTest extends TestCase
         $this->actingAs($usuario, 'web')->getJson('/api/admin/resumen')->assertOk();
 
         DB::table('usuario_rol')->where('id_usuario', $usuario->getKey())->update(['permitido' => 0]);
-        app(ServicioAccesos::class)->olvidarMemoria($usuario);
+        app(ConsultaAccesos::class)->olvidarMemoria($usuario);
 
         $this->actingAs($usuario, 'web')->getJson('/api/admin/resumen')->assertForbidden();
     }
@@ -75,7 +75,7 @@ class AccesoAdministracionTest extends TestCase
         DB::table('usuario_rol')->where('id_usuario', $usuario->getKey())->update([
             'fecha_fin' => now()->subDay()->toDateString(),
         ]);
-        app(ServicioAccesos::class)->olvidarMemoria($usuario);
+        app(ConsultaAccesos::class)->olvidarMemoria($usuario);
 
         $this->actingAs($usuario, 'web')->getJson('/api/admin/resumen')->assertForbidden();
     }
@@ -107,7 +107,7 @@ class AccesoAdministracionTest extends TestCase
     public function test_el_administrador_resuelve_permisos_efectivos_desde_la_vista(): void
     {
         $usuario = $this->crearUsuario('permisos.admin', self::CLAVE, 'ADMINISTRADOR');
-        $accesos = app(ServicioAccesos::class);
+        $accesos = app(ConsultaAccesos::class);
 
         // El dump asigna todos los permisos al rol ADMINISTRADOR.
         $this->assertTrue($accesos->puede($usuario, 'AUDITORIA.VER'));
@@ -117,7 +117,7 @@ class AccesoAdministracionTest extends TestCase
     public function test_un_permiso_denegado_al_usuario_gana_sobre_el_del_rol(): void
     {
         $usuario = $this->crearUsuario('denegado.admin', self::CLAVE, 'ADMINISTRADOR');
-        $accesos = app(ServicioAccesos::class);
+        $accesos = app(ConsultaAccesos::class);
 
         $this->assertTrue($accesos->puede($usuario, 'AUDITORIA.VER'));
 

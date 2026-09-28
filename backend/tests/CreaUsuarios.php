@@ -2,9 +2,9 @@
 
 namespace Tests;
 
-use App\Models\Persona;
-use App\Models\Rol;
-use App\Models\Usuario;
+use App\Identidad\Infraestructura\Persistencia\Eloquent\Persona;
+use App\Identidad\Infraestructura\Persistencia\Eloquent\Rol;
+use App\Identidad\Infraestructura\Persistencia\Eloquent\Usuario;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 

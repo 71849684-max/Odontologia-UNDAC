@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\Admin\ControladorAdministracion;
-use App\Http\Controllers\Admin\ControladorAuditoria;
-use App\Http\Controllers\Admin\ControladorConfiguracion;
-use App\Http\Controllers\Admin\ControladorPermisos;
-use App\Http\Controllers\Admin\ControladorUsuarios;
-use App\Http\Controllers\Auth\ControladorAutenticacion;
+use App\Identidad\Http\Controladores\ControladorAdministracion;
+use App\Identidad\Http\Controladores\ControladorAuditoria;
+use App\Identidad\Http\Controladores\ControladorAutenticacion;
+use App\Identidad\Http\Controladores\ControladorConfiguracion;
+use App\Identidad\Http\Controladores\ControladorPermisos;
+use App\Identidad\Http\Controladores\ControladorUsuarios;
 use Illuminate\Support\Facades\Route;
 
 /**

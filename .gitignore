@@ -11,7 +11,8 @@
 Thumbs.db
 Desktop.ini
 
-# Node (raíz o frontend)
+# Node (raíz, frontend o backend)
 /node_modules/
 /frontend/node_modules/
 /frontend/dist/
+/backend/node_modules/
