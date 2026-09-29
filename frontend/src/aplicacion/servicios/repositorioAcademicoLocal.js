@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'undac:academico:frontend:v1';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 let sequence = 0;
 
@@ -34,32 +34,12 @@ function code(value) {
 function seedState() {
   return {
     version: SCHEMA_VERSION,
-    perfil: {
-      nombres: 'María',
-      apellidos: 'Fernández',
-      documento: '71000001',
-      correo: 'maria.fernandez@undac.edu.pe',
-      telefono: '900 000 001',
-      roles: ['Alumno'],
-    },
+    perfil: {},
     perfiles: {},
-    personas: [
-      { id: 'persona-estudiante-maria', nombre: 'María Fernández', documento: '71000001', tipo: 'estudiante' },
-      { id: 'persona-estudiante-jose', nombre: 'José Paredes', documento: '71000002', tipo: 'estudiante' },
-      { id: 'persona-estudiante-lucia', nombre: 'Lucía Quispe', documento: '71000003', tipo: 'estudiante' },
-      { id: 'persona-docente-carlos', nombre: 'Dr. Carlos Rojas', documento: '72000001', tipo: 'docente' },
-      { id: 'persona-docente-elena', nombre: 'Dra. Elena Vargas', documento: '72000002', tipo: 'docente' },
-    ],
-    cursos: [
-      { id: 'curso-rx', codigo: 'RX', nombre: 'Rayos X', descripcion: 'Diagnóstico por imágenes', estado: 'activo' },
-      { id: 'curso-cd', codigo: 'CD', nombre: 'Cirugía Dental', descripcion: 'Procedimientos de cirugía bucal', estado: 'activo' },
-    ],
-    periodos: [
-      { id: 'periodo-2026-ii', codigo: '2026-II', nombre: 'Periodo 2026-II', fechaInicio: '2026-08-01', fechaFin: '2026-12-20', estado: 'activo' },
-    ],
-    grupos: [
-      { id: 'grupo-viii-a', codigo: 'VIII-A', nombre: 'Octavo A', semestre: 'VIII', estado: 'activo' },
-    ],
+    personas: [],
+    cursos: [],
+    periodos: [],
+    grupos: [],
     membresias: [],
     rotaciones: [],
     docentesRotacion: [],

@@ -1,19 +1,19 @@
 import { useMemo, useState } from 'react';
 import { ClipboardPlus, Filter, Search } from 'lucide-react';
-import { mockHistorias } from '../../configuracion/datosMock.mjs';
+import { historiasClinicas } from '../../configuracion/datosClinicos.mjs';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 
 export default function HistoriasApp({ rol, onNavigate }) {
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState('');
-    const filtered = useMemo(() => mockHistorias.filter((item) => (!status || item.estado === status) && `${item.paciente} ${item.codigo} ${item.dni} ${item.operador} ${item.docente}`.toLowerCase().includes(query.toLowerCase())), [query, status]);
+    const filtered = useMemo(() => historiasClinicas.filter((item) => (!status || item.estado === status) && `${item.paciente} ${item.codigo} ${item.dni} ${item.operador} ${item.docente}`.toLowerCase().includes(query.toLowerCase())), [query, status]);
     const go = (target) => typeof onNavigate === 'function' ? onNavigate(target) : window.onNavigate?.(target);
     const indicadores = [
-        ['Total', mockHistorias.length],
-        ['En proceso', mockHistorias.filter((item) => ['Borrador', 'En proceso'].includes(item.estado)).length],
-        ['Pendientes', mockHistorias.filter((item) => item.estado === 'Pendiente de revisión').length],
-        ['Finalizadas', mockHistorias.filter((item) => item.estado === 'Validada').length],
+        ['Total', historiasClinicas.length],
+        ['En proceso', historiasClinicas.filter((item) => ['Borrador', 'En proceso'].includes(item.estado)).length],
+        ['Pendientes', historiasClinicas.filter((item) => item.estado === 'Pendiente de revisión').length],
+        ['Finalizadas', historiasClinicas.filter((item) => item.estado === 'Validada').length],
     ];
 
     return <div className="hc-page space-y-5">

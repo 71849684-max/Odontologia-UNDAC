@@ -3,6 +3,14 @@
 .nts-mobile-launcher { display: none; }
 .nts-mobile-modal { min-width: 0; }
 body.nts-modal-open { overflow: hidden; }
+.nts-action-modal-overlay { position: fixed; inset: 0; z-index: calc(var(--ou-z-modal, 1000) + 1); display: grid; place-items: center; padding: 20px; background: rgb(15 23 42 / 48%); }
+.nts-action-modal { width: min(620px, 100%); max-height: calc(100dvh - 40px); overflow: auto; overscroll-behavior: contain; padding: 18px; border: 1px solid #cbd5e1; border-radius: 14px; background: #fff; box-shadow: 0 24px 60px rgb(15 23 42 / 28%); }
+.nts-action-modal > header, .nts-action-modal > footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.nts-action-modal > header { margin-bottom: 14px; }
+.nts-action-modal h3, .nts-action-modal p { margin: 0; }
+.nts-action-modal h3 { color: #0f172a; font-size: 16px; }
+.nts-action-modal p { margin-top: 3px; color: #64748b; font-size: 12px; }
+.nts-action-modal > footer { justify-content: flex-end; margin-top: 16px; }
 .nts-notice { padding: 12px 14px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 8px; color: #475569; font-size: 12px; line-height: 1.6; }
 .nts-record-toolbar, .nts-metadata { display: grid; grid-template-columns: 2fr 2fr 1fr; align-items: end; gap: 14px; margin: 18px 0; }
 .nts-metadata { grid-template-columns: 1fr 2fr 1fr; }
@@ -121,14 +129,6 @@ body.nts-modal-open { overflow: hidden; }
   .nts-mobile-modal__window > .undac-section-card:first-of-type .undac-section-card__body { padding: 14px; }
   .nts-mobile-modal__window .nts-chart-scroll { touch-action: pan-x; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
   .nts-mobile-modal__window .nts-chart { min-width: 760px; }
-  .nts-action-modal-overlay { position: fixed; inset: 0; z-index: 1; display: grid; place-items: center; padding: 20px; background: rgb(15 23 42 / 42%); }
-  .nts-action-modal { width: min(560px, 100%); max-height: calc(100dvh - 40px); overflow: auto; overscroll-behavior: contain; padding: 18px; border: 1px solid #cbd5e1; border-radius: 14px; background: #fff; box-shadow: 0 24px 60px rgb(15 23 42 / 28%); }
-  .nts-action-modal > header, .nts-action-modal > footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .nts-action-modal > header { margin-bottom: 14px; }
-  .nts-action-modal h3, .nts-action-modal p { margin: 0; }
-  .nts-action-modal h3 { color: #0f172a; font-size: 16px; }
-  .nts-action-modal p { margin-top: 3px; color: #64748b; font-size: 12px; }
-  .nts-action-modal > footer { justify-content: flex-end; margin-top: 16px; }
 }
 
 @media (max-width: 767px) {

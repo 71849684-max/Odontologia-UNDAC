@@ -100,6 +100,7 @@ export default function Aplicacion() {
     const [route, setRoute] = useState(destinoInicial.ruta);
     const [openHistoriaId, setOpenHistoriaId] = useState(destinoInicial.historiaId);
     const [openSection, establecerSeccionAbierta] = useState(destinoInicial.seccion);
+    const [pacienteInicialHistoria, setPacienteInicialHistoria] = useState(null);
 
     const navigate = useCallback((payload, opciones = {}) => {
         if (!payload) return;
@@ -107,6 +108,7 @@ export default function Aplicacion() {
         let nextRoute;
         let historiaId = null;
         let seccion = 'datos-paciente';
+        let pacienteInicial = null;
 
         if (typeof payload === 'string') {
             nextRoute = normalizarRuta(payload);
@@ -116,12 +118,14 @@ export default function Aplicacion() {
             nextRoute = normalizarRuta(payload.view ?? payload.id);
             historiaId = payload.historiaId ?? payload.params?.historiaId ?? null;
             seccion = payload.section ?? payload.params?.section ?? 'datos-paciente';
+            pacienteInicial = payload.paciente ?? null;
         }
 
         if (!nextRoute) return;
         setRoute(nextRoute);
         setOpenHistoriaId(historiaId);
         establecerSeccionAbierta(seccion);
+        setPacienteInicialHistoria(nextRoute === 'nueva-historia' ? pacienteInicial : null);
 
         if (typeof window !== 'undefined') {
             const hash = crearHashNavegacion(nextRoute, historiaId, seccion);
@@ -166,6 +170,7 @@ export default function Aplicacion() {
             setRoute(destino.ruta);
             setOpenHistoriaId(destino.historiaId);
             establecerSeccionAbierta(destino.seccion);
+            setPacienteInicialHistoria(null);
         }
 
         window.addEventListener('popstate', sincronizarConNavegador);
@@ -228,6 +233,7 @@ export default function Aplicacion() {
                 tipo={route === 'pendientes' ? 'pendientes' : 'seguimiento'}
                 historiaId={openHistoriaId}
                 seccionInicial={openSection}
+                pacienteInicial={pacienteInicialHistoria}
                 onNavigate={navigate}
                 onCreated={(historia) => {
                     navigate({ view: 'historia-clinica', historiaId: historia.id, section: 'datos-paciente' });
