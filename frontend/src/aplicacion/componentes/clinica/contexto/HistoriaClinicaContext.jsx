@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { clinicalMoments, clinicalSections, getMomentForSection } from '../../../configuracion/historiaClinica.config.mjs';
 import { mockHistoriaMeta, mockHistorias, mockPacientes } from '../../../configuracion/datosMock.mjs';
+import { buscarHistoria, pacienteDeHistoria } from '../../../servicios/registroHistoriaClinica.js';
 import { buildClinicalAlerts } from '../logica/clinicalAlerts.mjs';
 import { inferSectionStatus, SECTION_STATUS } from '../logica/clinicalStatus.mjs';
 
@@ -20,21 +21,33 @@ function loadLocalState(storageKey) {
 
 function patientSeed(patient, history) {
   if (!patient) return {};
-  const names = String(patient.nombres ?? '').trim().split(/\s+/);
+  const apellidosRegistrados = [patient.apellidoPaterno, patient.apellidoMaterno].filter(Boolean).join(' ');
+  const nombreCompleto = String(patient.nombres ?? '').trim();
+  let nombres = nombreCompleto;
+  let apellidos = apellidosRegistrados;
+  if (apellidosRegistrados && nombreCompleto.endsWith(apellidosRegistrados)) {
+    nombres = nombreCompleto.slice(0, -apellidosRegistrados.length).trim();
+  } else if (!apellidosRegistrados) {
+    const partes = nombreCompleto.split(/\s+/).filter(Boolean);
+    nombres = partes.slice(0, Math.max(1, partes.length - 2)).join(' ');
+    apellidos = partes.length > 2 ? partes.slice(-2).join(' ') : '';
+  }
   return {
     dni: patient.dni ?? '',
-    nombres: names.slice(0, Math.max(1, names.length - 2)).join(' '),
-    apellidos: names.length > 2 ? names.slice(-2).join(' ') : '',
+    nombres,
+    apellidos,
     edad: patient.edad ?? '',
     sexo: patient.sexo ?? '',
     celular: patient.telefono ?? '',
+    correo: patient.correo ?? '',
+    fechaNacimiento: patient.fechaNacimiento ?? '',
     operador: history?.operador ?? '',
   };
 }
 
 export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-paciente', children }) {
-  const selectedPatient = mockPacientes.find((item) => String(item.id) === String(historiaId)) || mockPacientes[0];
-  const selectedHistory = mockHistorias.find((item) => String(item.id) === String(historiaId)) || mockHistorias[0];
+  const selectedHistory = buscarHistoria(historiaId) || mockHistorias[0];
+  const selectedPatient = pacienteDeHistoria(selectedHistory) || mockPacientes[0];
   const safeInitial = clinicalSections.some((item) => item.id === initialSection) ? initialSection : 'datos-paciente';
   const storageKey = `undac:hc:workspace:v2:${selectedHistory.codigo}`;
   const initialLocal = useMemo(() => loadLocalState(storageKey), [storageKey]);

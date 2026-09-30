@@ -1,7 +1,12 @@
 import React from 'react';
-import { expect, test, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, expect, test, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import NuevaHistoriaApp from './NuevaHistoriaApp.jsx';
+
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
 test('crea la historia desde los datos mínimos sin pedir contexto académico duplicado', () => {
   const onCreated = vi.fn();
@@ -15,5 +20,12 @@ test('crea la historia desde los datos mínimos sin pedir contexto académico du
   fireEvent.change(screen.getByLabelText('Apellidos y nombres'), { target: { value: 'Andrea Salazar Huamán' } });
   fireEvent.click(screen.getByRole('button', { name: /Crear y abrir historia/i }));
 
-  expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ dni: '70000001', nombres: 'Andrea Salazar Huamán' }));
+  expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({
+    dni: '70000001',
+    nombres: 'Andrea Salazar Huamán',
+    pacienteId: 1,
+    estado: 'Borrador',
+  }));
+  const historias = JSON.parse(localStorage.getItem('undac:historias:frontend:v1'));
+  expect(historias).toEqual([expect.objectContaining({ id: onCreated.mock.calls[0][0].id, pacienteId: 1 })]);
 });

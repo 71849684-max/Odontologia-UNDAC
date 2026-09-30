@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 import AgendaSeguimientos from '../componentes/modulos/AgendaSeguimientos';
 import BibliotecaRecursos from '../componentes/modulos/BibliotecaRecursos';
@@ -7,6 +7,7 @@ import PanelConfiguracion from '../formularios/configuracion-panel/PanelConfigur
 import TablaRegistros from '../componentes/modulos/TablaRegistros';
 import HistoriasApp from '../formularios/busqueda-historias/HistoriasApp.jsx';
 import PacientesApp from '../formularios/busqueda-pacientes/PacientesApp.jsx';
+import HistoriaClinica from '../componentes/clinica/HistoriaClinica.jsx';
 import '../../css/app.css';
 
 beforeEach(() => {
@@ -85,6 +86,33 @@ test('registra un paciente independiente, sin crear historia, y lo recupera del 
     unmount();
     render(<PacientesApp />);
     expect(screen.getByRole('cell', { name: /Lucía Ramos Vega/ })).toBeInTheDocument();
+});
+
+test('nueva HC de un paciente registrado abre su historia y no el formulario de datos mínimos', () => {
+    const onNavigate = vi.fn();
+    render(<PacientesApp onNavigate={onNavigate} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Nuevo paciente' }));
+    fireEvent.change(screen.getByLabelText('Nombres'), { target: { value: 'Lucía' } });
+    fireEvent.change(screen.getByLabelText('Apellido paterno'), { target: { value: 'Ramos' } });
+    fireEvent.change(screen.getByLabelText('Apellido materno'), { target: { value: 'Vega' } });
+    fireEvent.change(screen.getByLabelText('Número documento'), { target: { value: '71234567' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar paciente' }));
+
+    const row = screen.getByRole('cell', { name: /Lucía Ramos Vega/ }).closest('tr');
+    fireEvent.click(within(row).getByRole('button', { name: 'Nueva HC' }));
+
+    const historias = JSON.parse(window.localStorage.getItem('undac:historias:frontend:v1'));
+    expect(historias).toHaveLength(1);
+    expect(historias[0]).toMatchObject({ paciente: 'Lucía Ramos Vega', dni: '71234567', estado: 'Borrador' });
+    expect(onNavigate).toHaveBeenCalledWith({ view: 'historia', historiaId: historias[0].id, section: 'datos-paciente' });
+    expect(screen.queryByRole('heading', { name: 'Datos mínimos del paciente' })).not.toBeInTheDocument();
+
+    cleanup();
+    render(<HistoriaClinica historiaId={historias[0].id} initialSection="datos-paciente" />);
+    expect(screen.getByRole('heading', { name: /Lucía Ramos Vega/i, level: 1 })).toBeInTheDocument();
+    expect(screen.getByLabelText('DNI')).toHaveValue('71234567');
+    expect(screen.getByLabelText('Nombres completos')).toHaveValue('Lucía');
+    expect(screen.getByLabelText('Apellidos completos (paterno y materno)')).toHaveValue('Ramos Vega');
 });
 
 test('el formulario de paciente cierra con Escape y devuelve el foco al botón de apertura', () => {
