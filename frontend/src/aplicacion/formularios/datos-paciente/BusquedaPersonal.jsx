@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { Search, UserRound } from 'lucide-react';
 import { Field } from '../compartidos/ControlesClinicos.jsx';
-import { mockUsuarios } from '../../configuracion/datosMock.mjs';
+import { personalClinico } from '../../configuracion/datosClinicos.mjs';
 
-const personal = mockUsuarios.map((usuario, index) => ({ ...usuario, dni: `7100000${index + 1}` }));
+const personal = personalClinico;
 const normalizar = (texto) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const mostrarFecha = (fecha) => fecha ? fecha.split('-').reverse().join('/') : '—';
 

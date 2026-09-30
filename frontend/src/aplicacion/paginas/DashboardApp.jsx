@@ -1,6 +1,5 @@
 import { CalendarDays, ClipboardCheck, ClipboardPlus, FileText, Search, ShieldCheck, Users } from 'lucide-react';
-import { mockHistorias, mockPacientes } from '../configuracion/datosMock.mjs';
-import { ProgressBar, StatusBadge } from '../formularios/compartidos/ControlesClinicos.jsx';
+import { historiasClinicas, pacientesClinicos } from '../configuracion/datosClinicos.mjs';
 
 const PERFIL = {
     administrador: {
@@ -11,7 +10,7 @@ const PERFIL = {
             { etiqueta: 'Consultar auditoría', target: 'auditoria', icono: ShieldCheck },
             { etiqueta: 'Ver historias', target: 'historias', icono: FileText },
         ],
-        pendientes: ['3 accesos administrativos por revisar', '2 alertas de auditoría sin resolver', 'Configuración del periodo académico por confirmar'],
+        pendientes: [],
     },
     docente: {
         etiqueta: 'Docente',
@@ -21,7 +20,7 @@ const PERFIL = {
             { etiqueta: 'Buscar historia', target: 'historias', icono: Search },
             { etiqueta: 'Revisar seguimientos', target: 'seguimiento', icono: CalendarDays },
         ],
-        pendientes: ['2 historias requieren revisión docente', '1 consentimiento pendiente de validación', '2 controles clínicos programados para hoy'],
+        pendientes: [],
     },
     alumno: {
         etiqueta: 'Alumno operador',
@@ -31,16 +30,11 @@ const PERFIL = {
             { etiqueta: 'Buscar paciente', target: 'mis-pacientes', icono: Search },
             { etiqueta: 'Mis seguimientos', target: 'mis-seguimientos', icono: CalendarDays },
         ],
-        pendientes: ['1 historia incompleta en anamnesis', '2 secciones pendientes de registro', '1 observación docente por atender'],
+        pendientes: [],
     },
 };
 
-const ACTIVIDAD = [
-    { icono: FileText, titulo: 'Historia HC-2026-001 actualizada', detalle: 'Andrea Salazar Huamán · hace 15 min', tono: 'teal' },
-    { icono: ClipboardPlus, titulo: 'Paciente registrado', detalle: 'Luis Paredes Rojas · hace 32 min', tono: 'gold' },
-    { icono: ClipboardCheck, titulo: 'Historia enviada a revisión', detalle: 'HC-2026-003 · hace 1 h', tono: 'blue' },
-    { icono: ShieldCheck, titulo: 'Docente validó una historia', detalle: 'HC-2026-004 · hace 2 h', tono: 'green' },
-];
+const ACTIVIDAD = [];
 
 function go(onNavigate, target) {
     if (onNavigate) onNavigate(target);
@@ -60,21 +54,21 @@ function nombreCorto(nombre = '') {
 
 export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
     const perfil = PERFIL[rol] ?? PERFIL.alumno;
-    const enProceso = mockHistorias.filter((item) => ['Borrador', 'En proceso'].includes(item.estado)).length;
-    const pendientes = mockHistorias.filter((item) => item.estado === 'Pendiente de revisión').length;
-    const finalizadas = mockHistorias.filter((item) => item.estado === 'Validada').length;
+    const enProceso = historiasClinicas.filter((item) => ['Borrador', 'En proceso'].includes(item.estado)).length;
+    const pendientes = historiasClinicas.filter((item) => item.estado === 'Pendiente de revisión').length;
+    const finalizadas = historiasClinicas.filter((item) => item.estado === 'Validada').length;
     const indicadores = [
-        { etiqueta: 'Pacientes registrados', valor: mockPacientes.length, detalle: '+2 este mes', icono: Users, target: rol === 'alumno' ? 'mis-pacientes' : 'pacientes' },
-        { etiqueta: 'Historias clínicas', valor: mockHistorias.length, detalle: `${enProceso} activas`, icono: FileText, target: rol === 'alumno' ? 'mis-historias' : 'historias' },
+        { etiqueta: 'Pacientes registrados', valor: pacientesClinicos.length, detalle: 'Sin registros', icono: Users, target: rol === 'alumno' ? 'mis-pacientes' : 'pacientes' },
+        { etiqueta: 'Historias clínicas', valor: historiasClinicas.length, detalle: `${enProceso} activas`, icono: FileText, target: rol === 'alumno' ? 'mis-historias' : 'historias' },
         { etiqueta: 'Pendientes de validación', valor: pendientes, detalle: 'Revisión docente', icono: ClipboardCheck, target: rol === 'docente' ? 'pendientes' : rol === 'alumno' ? 'mis-historias' : 'historias' },
-        { etiqueta: 'Finalizadas', valor: finalizadas, detalle: `${Math.round((finalizadas / mockHistorias.length) * 100)} % del total`, icono: ShieldCheck, target: rol === 'alumno' ? 'mis-historias' : 'historias' },
+        { etiqueta: 'Finalizadas', valor: finalizadas, detalle: historiasClinicas.length ? `${Math.round((finalizadas / historiasClinicas.length) * 100)} % del total` : 'Sin registros', icono: ShieldCheck, target: rol === 'alumno' ? 'mis-historias' : 'historias' },
     ];
     const fecha = new Intl.DateTimeFormat('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
     return <div className="hc-dashboard space-y-5">
         <section className="hc-dashboard-welcome">
             <div><p className="hc-kicker">Clínica odontológica universitaria</p><h1 className="hc-page-title">{saludoActual()}, {nombreCorto(usuario?.nombre)}</h1><p className="hc-page-subtitle">Resumen de actividad clínica. {perfil.contexto}</p></div>
-            <div className="hc-dashboard-context"><strong>{perfil.etiqueta}</strong><span>{fecha}</span><small>Periodo académico 2026-II</small></div>
+            <div className="hc-dashboard-context"><strong>{perfil.etiqueta}</strong><span>{fecha}</span></div>
         </section>
 
         <section className="hc-dashboard-kpis grid gap-4 md:grid-cols-2 xl:grid-cols-4" aria-label="Indicadores principales">
@@ -84,7 +78,7 @@ export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
         <section className="hc-dashboard-grid">
             <article className="hc-panel-card">
                 <div className="hc-panel-card__header"><div><h2>Actividad reciente</h2><p>Últimos movimientos registrados en la clínica.</p></div></div>
-                <div className="hc-activity-list">{ACTIVIDAD.map(({ icono: Icono, titulo, detalle, tono }) => <div className="hc-activity-row" key={titulo}><span className={`hc-activity-row__icon is-${tono}`}><Icono size={16} /></span><span><strong>{titulo}</strong><small>{detalle}</small></span><span aria-hidden="true">›</span></div>)}</div>
+                {ACTIVIDAD.length ? <div className="hc-activity-list">{ACTIVIDAD.map(({ icono: Icono, titulo, detalle, tono }) => <div className="hc-activity-row" key={titulo}><span className={`hc-activity-row__icon is-${tono}`}><Icono size={16} /></span><span><strong>{titulo}</strong><small>{detalle}</small></span><span aria-hidden="true">›</span></div>)}</div> : <p className="hc-panel-card__empty">No hay actividad clínica registrada.</p>}
             </article>
             <article className="hc-panel-card">
                 <div className="hc-panel-card__header"><div><h2>Acciones rápidas</h2><p>Accesos disponibles para el perfil {perfil.etiqueta.toLowerCase()}.</p></div></div>
@@ -92,13 +86,13 @@ export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
             </article>
             <article className="hc-panel-card">
                 <div className="hc-panel-card__header"><div><h2>Pendientes</h2><p>Elementos que requieren atención.</p></div></div>
-                <ul className="hc-pending-list">{perfil.pendientes.map((item, index) => <li key={item}><span>{index + 1}</span><p>{item}</p></li>)}</ul>
+                {perfil.pendientes.length ? <ul className="hc-pending-list">{perfil.pendientes.map((item, index) => <li key={item}><span>{index + 1}</span><p>{item}</p></li>)}</ul> : <p className="hc-panel-card__empty">No hay pendientes registrados.</p>}
             </article>
         </section>
 
         <section className="hc-panel-card">
             <div className="hc-panel-card__header"><div><h2>Historias recientes</h2><p>Últimas historias clínicas modificadas.</p></div><button type="button" onClick={() => go(onNavigate, rol === 'alumno' ? 'mis-historias' : 'historias')}>Ver todas →</button></div>
-            <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Operador</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{mockHistorias.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Operador">{item.operador}</td><td data-label="Estado"><StatusBadge status={item.estado} /></td><td data-label="Actualización">{item.fecha}</td><td data-label="Progreso"><ProgressBar value={item.progreso} /></td><td data-label="Acción"><button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button></td></tr>)}</tbody></table></div>
+            {historiasClinicas.length ? <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Operador</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{historiasClinicas.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Operador">{item.operador}</td><td data-label="Estado">{item.estado}</td><td data-label="Actualización">{item.fecha}</td><td data-label="Progreso">{item.progreso}%</td><td data-label="Acción"><button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button></td></tr>)}</tbody></table></div> : <p className="hc-panel-card__empty">No hay historias clínicas recientes.</p>}
         </section>
     </div>;
 }

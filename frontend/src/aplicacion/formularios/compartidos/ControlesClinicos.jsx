@@ -151,7 +151,7 @@ export function PhotoPlaceholder({ title, description = 'Espacio preparado para 
 export function SaveBar({ sectionLabel, onSave, onPrevious, onNext, isFirst, isLast }) {
   return (
     <div className="undac-savebar">
-      <div><strong>{sectionLabel}</strong><span>Los cambios se conservan localmente en esta demostración.</span></div>
+      <div><strong>{sectionLabel}</strong><span>Los cambios se conservan localmente hasta su sincronización con la base de datos.</span></div>
       <div className="undac-savebar__actions">
         {!isFirst ? <button type="button" className="undac-btn undac-btn--ghost" onClick={onPrevious}>Anterior</button> : null}
         <button type="button" className="undac-btn undac-btn--secondary" onClick={onSave}>Guardar borrador</button>

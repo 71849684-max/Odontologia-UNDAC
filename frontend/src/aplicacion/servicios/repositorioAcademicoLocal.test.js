@@ -15,6 +15,29 @@ import {
 
 const STORAGE_KEY = 'undac:academico:frontend:v1';
 
+function cargarFixturesAcademicos() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    version: 2,
+    perfil: {},
+    perfiles: {},
+    personas: [
+      { id: 'estudiante-1', nombre: 'Estudiante Uno', documento: '70000001', tipo: 'estudiante' },
+      { id: 'docente-1', nombre: 'Docente Uno', documento: '72000001', tipo: 'docente' },
+      { id: 'docente-2', nombre: 'Docente Dos', documento: '72000002', tipo: 'docente' },
+    ],
+    cursos: [
+      { id: 'curso-1', codigo: 'CUR-1', nombre: 'Curso Uno', descripcion: '', estado: 'activo' },
+      { id: 'curso-2', codigo: 'CUR-2', nombre: 'Curso Dos', descripcion: '', estado: 'activo' },
+    ],
+    periodos: [{ id: 'periodo-1', codigo: '2026-I', nombre: 'Periodo 2026-I', fechaInicio: '2026-03-01', fechaFin: '2026-07-31', estado: 'activo' }],
+    grupos: [{ id: 'grupo-1', codigo: 'VIII-A', nombre: 'Grupo Uno', semestre: 'VIII', estado: 'activo' }],
+    membresias: [],
+    rotaciones: [],
+    docentesRotacion: [],
+    asignacionesExcepcionales: [],
+  }));
+}
+
 beforeEach(() => {
   const data = new Map();
   vi.stubGlobal('localStorage', {
@@ -26,17 +49,16 @@ beforeEach(() => {
 });
 
 describe('repositorio académico local', () => {
-  test('inicializa datos de demostración y entrega copias inmutables', () => {
+  test('inicializa el estado vacío y entrega copias inmutables', () => {
     const estado = obtenerEstadoAcademico();
 
-    expect(estado.version).toBe(1);
-    expect(estado.personas.some((persona) => persona.tipo === 'estudiante')).toBe(true);
-    expect(estado.personas.some((persona) => persona.tipo === 'docente')).toBe(true);
-    expect(estado.cursos.map((curso) => curso.codigo)).toEqual(expect.arrayContaining(['RX', 'CD']));
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)).version).toBe(1);
+    expect(estado.version).toBe(2);
+    expect(estado.personas).toEqual([]);
+    expect(estado.cursos).toEqual([]);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)).version).toBe(2);
 
-    estado.cursos[0].nombre = 'Alterado fuera del repositorio';
-    expect(obtenerEstadoAcademico().cursos[0].nombre).not.toBe('Alterado fuera del repositorio');
+    estado.cursos.push({ nombre: 'Alterado fuera del repositorio' });
+    expect(obtenerEstadoAcademico().cursos).toEqual([]);
   });
 
   test('recupera el estado inicial cuando el almacenamiento contiene JSON corrupto', () => {
@@ -44,8 +66,8 @@ describe('repositorio académico local', () => {
 
     const estado = obtenerEstadoAcademico();
 
-    expect(estado.version).toBe(1);
-    expect(estado.grupos.length).toBeGreaterThan(0);
+    expect(estado.version).toBe(2);
+    expect(estado.grupos).toEqual([]);
     expect(() => JSON.parse(localStorage.getItem(STORAGE_KEY))).not.toThrow();
   });
 
@@ -70,7 +92,7 @@ describe('repositorio académico local', () => {
   });
 
   test('reemplaza estructuras inválidas aunque el JSON y la versión sean válidos', () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, perfil: {}, personas: 'incorrecto' }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 2, perfil: {}, personas: 'incorrecto' }));
 
     const estado = obtenerEstadoAcademico();
     expect(Array.isArray(estado.personas)).toBe(true);
@@ -88,6 +110,7 @@ describe('repositorio académico local', () => {
   });
 
   test('actualiza un curso existente sin perder su identidad', () => {
+    cargarFixturesAcademicos();
     const curso = obtenerEstadoAcademico().cursos[0];
     actualizarCurso(curso.id, { ...curso, nombre: 'Radiología actualizada', estado: 'inactivo' });
 
@@ -98,6 +121,7 @@ describe('repositorio académico local', () => {
   });
 
   test('rechaza una rotación cuya fecha final antecede a la inicial', () => {
+    cargarFixturesAcademicos();
     const estado = obtenerEstadoAcademico();
 
     expect(() => crearRotacion({
@@ -111,6 +135,7 @@ describe('repositorio académico local', () => {
   });
 
   test('conserva membresías históricas y rechaza una asignación activa duplicada', () => {
+    cargarFixturesAcademicos();
     const estado = obtenerEstadoAcademico();
     const estudiante = estado.personas.find((persona) => persona.tipo === 'estudiante');
     const grupo = crearGrupo({ codigo: 'HIST-1', nombre: 'Grupo histórico', semestre: 'VIII', estado: 'activo' });
@@ -124,6 +149,7 @@ describe('repositorio académico local', () => {
   });
 
   test('finaliza una membresía y permite una reincorporación posterior', () => {
+    cargarFixturesAcademicos();
     const estado = obtenerEstadoAcademico();
     const estudiante = estado.personas.find((persona) => persona.tipo === 'estudiante');
     const grupo = estado.grupos[0];
@@ -144,6 +170,7 @@ describe('repositorio académico local', () => {
   });
 
   test('admite varios docentes y conserva sus asignaciones entre rotaciones', () => {
+    cargarFixturesAcademicos();
     const estado = obtenerEstadoAcademico();
     const docentes = estado.personas.filter((persona) => persona.tipo === 'docente');
     const base = {
@@ -167,6 +194,7 @@ describe('repositorio académico local', () => {
   });
 
   test('conserva estudiantes asignados excepcionalmente a una rotación', () => {
+    cargarFixturesAcademicos();
     const estado = obtenerEstadoAcademico();
     const rotacion = crearRotacion({ grupoId: estado.grupos[0].id, cursoId: estado.cursos[0].id, periodoId: estado.periodos[0].id, fechaInicio: '2026-10-01', fechaFin: '2026-10-31' });
     const estudiante = estado.personas.find((item) => item.tipo === 'estudiante');

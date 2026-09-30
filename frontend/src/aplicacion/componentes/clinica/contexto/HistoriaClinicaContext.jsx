@@ -1,7 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { clinicalMoments, clinicalSections, getMomentForSection } from '../../../configuracion/historiaClinica.config.mjs';
+<<<<<<< HEAD
 import { mockHistoriaMeta, mockHistorias, mockPacientes } from '../../../configuracion/datosMock.mjs';
 import { buscarHistoria, pacienteDeHistoria } from '../../../servicios/registroHistoriaClinica.js';
+=======
+import { historiasClinicas, metaHistoriaVacia, pacientesClinicos } from '../../../configuracion/datosClinicos.mjs';
+>>>>>>> 68f9ee0cdb3126a8a4cedcd77484ffa134ac8628
 import { buildClinicalAlerts } from '../logica/clinicalAlerts.mjs';
 import { inferSectionStatus, SECTION_STATUS } from '../logica/clinicalStatus.mjs';
 
@@ -46,10 +50,28 @@ function patientSeed(patient, history) {
 }
 
 export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-paciente', children }) {
+<<<<<<< HEAD
   const selectedHistory = buscarHistoria(historiaId) || mockHistorias[0];
   const selectedPatient = pacienteDeHistoria(selectedHistory) || mockPacientes[0];
+=======
+  const selectedPatient = pacientesClinicos.find((item) => String(item.id) === String(historiaId)) || {
+    id: null,
+    nombres: 'Paciente sin datos',
+    dni: '—',
+    edad: '',
+    sexo: '',
+    telefono: '',
+  };
+  const selectedHistory = historiasClinicas.find((item) => String(item.id) === String(historiaId)) || {
+    id: historiaId ?? null,
+    codigo: 'Sin historia',
+    estado: '',
+    operador: '',
+    docente: '',
+  };
+>>>>>>> 68f9ee0cdb3126a8a4cedcd77484ffa134ac8628
   const safeInitial = clinicalSections.some((item) => item.id === initialSection) ? initialSection : 'datos-paciente';
-  const storageKey = `undac:hc:workspace:v2:${selectedHistory.codigo}`;
+  const storageKey = `undac:hc:workspace:v3:${selectedHistory.codigo}`;
   const initialLocal = useMemo(() => loadLocalState(storageKey), [storageKey]);
   const [activeSection, setActiveSection] = useState(safeInitial);
   const [formData, setFormData] = useState(() => ({
@@ -140,7 +162,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   const value = useMemo(() => ({
     patient: selectedPatient,
     history: selectedHistory,
-    meta: { ...mockHistoriaMeta, codigo: selectedHistory.codigo, estado: selectedHistory.estado, operador: selectedHistory.operador, docente: selectedHistory.docente },
+    meta: { ...metaHistoriaVacia, codigo: selectedHistory.codigo, estado: selectedHistory.estado, operador: selectedHistory.operador, docente: selectedHistory.docente },
     activeSection,
     setActiveSection,
     activeMoment,

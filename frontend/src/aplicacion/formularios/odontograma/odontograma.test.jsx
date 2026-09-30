@@ -86,12 +86,7 @@ test('expone un viewport desplazable y conserva los controles de dentición', ()
   expect(viewport).toHaveAttribute('tabindex', '0');
   expect(screen.getByRole('group', { name: 'Dentición visible' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
-  expect(screen.getByText(/Pieza 11/)).toBeInTheDocument();
-  const mobileSurfaces = document.querySelector('.nts-mobile-surface-picker');
-  expect(mobileSurfaces).not.toBeNull();
-  const mesial = [...mobileSurfaces.querySelectorAll('button')].find((button) => button.textContent === 'Mesial');
-  fireEvent.click(mesial);
-  expect(mesial).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' })).toBeInTheDocument();
 });
 
 test('abre el odontograma móvil en una ventana modal y permite cerrarlo', () => {
@@ -115,25 +110,45 @@ test('abre acciones de la superficie desde el odontograma móvil limpio', () => 
   expect(within(actions).getByRole('button', { name: 'Caries' })).toBeInTheDocument();
 });
 
+test('abre las acciones en un modal flotante después de seleccionar una superficie en escritorio', () => {
+  render(<Odontograma patientId="panel-escritorio" />);
+
+  expect(screen.queryByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+
+  const modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  expect(within(modal).getByRole('button', { name: 'Caries' })).toBeInTheDocument();
+});
+
 test('interfaz guarda, recupera y separa el registro por historia', () => {
   const { unmount } = render(<Odontograma patientId="a" />);
-  fireEvent.click(screen.getByRole('button', { name: 'Ausente', exact: true }));
-  fireEvent.change(screen.getByLabelText('Clasificación / material'), { target: { value: 'DEX' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+  const vestibular = screen.getByRole('button', { name: 'Pieza 11, Vestibular' });
+  fireEvent.click(vestibular);
+  let modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Ausente', exact: true }));
+  fireEvent.change(within(modal).getByLabelText('Clasificación / material'), { target: { value: 'DEX' } });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Aplicar en esta superficie' }));
   for (const button of screen.getAllByRole('button', { name: /^Pieza 11,/ })) {
     expect(button).toHaveAttribute('data-state', 'ausente');
   }
-  expect(screen.getByRole('button', { name: 'Quitar del borrador' })).toBeInTheDocument();
+  fireEvent.click(vestibular);
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  expect(within(modal).getByRole('button', { name: 'Quitar del borrador' })).toBeInTheDocument();
   unmount();
   const other = render(<Odontograma patientId="b" />);
-  expect(screen.getByText('Sin hallazgos registrados.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  expect(within(modal).getByText('Sin hallazgos registrados.')).toBeInTheDocument();
   other.unmount();
   render(<Odontograma patientId="a" />);
   expect(screen.getAllByRole('button', { name: /^Pieza 11,/ })).toHaveLength(5);
   for (const button of screen.getAllByRole('button', { name: /^Pieza 11,/ })) {
     expect(button).toHaveAttribute('data-state', 'ausente');
   }
-  expect(screen.getByRole('button', { name: 'Quitar del borrador' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  expect(within(modal).getByRole('button', { name: 'Quitar del borrador' })).toBeInTheDocument();
+  fireEvent.click(within(modal).getByRole('button', { name: 'Cancelar' }));
   fireEvent.click(screen.getByRole('button', { name: 'Temporal', exact: true }));
   expect(screen.getByRole('button', { name: 'Pieza 85, Vestibular' })).toBeInTheDocument();
 });
@@ -141,25 +156,41 @@ test('interfaz guarda, recupera y separa el registro por historia', () => {
 test('marca directamente sin trazado y permite consultar y borrar sin duplicar hallazgos', () => {
   render(<Odontograma patientId="simple" />);
   const stored = () => JSON.parse(localStorage.getItem('undac:odontograma:nts188:v1:simple')).examinations[0];
-  fireEvent.click(screen.getByRole('button', { name: 'Caries', exact: true }));
   const vestibular = screen.getByRole('button', { name: 'Pieza 11, Vestibular' });
   fireEvent.click(vestibular);
+  let modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Caries', exact: true }));
+  fireEvent.click(within(modal).getByRole('button', { name: 'Aplicar en esta superficie' }));
   expect(vestibular).toHaveAttribute('data-state', 'caries');
   expect(stored().teeth['11'].surfaces.vestibular.findings[0]).toMatchObject({ code: 'CE', points: [], representation: 'schematic' });
   fireEvent.click(vestibular);
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Aplicar en esta superficie' }));
   expect(toothFindings(stored().teeth['11'])).toHaveLength(1);
-  fireEvent.click(screen.getByRole('button', { name: 'Consultar', exact: true }));
+  fireEvent.click(within(modal).getByRole('button', { name: 'Cancelar' }));
+  fireEvent.click(vestibular);
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Consultar', exact: true }));
+  fireEvent.click(within(modal).getByRole('button', { name: 'Cerrar' }));
   fireEvent.click(screen.getByRole('button', { name: 'Pieza 21, Mesial' }));
   expect(toothFindings(stored().teeth['21'])).toHaveLength(0);
-  fireEvent.click(screen.getByRole('button', { name: 'Extraído', exact: true }));
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 21, Mesial' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Extraído', exact: true }));
+  fireEvent.click(within(modal).getByRole('button', { name: 'Cancelar' }));
   fireEvent.click(vestibular);
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Aplicar en esta superficie' }));
   expect(screen.getAllByRole('button', { name: /^Pieza 11,/ }).every((button) => button.dataset.state === 'ausente')).toBe(true);
   expect(stored().teeth['11'].findings[0].code).toBe('DEX');
-  fireEvent.click(screen.getByRole('button', { name: 'Borrar marca' }));
   fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Mesial' }));
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Mesial' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Borrar marca' }));
+  fireEvent.click(within(modal).getAllByRole('button', { name: 'Borrar marca' }).at(-1));
   expect(vestibular).toHaveAttribute('data-state', 'caries');
   expect(toothFindings(stored().teeth['11'])).toHaveLength(1);
   fireEvent.click(vestibular);
+  modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  fireEvent.click(within(modal).getAllByRole('button', { name: 'Borrar marca' }).at(-1));
   expect(toothFindings(stored().teeth['11'])).toHaveLength(0);
 });
 
@@ -191,11 +222,13 @@ test('una evaluación cerrada permanece en solo lectura después de recargar', (
   record = updateExamination(record, examId, { professional: 'Prueba', cop: '12345' });
   localStorage.setItem('undac:odontograma:nts188:v1:a', JSON.stringify(closeExamination(record, examId)));
   render(<Odontograma patientId="a" />);
-  expect(screen.getByRole('button', { name: 'Caries', exact: true })).toBeDisabled();
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+  const modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+  expect(within(modal).getByRole('button', { name: 'Caries', exact: true })).toBeDisabled();
   expect(screen.getByLabelText('Especificaciones')).toBeDisabled();
   fireEvent.click(screen.getByText('Datos de la evaluación'));
   fireEvent.click(screen.getByRole('button', { name: 'Nueva evaluación' }));
-  expect(screen.getByRole('button', { name: 'Caries', exact: true })).toBeEnabled();
+  expect(within(modal).getByRole('button', { name: 'Caries', exact: true })).toBeEnabled();
   expect(JSON.parse(localStorage.getItem('undac:odontograma:nts188:v1:a')).examinations).toHaveLength(2);
 });
 

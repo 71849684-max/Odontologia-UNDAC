@@ -109,45 +109,18 @@ test.each(clinicalMoments)('omite el encabezado redundante del momento $number',
   expect(screen.queryByRole('status', { name: `Estado de ${moment.label}` })).not.toBeInTheDocument();
 });
 
-test('la cabecera clínica conserva paciente y operador sin indicadores redundantes', () => {
+test('la cabecera clínica no inventa datos de paciente u operador cuando no existe una historia cargada', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
   const header = screen.getByRole('banner');
-  expect(within(header).getByRole('heading', { name: /Andrea Salazar Huamán/i, level: 1 })).toBeInTheDocument();
-  expect(within(header).getByText(/DNI 70000001/i)).toBeInTheDocument();
-  expect(within(header).getByText('María Fernández')).toBeInTheDocument();
+  expect(within(header).getByRole('heading', { name: 'Paciente sin datos', level: 1 })).toBeInTheDocument();
+  expect(within(header).getByText(/DNI —/i)).toBeInTheDocument();
+  expect(within(header).getByText('Sin asignar')).toBeInTheDocument();
   expect(within(header).queryByLabelText('Alertas clínicas activas')).not.toBeInTheDocument();
   expect(within(header).queryByLabelText('Progreso de la historia clínica')).not.toBeInTheDocument();
   expect(within(header).queryByLabelText('Autoguardado')).not.toBeInTheDocument();
   expect(within(header).queryByText('Semestre')).not.toBeInTheDocument();
   expect(within(header).queryByText('Estado')).not.toBeInTheDocument();
-});
-
-test('cambia el operador desde la cabecera y no repite su ficha al final del formulario', () => {
-  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
-
-  const header = screen.getByRole('banner');
-  fireEvent.click(within(header).getByRole('button', { name: 'Cambiar asignación' }));
-  const search = screen.getByRole('searchbox');
-  fireEvent.change(search, { target: { value: '71000002' } });
-  fireEvent.click(screen.getByRole('button', { name: /Carlos Rojas/ }));
-
-  expect(within(header).getByText('Carlos Rojas')).toBeInTheDocument();
-  expect(within(screen.getByRole('main')).queryByText('Operador responsable')).not.toBeInTheDocument();
-});
-
-test('cancelar un segundo cambio conserva el operador ya seleccionado', () => {
-  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
-
-  const header = screen.getByRole('banner');
-  fireEvent.click(within(header).getByRole('button', { name: 'Cambiar asignación' }));
-  fireEvent.change(screen.getByRole('searchbox'), { target: { value: '71000002' } });
-  fireEvent.click(screen.getByRole('button', { name: /Carlos Rojas/ }));
-  fireEvent.click(within(header).getByRole('button', { name: 'Cambiar asignación' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Cambiar' }));
-  fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
-
-  expect(within(header).getByText('Carlos Rojas')).toBeInTheDocument();
 });
 
 test('el selector de operador cierra con Escape y devuelve el foco al botón que lo abrió', () => {

@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react';
 import { ClipboardPlus, Filter, Search } from 'lucide-react';
+<<<<<<< HEAD
 import { listarHistorias } from '../../servicios/registroHistoriaClinica.js';
+=======
+import { historiasClinicas } from '../../configuracion/datosClinicos.mjs';
+>>>>>>> 68f9ee0cdb3126a8a4cedcd77484ffa134ac8628
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 
 export default function HistoriasApp({ rol, onNavigate }) {
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState('');
+<<<<<<< HEAD
     const historias = useMemo(() => listarHistorias(), []);
     const filtered = useMemo(() => historias.filter((item) => (!status || item.estado === status) && `${item.paciente} ${item.codigo} ${item.dni} ${item.operador} ${item.docente}`.toLowerCase().includes(query.toLowerCase())), [historias, query, status]);
     const go = (target) => typeof onNavigate === 'function' ? onNavigate(target) : window.onNavigate?.(target);
@@ -15,6 +20,15 @@ export default function HistoriasApp({ rol, onNavigate }) {
         ['En proceso', historias.filter((item) => ['Borrador', 'En proceso'].includes(item.estado)).length],
         ['Pendientes', historias.filter((item) => item.estado === 'Pendiente de revisión').length],
         ['Finalizadas', historias.filter((item) => item.estado === 'Validada').length],
+=======
+    const filtered = useMemo(() => historiasClinicas.filter((item) => (!status || item.estado === status) && `${item.paciente} ${item.codigo} ${item.dni} ${item.operador} ${item.docente}`.toLowerCase().includes(query.toLowerCase())), [query, status]);
+    const go = (target) => typeof onNavigate === 'function' ? onNavigate(target) : window.onNavigate?.(target);
+    const indicadores = [
+        ['Total', historiasClinicas.length],
+        ['En proceso', historiasClinicas.filter((item) => ['Borrador', 'En proceso'].includes(item.estado)).length],
+        ['Pendientes', historiasClinicas.filter((item) => item.estado === 'Pendiente de revisión').length],
+        ['Finalizadas', historiasClinicas.filter((item) => item.estado === 'Validada').length],
+>>>>>>> 68f9ee0cdb3126a8a4cedcd77484ffa134ac8628
     ];
 
     return <div className="hc-page space-y-5">
