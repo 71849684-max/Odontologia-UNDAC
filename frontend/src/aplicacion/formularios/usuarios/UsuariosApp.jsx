@@ -14,7 +14,7 @@ import { ErrorHttp } from '../../servicios/clienteHttp.js';
 const FORMULARIO_VACIO = {
     nombre_usuario: '',
     contrasena: '',
-    codigo_rol: 'ALUMNO_OPERADOR',
+    codigo_rol: 'ALUMNO',
     tipo_documento: 'DNI',
     numero_documento: '',
     nombres: '',
@@ -75,7 +75,7 @@ export default function UsuariosApp() {
     }, [busqueda, rol]);
 
     function abrirCrear() {
-        setFormulario({ ...FORMULARIO_VACIO, codigo_rol: roles[0]?.codigo ?? 'ALUMNO_OPERADOR' });
+        setFormulario({ ...FORMULARIO_VACIO, codigo_rol: roles[0]?.codigo ?? 'ALUMNO' });
         setErroresFormulario({});
         setDialogo({ modo: 'crear' });
     }
@@ -84,7 +84,7 @@ export default function UsuariosApp() {
         setFormulario({
             nombre_usuario: usuario.nombre_usuario ?? '',
             contrasena: '',
-            codigo_rol: usuario.codigo_rol ?? 'ALUMNO_OPERADOR',
+            codigo_rol: usuario.codigo_rol ?? 'ALUMNO',
             tipo_documento: usuario.tipo_documento ?? 'DNI',
             numero_documento: usuario.numero_documento ?? '',
             nombres: usuario.nombres ?? '',

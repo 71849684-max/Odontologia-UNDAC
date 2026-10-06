@@ -30,7 +30,7 @@ class AccesoAdministracionTest extends TestCase
 
     public function test_un_alumno_no_alcanza_el_modulo_de_administracion(): void
     {
-        $usuario = $this->crearUsuario('alumno.admin', self::CLAVE, 'ALUMNO_OPERADOR');
+        $usuario = $this->crearUsuario('alumno.admin', self::CLAVE, 'ALUMNO');
 
         $this->actingAs($usuario, 'web')
             ->getJson('/api/admin/resumen')
@@ -62,7 +62,9 @@ class AccesoAdministracionTest extends TestCase
 
         $this->actingAs($usuario, 'web')->getJson('/api/admin/resumen')->assertOk();
 
-        DB::table('usuario_rol')->where('id_usuario', $usuario->getKey())->update(['permitido' => 0]);
+        DB::table('usuario_docente')->where('id_usuario_docente', $usuario->id())->update([
+            'id_rol' => DB::table('rol')->where('codigo_rol', 'DOCENTE')->value('id_rol'),
+        ]);
         app(ConsultaAccesos::class)->olvidarMemoria($usuario);
 
         $this->actingAs($usuario, 'web')->getJson('/api/admin/resumen')->assertForbidden();
@@ -72,9 +74,7 @@ class AccesoAdministracionTest extends TestCase
     {
         $usuario = $this->crearUsuario('vencido.admin', self::CLAVE, 'ADMINISTRADOR');
 
-        DB::table('usuario_rol')->where('id_usuario', $usuario->getKey())->update([
-            'fecha_fin' => now()->subDay()->toDateString(),
-        ]);
+        DB::table('rol')->where('codigo_rol', 'ADMINISTRADOR')->update(['estado' => 0]);
         app(ConsultaAccesos::class)->olvidarMemoria($usuario);
 
         $this->actingAs($usuario, 'web')->getJson('/api/admin/resumen')->assertForbidden();
@@ -109,25 +109,19 @@ class AccesoAdministracionTest extends TestCase
         $usuario = $this->crearUsuario('permisos.admin', self::CLAVE, 'ADMINISTRADOR');
         $accesos = app(ConsultaAccesos::class);
 
-        // El dump asigna todos los permisos al rol ADMINISTRADOR.
-        $this->assertTrue($accesos->puede($usuario, 'AUDITORIA.VER'));
+        $this->assertTrue($accesos->puede($usuario, 'BITACORA'));
         $this->assertFalse($accesos->puede($usuario, 'PERMISO.QUE.NO.EXISTE'));
     }
 
-    public function test_un_permiso_denegado_al_usuario_gana_sobre_el_del_rol(): void
+    public function test_quitar_un_submodulo_del_rol_retira_el_acceso(): void
     {
         $usuario = $this->crearUsuario('denegado.admin', self::CLAVE, 'ADMINISTRADOR');
         $accesos = app(ConsultaAccesos::class);
 
-        $this->assertTrue($accesos->puede($usuario, 'AUDITORIA.VER'));
+        $this->assertTrue($accesos->puede($usuario, 'BITACORA'));
 
-        DB::table('usuario_permiso')->insert([
-            'id_usuario' => $usuario->getKey(),
-            'id_permiso' => DB::table('permiso')->where('codigo_permiso', 'AUDITORIA.VER')->value('id_permiso'),
-            'permitido' => 0,
-            'alcance_datos' => 'GLOBAL',
-        ]);
+        DB::table('rol_submodulo')->where('id_rol', $usuario->idRol())->where('id_submodulo', 21)->delete();
 
-        $this->assertFalse($accesos->puede($usuario, 'AUDITORIA.VER'));
+        $this->assertFalse($accesos->puede($usuario, 'BITACORA'));
     }
 }

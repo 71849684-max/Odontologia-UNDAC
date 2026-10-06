@@ -3,17 +3,14 @@
 namespace Database\Seeders;
 
 use App\Identidad\Dominio\CodigoRol;
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Persona;
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Rol;
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Usuario;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 
 /**
- * Crea el primer administrador. El dump de la base siembra los roles pero no
- * ningun usuario, asi que sin este seeder nadie puede iniciar sesion.
+ * Crea el primer administrador sobre una cuenta de docente.
+ * El dump siembra los roles, pero ninguna cuenta.
  */
 class SeederAdministrador extends Seeder
 {
@@ -28,7 +25,7 @@ class SeederAdministrador extends Seeder
             );
         }
 
-        $rol = Rol::where('codigo_rol', CodigoRol::ADMINISTRADOR)->first();
+        $rol = DB::table('rol')->where('codigo_rol', CodigoRol::ADMINISTRADOR)->where('estado', 1)->first();
 
         if ($rol === null) {
             throw new RuntimeException(
@@ -37,39 +34,45 @@ class SeederAdministrador extends Seeder
         }
 
         DB::transaction(function () use ($nombreUsuario, $contrasena, $rol): void {
-            $persona = Persona::firstOrCreate(
-                [
+            $documento = (string) config('acceso.admin.documento');
+            $docente = DB::table('docente')
+                ->where('tipo_documento', 'DNI')
+                ->where('numero_documento', $documento)
+                ->first();
+
+            if ($docente === null) {
+                $idDocente = DB::table('docente')->insertGetId([
+                    'codigo_docente' => 'DOC-'.$documento,
                     'tipo_documento' => 'DNI',
-                    'numero_documento' => (string) config('acceso.admin.documento'),
-                ],
-                [
+                    'numero_documento' => $documento,
                     'nombres' => (string) config('acceso.admin.nombres'),
                     'apellidos' => (string) config('acceso.admin.apellidos'),
-                    'estado' => true,
-                ],
-            );
+                    'estado' => 1,
+                    'creado_en' => now(),
+                ]);
+            } else {
+                $idDocente = $docente->id_docente;
+            }
 
-            $usuario = Usuario::firstOrNew(['nombre_usuario' => $nombreUsuario]);
-
-            $usuario->forceFill([
-                'id_persona' => $persona->getKey(),
+            $existente = DB::table('usuario_docente')->where('nombre_usuario', $nombreUsuario)->first();
+            $datos = [
+                'id_docente' => $idDocente,
+                'id_rol' => $rol->id_rol,
                 'contrasena_hash' => Hash::make($contrasena),
-                'estado' => true,
+                'estado' => 1,
                 'intentos_fallidos' => 0,
                 'bloqueado_hasta' => null,
                 'contrasena_cambiada_en' => now(),
-            ])->save();
+            ];
 
-            DB::table('usuario_rol')->updateOrInsert(
-                [
-                    'id_usuario' => $usuario->getKey(),
-                    'id_rol' => $rol->getKey(),
-                ],
-                [
-                    'permitido' => 1,
-                    'asignado_en' => now(),
-                ],
-            );
+            if ($existente === null) {
+                DB::table('usuario_docente')->insert($datos + [
+                    'nombre_usuario' => $nombreUsuario,
+                    'creado_en' => now(),
+                ]);
+            } else {
+                DB::table('usuario_docente')->where('id_usuario_docente', $existente->id_usuario_docente)->update($datos);
+            }
 
             $this->command?->info("Administrador listo: {$nombreUsuario}");
         });

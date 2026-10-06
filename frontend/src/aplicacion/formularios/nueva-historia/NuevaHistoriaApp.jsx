@@ -1,24 +1,38 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Check, ChevronRight, Search, UserPlus } from 'lucide-react';
 import { Field, SelectField, SectionCard } from '../compartidos/ControlesClinicos.jsx';
 import { registrarHistoriaDesdeFormulario } from '../../servicios/registroHistoriaClinica.js';
+import { abrirHistoria, listarHistoriasRemotas, mensajeError } from '../../servicios/servicioClinico.js';
 
-function datosIniciales(paciente = {}) {
+function datosIniciales(paciente) {
+    const origen = paciente ?? {};
     return {
-        dni: paciente.dni ?? '',
-        nombres: paciente.nombres ?? '',
-        nacimiento: paciente.fechaNacimiento ?? '',
-        sexo: paciente.sexo ?? '',
-        celular: paciente.telefono ?? '',
-        email: paciente.correo ?? '',
+        dni: origen.dni ?? '',
+        nombres: origen.nombres ?? '',
+        nacimiento: origen.fechaNacimiento ?? '',
+        sexo: origen.sexo ?? '',
+        celular: origen.telefono ?? '',
+        email: origen.correo ?? '',
     };
 }
 
 export default function NuevaHistoriaApp({ onCreated, onNavigate, pacienteInicial }) {
     const [form, setForm] = useState(() => datosIniciales(pacienteInicial));
     const [error, setError] = useState('');
+    const [usaApi, setUsaApi] = useState(false);
+    useEffect(() => {
+        let vigente = true;
+        listarHistoriasRemotas().then(() => { if (vigente) setUsaApi(true); }).catch(() => {});
+        return () => { vigente = false; };
+    }, []);
     const set = (key) => (value) => setForm((current) => ({ ...current, [key]: value }));
     const create = () => {
+        if (usaApi) {
+            abrirHistoria({ ...form, pacienteId: pacienteInicial?.id })
+                .then((historia) => { setError(''); onCreated?.(historia); })
+                .catch((err) => setError(mensajeError(err, 'No fue posible registrar la historia clínica.')));
+            return;
+        }
         try {
             const historia = registrarHistoriaDesdeFormulario(form);
             setError('');

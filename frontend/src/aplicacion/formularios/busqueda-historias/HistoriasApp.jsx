@@ -1,13 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ClipboardPlus, Filter, Search } from 'lucide-react';
 import { listarHistorias } from '../../servicios/registroHistoriaClinica.js';
+import { listarHistoriasRemotas } from '../../servicios/servicioClinico.js';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 
 export default function HistoriasApp({ rol, onNavigate }) {
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState('');
-    const historias = useMemo(() => listarHistorias(), []);
+    const [historias, setHistorias] = useState(listarHistorias);
+    useEffect(() => {
+        let vigente = true;
+        listarHistoriasRemotas().then((lista) => { if (vigente) setHistorias(lista); }).catch(() => {});
+        return () => { vigente = false; };
+    }, []);
     const filtered = useMemo(() => historias.filter((item) => (!status || item.estado === status) && `${item.paciente} ${item.codigo} ${item.dni} ${item.operador} ${item.docente}`.toLowerCase().includes(query.toLowerCase())), [historias, query, status]);
     const go = (target) => typeof onNavigate === 'function' ? onNavigate(target) : window.onNavigate?.(target);
     const indicadores = [

@@ -11,8 +11,8 @@ class MostrarUsuario
     /**
      * @return array<string, mixed>
      */
-    public function ejecutar(int $idUsuario): array
+    public function ejecutar(string $clave): array
     {
-        return $this->usuarios->serializar($this->usuarios->buscarPorId($idUsuario));
+        return $this->usuarios->serializar($this->usuarios->buscarPorId($clave));
     }
 }

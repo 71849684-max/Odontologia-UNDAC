@@ -25,6 +25,8 @@ use App\Identidad\Infraestructura\Persistencia\RepositorioIndicadoresSql;
 use App\Identidad\Infraestructura\Persistencia\RepositorioPermisosSql;
 use App\Identidad\Infraestructura\Persistencia\RepositorioRolesEloquent;
 use App\Identidad\Infraestructura\Persistencia\RepositorioUsuariosEloquent;
+use App\Identidad\Infraestructura\Acceso\ProveedorCuentas;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -51,6 +53,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        Auth::provider('cuentas', function ($app): ProveedorCuentas {
+            return new ProveedorCuentas($app->make(RepositorioUsuarios::class));
+        });
     }
 }

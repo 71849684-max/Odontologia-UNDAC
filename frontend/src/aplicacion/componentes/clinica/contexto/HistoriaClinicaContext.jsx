@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { clinicalMoments, clinicalSections, getMomentForSection } from '../../../configuracion/historiaClinica.config.mjs';
 import { historiasClinicas, metaHistoriaVacia, pacientesClinicos } from '../../../configuracion/datosClinicos.mjs';
 import { buscarHistoria, pacienteDeHistoria } from '../../../servicios/registroHistoriaClinica.js';
+import { guardarExpediente, idHistoria, obtenerExpediente } from '../../../servicios/servicioClinico.js';
 import { buildClinicalAlerts } from '../logica/clinicalAlerts.mjs';
 import { inferSectionStatus, SECTION_STATUS } from '../logica/clinicalStatus.mjs';
 
@@ -46,10 +47,15 @@ function patientSeed(patient, history) {
 }
 
 export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-paciente', children }) {
-  const selectedHistory = buscarHistoria(historiaId)
+  const [expediente, setExpediente] = useState(null);
+  const historiaLocal = buscarHistoria(historiaId)
     ?? historiasClinicas.find((item) => String(item.id) === String(historiaId))
+    ?? null;
+  const selectedHistory = historiaLocal
+    ?? expediente?.historia
     ?? { id: historiaId ?? null, codigo: 'Sin historia', estado: '', operador: '', docente: '' };
-  const selectedPatient = pacienteDeHistoria(selectedHistory)
+  const selectedPatient = (historiaLocal ? pacienteDeHistoria(historiaLocal) : null)
+    ?? expediente?.paciente
     ?? pacientesClinicos.find((item) => String(item.id) === String(selectedHistory.pacienteId ?? selectedHistory.id))
     ?? { id: null, nombres: 'Paciente sin datos', dni: '—', edad: '', sexo: '', telefono: '' };
   const safeInitial = clinicalSections.some((item) => item.id === initialSection) ? initialSection : 'datos-paciente';
@@ -64,6 +70,21 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   const [autosaveStatus, setAutosaveStatus] = useState('saved');
   const [lastSavedAt, setLastSavedAt] = useState(() => initialLocal.lastSavedAt ?? null);
   const hydrated = useRef(false);
+  const historiaServidor = idHistoria(selectedHistory.id);
+
+  useEffect(() => {
+    if (!historiaServidor) return undefined;
+    let vigente = true;
+    obtenerExpediente(historiaServidor).then((cuerpo) => {
+      if (!vigente || !cuerpo?.formData) return;
+      setExpediente(cuerpo);
+      setFormData((actual) => ({ ...actual, ...cuerpo.formData }));
+      if (cuerpo.sectionStatus && typeof cuerpo.sectionStatus === 'object') {
+        setExplicitStatus((actual) => ({ ...actual, ...cuerpo.sectionStatus }));
+      }
+    }).catch(() => {});
+    return () => { vigente = false; };
+  }, [historiaServidor]);
 
   useEffect(() => {
     setActiveSection(safeInitial);
@@ -81,12 +102,15 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
         window.localStorage?.setItem(storageKey, JSON.stringify({ formData, sectionStatus: explicitStatus, lastSavedAt: now }));
         setLastSavedAt(now);
         setAutosaveStatus('saved');
+        if (historiaServidor) {
+          guardarExpediente(historiaServidor, formData, explicitStatus).catch(() => setAutosaveStatus('error'));
+        }
       } catch {
         setAutosaveStatus('error');
       }
     }, 450);
     return () => window.clearTimeout(timer);
-  }, [formData, explicitStatus, storageKey]);
+  }, [formData, explicitStatus, storageKey, historiaServidor]);
 
   const updateSection = useCallback((sectionId, key, value) => {
     setFormData((current) => ({

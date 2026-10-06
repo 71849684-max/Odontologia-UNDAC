@@ -4,7 +4,8 @@ import { createPortal } from 'react-dom';
 import useModalDialog from '../../componentes/interfaz/useModalDialog.js';
 import Paginacion from '../../componentes/interfaz/Paginacion.jsx';
 import CursoCard from './CursoCard.jsx';
-import { actualizarCurso, crearCurso, obtenerEstadoAcademico } from '../../servicios/repositorioAcademicoLocal.js';
+import { actualizarCurso, crearCurso, obtenerEstadoAcademico, sincronizarAcademico } from '../../servicios/servicioAcademico.js';
+import { mensajeError } from '../../servicios/servicioClinico.js';
 
 const VACIO = { codigo: '', nombre: '', descripcion: '', estado: 'activo' };
 
@@ -24,15 +25,15 @@ function CourseDialog({ open, triggerRef, onClose, onSaved, curso }) {
     setFormulario((actual) => ({ ...actual, [campo]: valor }));
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     try {
-      const guardado = curso ? actualizarCurso(curso.id, formulario) : crearCurso(formulario);
+      const guardado = await (curso ? actualizarCurso(curso.id, formulario) : crearCurso(formulario));
       setFormulario(VACIO);
       setError('');
       onSaved(guardado);
     } catch (err) {
-      setError(err?.mensaje || 'No se pudo guardar el curso.');
+      setError(mensajeError(err, 'No se pudo guardar el curso.'));
     }
   }
 
@@ -63,6 +64,11 @@ function CourseDialog({ open, triggerRef, onClose, onSaved, curso }) {
 
 export default function CursosApp() {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
+  useEffect(() => {
+    let vigente = true;
+    sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch(() => { if (vigente) setEstado(obtenerEstadoAcademico()); });
+    return () => { vigente = false; };
+  }, []);
   const [busqueda, setBusqueda] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('');
   const [dialogo, setDialogo] = useState(false);

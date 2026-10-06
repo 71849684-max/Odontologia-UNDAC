@@ -14,6 +14,7 @@ final class ContextoDesdePeticion
 
         return new ContextoOperacion(
             idUsuario: $usuario instanceof Cuenta ? $usuario->id() : null,
+            tipoUsuario: $usuario instanceof Cuenta ? $usuario->tipoCuenta() : null,
             nombreUsuario: $usuario instanceof Cuenta ? $usuario->nombreUsuario() : null,
             direccionIp: $solicitud->ip(),
             agenteUsuario: $solicitud->userAgent(),

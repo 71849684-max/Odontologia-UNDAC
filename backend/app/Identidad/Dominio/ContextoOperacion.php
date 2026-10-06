@@ -10,6 +10,7 @@ final readonly class ContextoOperacion
 {
     public function __construct(
         public ?int $idUsuario,
+        public ?string $tipoUsuario,
         public ?string $nombreUsuario,
         public ?string $direccionIp,
         public ?string $agenteUsuario,

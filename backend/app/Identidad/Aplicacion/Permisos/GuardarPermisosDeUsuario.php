@@ -20,22 +20,22 @@ class GuardarPermisosDeUsuario
      * @param  list<int>  $idsPermisos
      * @return array<string, mixed>
      */
-    public function ejecutar(int $idUsuario, array $idsPermisos, int $idOperador, ContextoOperacion $contexto): array
+    public function ejecutar(string $clave, array $idsPermisos, int $idOperador, ContextoOperacion $contexto): array
     {
-        $cuenta = $this->usuarios->buscarPorId($idUsuario);
+        $cuenta = $this->usuarios->buscarPorId($clave);
         $antes = $this->permisos->idsEfectivos($cuenta);
         $this->permisos->sincronizar($cuenta, $idsPermisos, $idOperador);
         $despues = $this->permisos->idsEfectivos($cuenta);
 
         $this->auditoria->registrar(
             $contexto,
-            'usuario_permiso',
-            $cuenta->id(),
+            'rol_submodulo',
+            $cuenta->clave(),
             'EDITAR',
             ['efectivos' => $antes],
             ['efectivos' => $despues],
         );
 
-        return $this->consulta->ejecutar($idUsuario);
+        return $this->consulta->ejecutar($clave);
     }
 }

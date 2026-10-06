@@ -14,7 +14,9 @@ import {
   guardarDocentesRotacion,
   guardarMembresias,
   obtenerEstadoAcademico,
-} from '../../servicios/repositorioAcademicoLocal.js';
+  sincronizarAcademico,
+} from '../../servicios/servicioAcademico.js';
+import { mensajeError } from '../../servicios/servicioClinico.js';
 
 const GRUPO_VACIO = { codigo: '', nombre: '', semestre: '', estado: 'activo' };
 const PERIODO_VACIO = { codigo: '', nombre: '', fechaInicio: '', fechaFin: '', estado: 'activo' };
@@ -24,13 +26,13 @@ function PeriodDialog({ open, triggerRef, onClose, onCreated }) {
   const [error, setError] = useState('');
   const dialogRef = useModalDialog(open, onClose, triggerRef);
   if (!open) return null;
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     try {
-      onCreated(crearPeriodo(formulario));
+      onCreated(await crearPeriodo(formulario));
       setFormulario(PERIODO_VACIO);
       setError('');
-    } catch (err) { setError(err?.mensaje || 'No se pudo guardar el periodo.'); }
+    } catch (err) { setError(mensajeError(err, 'No se pudo guardar el periodo.')); }
   }
   return createPortal(<div className="admin-dialogo-fondo" role="presentation" onClick={onClose}>
     <form ref={dialogRef} className="admin-dialogo" role="dialog" aria-modal="true" aria-labelledby="nuevo-periodo-titulo" onClick={(event) => event.stopPropagation()} onSubmit={submit}>
@@ -56,15 +58,15 @@ function GroupDialog({ open, triggerRef, onClose, onSaved, grupo }) {
     if (open) setFormulario(grupo ? { codigo: grupo.codigo, nombre: grupo.nombre, semestre: grupo.semestre, estado: grupo.estado } : GRUPO_VACIO);
   }, [open, grupo]);
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     try {
-      const guardado = grupo ? actualizarGrupo(grupo.id, formulario) : crearGrupo(formulario);
+      const guardado = await (grupo ? actualizarGrupo(grupo.id, formulario) : crearGrupo(formulario));
       setFormulario(GRUPO_VACIO);
       setError('');
       onSaved(guardado);
     } catch (err) {
-      setError(err?.mensaje || 'No se pudo guardar el grupo.');
+      setError(mensajeError(err, 'No se pudo guardar el grupo.'));
     }
   }
 
@@ -99,24 +101,24 @@ function MembersBlock({ estado, grupo, onRefresh }) {
     setSeleccionados((actual) => actual.includes(id) ? actual.filter((item) => item !== id) : [...actual, id]);
   }
 
-  function save() {
+  async function save() {
     if (!seleccionados.length) return;
     try {
-      guardarMembresias(grupo.id, seleccionados.map((personaId) => ({ personaId, funcion: 'estudiante', fechaInicio: new Date().toISOString().slice(0, 10), estado: 'activa' })));
+      await guardarMembresias(grupo.id, seleccionados.map((personaId) => ({ personaId, funcion: 'estudiante', fechaInicio: new Date().toISOString().slice(0, 10), estado: 'activa' })));
       setSeleccionados([]);
       setError('');
       onRefresh();
     } catch (err) {
-      setError(err?.mensaje || 'No se pudieron agregar los integrantes.');
+      setError(mensajeError(err, 'No se pudieron agregar los integrantes.'));
     }
   }
 
-  function finish(membresia) {
+  async function finish(membresia) {
     try {
-      finalizarMembresia(membresia.id, new Date().toISOString().slice(0, 10));
+      await finalizarMembresia(membresia.id, new Date().toISOString().slice(0, 10));
       setError('');
       onRefresh();
-    } catch (err) { setError(err?.mensaje || 'No se pudo finalizar la membresía.'); }
+    } catch (err) { setError(mensajeError(err, 'No se pudo finalizar la membresía.')); }
   }
 
   return <section className="hc-academic-block" aria-labelledby="integrantes-titulo">
@@ -140,16 +142,16 @@ function TeachersBlock({ estado, rotacionId, onRefresh }) {
     setSeleccionados((actual) => actual[id] ? Object.fromEntries(Object.entries(actual).filter(([key]) => key !== id)) : { ...actual, [id]: 'responsable' });
   }
 
-  function save() {
+  async function save() {
     const docentesNuevos = Object.entries(seleccionados).map(([personaId, funcion]) => ({ personaId, funcion }));
     if (!docentesNuevos.length) return;
     try {
-      guardarDocentesRotacion(rotacionId, docentesNuevos);
+      await guardarDocentesRotacion(rotacionId, docentesNuevos);
       setSeleccionados({});
       setError('');
       onRefresh();
     } catch (err) {
-      setError(err?.mensaje || 'No se pudieron asignar los docentes.');
+      setError(mensajeError(err, 'No se pudieron asignar los docentes.'));
     }
   }
 
@@ -171,13 +173,13 @@ function ExceptionalStudentsBlock({ estado, rotacionId, onRefresh }) {
   const asignados = (estado.asignacionesExcepcionales || []).filter((item) => item.rotacionId === rotacionId);
   const idsAsignados = new Set(asignados.map((item) => item.personaId));
   const disponibles = estado.personas.filter((item) => item.tipo === 'estudiante' && !idsAsignados.has(item.id));
-  function save() {
+  async function save() {
     try {
-      guardarAsignacionesExcepcionales(rotacionId, seleccionados.map((personaId) => ({ personaId })));
+      await guardarAsignacionesExcepcionales(rotacionId, seleccionados.map((personaId) => ({ personaId })));
       setSeleccionados([]);
       setError('');
       onRefresh();
-    } catch (err) { setError(err?.mensaje || 'No se pudo guardar la asignación excepcional.'); }
+    } catch (err) { setError(mensajeError(err, 'No se pudo guardar la asignación excepcional.')); }
   }
   return <section className="hc-academic-block" aria-labelledby="excepcionales-titulo">
     <header><div><h3 id="excepcionales-titulo">Asignaciones excepcionales</h3><p>Estudiantes que participan sin incorporar a todo su grupo.</p></div></header>
@@ -195,15 +197,15 @@ function RotationsBlock({ estado, grupo, onRefresh }) {
   const rotaciones = estado.rotaciones.filter((item) => item.grupoId === grupo.id);
   const rotacionSeleccionada = rotaciones.find((item) => item.id === seleccionada);
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault();
     try {
-      const rotacion = crearRotacion({ ...formulario, grupoId: grupo.id });
+      const rotacion = await crearRotacion({ ...formulario, grupoId: grupo.id });
       setSeleccionada(rotacion.id);
       setError('');
       onRefresh();
     } catch (err) {
-      setError(err?.mensaje || 'No se pudo agregar la rotación.');
+      setError(mensajeError(err, 'No se pudo agregar la rotación.'));
     }
   }
 
@@ -226,6 +228,11 @@ function RotationsBlock({ estado, grupo, onRefresh }) {
 
 export default function GruposAcademicosApp() {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
+  useEffect(() => {
+    let vigente = true;
+    sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch(() => { if (vigente) setEstado(obtenerEstadoAcademico()); });
+    return () => { vigente = false; };
+  }, []);
   const [grupoId, setGrupoId] = useState(() => estado.grupos[0]?.id || null);
   const [dialogo, setDialogo] = useState(false);
   const [grupoEditar, setGrupoEditar] = useState(null);
@@ -242,7 +249,7 @@ export default function GruposAcademicosApp() {
     const term = busqueda.trim().toLowerCase();
     const rotaciones = estado.rotaciones.filter((rotacion) => rotacion.grupoId === item.id);
     return (!term || `${item.codigo} ${item.nombre}`.toLowerCase().includes(term))
-      && (!filtroPeriodo || rotaciones.some((rotacion) => rotacion.periodoId === filtroPeriodo));
+      && (!filtroPeriodo || rotaciones.some((rotacion) => String(rotacion.periodoId) === String(filtroPeriodo)));
   }), [estado, busqueda, filtroPeriodo]);
 
   const rotacionesGrupo = grupo ? estado.rotaciones.filter((item) => item.grupoId === grupo.id) : [];

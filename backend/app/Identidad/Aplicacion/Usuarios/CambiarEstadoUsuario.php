@@ -19,23 +19,23 @@ class CambiarEstadoUsuario
     /**
      * @return array<string, mixed>
      */
-    public function ejecutar(int $idUsuario, bool $estado, int $idOperador, ContextoOperacion $contexto): array
+    public function ejecutar(string $clave, bool $estado, string $claveOperador, ContextoOperacion $contexto): array
     {
-        $cuenta = $this->usuarios->buscarPorId($idUsuario);
+        $cuenta = $this->usuarios->buscarPorId($clave);
 
-        if ($cuenta->id() === $idOperador && ! $estado) {
+        if ($cuenta->clave() === $claveOperador && ! $estado) {
             throw new OperacionNoPermitida('estado', 'No puedes desactivar tu propia cuenta.');
         }
 
         $antes = $this->usuarios->serializar($cuenta);
-        $cuenta = $this->usuarios->cambiarEstado($cuenta, $estado, $idOperador);
+        $cuenta = $this->usuarios->cambiarEstado($cuenta, $estado, (int) $contexto->idUsuario);
         $this->accesos->olvidarMemoria($cuenta);
         $despues = $this->usuarios->serializar($cuenta);
 
         $this->auditoria->registrar(
             $contexto,
-            'usuario',
-            $cuenta->id(),
+            $cuenta->tipoCuenta() === 'ALUMNO' ? 'usuario_alumno' : 'usuario_docente',
+            $cuenta->clave(),
             $estado ? 'ACTIVAR' : 'DESACTIVAR',
             $antes,
             $despues,

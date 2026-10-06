@@ -37,7 +37,7 @@ class AdministracionModuloTest extends TestCase
         $creado = $this->actingAs($admin, 'web')->postJson('/api/admin/usuarios', [
             'nombre_usuario' => 'nuevo.alumno',
             'contrasena' => 'ClaveNueva123*',
-            'codigo_rol' => 'ALUMNO_OPERADOR',
+            'codigo_rol' => 'ALUMNO',
             'tipo_documento' => 'DNI',
             'numero_documento' => '87654321',
             'nombres' => 'Ana',
@@ -47,20 +47,20 @@ class AdministracionModuloTest extends TestCase
             'estado' => true,
         ])->assertCreated()
             ->assertJsonPath('nombre_usuario', 'nuevo.alumno')
-            ->assertJsonPath('codigo_rol', 'ALUMNO_OPERADOR');
+            ->assertJsonPath('codigo_rol', 'ALUMNO');
 
-        $id = (int) $creado->json('id');
+        $id = (string) $creado->json('id');
 
-        $this->assertTrue(Hash::check('ClaveNueva123*', (string) DB::table('usuario')->where('id_usuario', $id)->value('contrasena_hash')));
+        $this->assertTrue(Hash::check('ClaveNueva123*', (string) DB::table('usuario_alumno')->where('nombre_usuario', 'nuevo.alumno')->value('contrasena_hash')));
         $this->assertDatabaseHas('auditoria', [
-            'tabla_afectada' => 'usuario',
-            'id_registro' => (string) $id,
+            'tabla_afectada' => 'usuario_alumno',
+            'id_registro' => $id,
             'accion' => 'CREAR',
         ]);
 
         $this->actingAs($admin, 'web')->putJson("/api/admin/usuarios/{$id}", [
             'nombre_usuario' => 'nuevo.alumno',
-            'codigo_rol' => 'DOCENTE',
+            'codigo_rol' => 'ALUMNO',
             'tipo_documento' => 'DNI',
             'numero_documento' => '87654321',
             'nombres' => 'Ana Maria',
@@ -69,7 +69,7 @@ class AdministracionModuloTest extends TestCase
             'telefono' => '999111222',
             'estado' => true,
         ])->assertOk()
-            ->assertJsonPath('codigo_rol', 'DOCENTE')
+            ->assertJsonPath('codigo_rol', 'ALUMNO')
             ->assertJsonPath('nombres', 'Ana Maria');
     }
 
@@ -87,7 +87,7 @@ class AdministracionModuloTest extends TestCase
         $admin = $this->crearUsuario('admin.perms', self::CLAVE, 'ADMINISTRADOR');
         $docente = $this->crearUsuario('docente.perms', self::CLAVE, 'DOCENTE');
 
-        $idAuditoriaVer = (int) DB::table('permiso')->where('codigo_permiso', 'AUDITORIA.VER')->value('id_permiso');
+        $idBitacora = (int) DB::table('submodulo')->where('codigo_submodulo', 'BITACORA')->value('id_submodulo');
 
         $respuesta = $this->actingAs($admin, 'web')
             ->getJson('/api/admin/usuarios/'.$docente->getKey().'/permisos')
@@ -95,20 +95,20 @@ class AdministracionModuloTest extends TestCase
 
         $efectivos = $respuesta->json('efectivos');
         $this->assertIsArray($efectivos);
-        $this->assertNotContains($idAuditoriaVer, $efectivos);
+        $this->assertNotContains($idBitacora, $efectivos);
 
-        $nuevos = array_values(array_unique([...$efectivos, $idAuditoriaVer]));
+        $nuevos = array_values(array_unique([...$efectivos, $idBitacora]));
 
         $this->actingAs($admin, 'web')
             ->putJson('/api/admin/usuarios/'.$docente->getKey().'/permisos', ['permisos' => $nuevos])
             ->assertOk()
-            ->assertJsonFragment(['id' => $idAuditoriaVer]);
+            ->assertJsonFragment(['id' => $idBitacora]);
 
         $this->assertTrue(
-            DB::table('vista_permisos_efectivos')
-                ->where('id_usuario', $docente->getKey())
-                ->where('id_permiso', $idAuditoriaVer)
-                ->where('permitido', 1)
+            DB::table('rol_submodulo')
+                ->where('id_rol', $docente->idRol())
+                ->where('id_submodulo', $idBitacora)
+                ->where('estado', 1)
                 ->exists()
         );
 
@@ -117,8 +117,9 @@ class AdministracionModuloTest extends TestCase
             ->assertOk();
 
         $this->assertFalse(
-            DB::table('usuario_permiso')
-                ->where('id_usuario', $docente->getKey())
+            DB::table('rol_submodulo')
+                ->where('id_rol', $docente->idRol())
+                ->where('id_submodulo', $idBitacora)
                 ->exists()
         );
     }

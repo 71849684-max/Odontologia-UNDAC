@@ -65,6 +65,26 @@ class Usuario extends Authenticatable implements Cuenta
         return (int) $this->getKey();
     }
 
+    public function tipoCuenta(): string
+    {
+        return 'DOCENTE';
+    }
+
+    public function clave(): string
+    {
+        return 'DOCENTE-'.$this->id();
+    }
+
+    public function idActor(): int
+    {
+        return (int) $this->id_persona;
+    }
+
+    public function idRol(): int
+    {
+        return 0;
+    }
+
     public function nombreUsuario(): string
     {
         return (string) $this->nombre_usuario;

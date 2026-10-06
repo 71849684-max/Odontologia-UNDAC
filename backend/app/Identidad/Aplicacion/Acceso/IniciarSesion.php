@@ -81,7 +81,8 @@ class IniciarSesion
     {
         return [
             'usuario' => [
-                'id' => $cuenta->id(),
+                'id' => $cuenta->clave(),
+                'tipo_usuario' => $cuenta->tipoCuenta(),
                 'nombre_usuario' => $cuenta->nombreUsuario(),
                 'nombre' => $cuenta->nombreCompleto(),
                 'correo' => $cuenta->correo(),

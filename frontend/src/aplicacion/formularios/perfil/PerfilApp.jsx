@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Save, UserRound } from 'lucide-react';
-import { actualizarPerfil, obtenerEstadoAcademico } from '../../servicios/repositorioAcademicoLocal.js';
+import { actualizarPerfil, obtenerEstadoAcademico, sincronizarAcademico } from '../../servicios/servicioAcademico.js';
+import { mensajeError } from '../../servicios/servicioClinico.js';
 
 function nombreSesion(usuario) {
   const partes = String(usuario?.nombre || '').replace(/^(Dr|Dra)\.\s*/i, '').trim().split(/\s+/).filter(Boolean);
@@ -66,6 +67,11 @@ function detalleAsignaciones(estado, perfil) {
 export default function PerfilApp({ usuario, rol }) {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
   const [formulario, setFormulario] = useState(() => prepararPerfil(estado, usuario, rol));
+  useEffect(() => {
+    let vigente = true;
+    sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch(() => {});
+    return () => { vigente = false; };
+  }, []);
   const [mensaje, setMensaje] = useState('');
   const asignaciones = useMemo(() => detalleAsignaciones(estado, formulario), [estado, formulario]);
 
@@ -81,7 +87,7 @@ export default function PerfilApp({ usuario, rol }) {
       setEstado(obtenerEstadoAcademico());
       setMensaje('Perfil actualizado');
     } catch (error) {
-      setMensaje(error?.mensaje || 'No se pudo guardar el perfil.');
+      setMensaje(mensajeError(error, 'No se pudo guardar el perfil.'));
     }
   }
 

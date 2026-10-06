@@ -25,7 +25,7 @@ class CrearUsuario
         $this->accesos->olvidarMemoria($cuenta);
         $serializado = $this->usuarios->serializar($cuenta);
 
-        $this->auditoria->registrar($contexto, 'usuario', $cuenta->id(), 'CREAR', null, $serializado);
+        $this->auditoria->registrar($contexto, $cuenta->tipoCuenta() === 'ALUMNO' ? 'usuario_alumno' : 'usuario_docente', $cuenta->clave(), 'CREAR', null, $serializado);
 
         return $serializado;
     }

@@ -5,6 +5,7 @@ import { Maximize2, X } from 'lucide-react';
 import './odontograma.css';
 import { arches, temporaryArches, toothSurfaces, stateFor, clinicalColor, markCode } from './odontograma.config.mjs';
 import { readRecord, updateExamination, closeExamination, addExamination, addFinding, removeFinding, toothFindings, examinationReasons, localDate } from './odontogramaRegistro.mjs';
+import { guardarOdontograma, idHistoria } from '../../servicios/servicioClinico.js';
 import { OdontogramRow } from './GraficoOdontograma.jsx';
 import GuiaSuperficies, { LeyendaSuperficies } from './GuiaSuperficies.jsx';
 import { SectionCard } from '../compartidos/ControlesClinicos.jsx';
@@ -17,7 +18,7 @@ function load(patientId, key) {
 
 
 // El padre usa una key por historia para aislar los pacientes también en memoria.
-export default function Odontograma({ patientId = 'sin-historia', patientName = '', historyCode = '' }) {
+export default function Odontograma({ patientId = 'sin-historia', patientName = '', historyCode = '', historyId = null }) {
   const storageKey = `undac:odontograma:nts188:v1:${patientId}`;
   const [initial] = useState(() => load(patientId, storageKey));
   const [record, setRecord] = useState(initial.record);
@@ -59,7 +60,9 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
       const raw = JSON.stringify(next);
       localStorage.setItem(storageKey, raw);
       expectedRaw.current = raw;
-      setRecord(next); setError(''); setMessage('Guardado en este navegador.');
+      setRecord(next); setError(''); setMessage(idHistoria(historyId) ? 'Guardado en la historia clínica.' : 'Guardado en este navegador.');
+      const servidor = idHistoria(historyId);
+      if (servidor) guardarOdontograma(servidor, next).catch(() => setMessage('Guardado en este navegador. No se pudo sincronizar con el servidor.'));
       return true;
     } catch (e) { setError(`No se guardó el cambio. ${e.message}`); setMessage(''); return false; }
   };
@@ -104,7 +107,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
     <div className="nts-mobile-modal" onMouseDown={(event) => { if (event.target === event.currentTarget) { setActionTarget(null); setMobileOpen(false); } }}>
       <div className="nts-mobile-modal__window" role={mobileOpen ? 'dialog' : undefined} aria-modal={mobileOpen || undefined} aria-label={mobileOpen ? 'Odontograma' : undefined}>{mobileOpen ? <header className="nts-mobile-modal__header"><div><strong>Odontograma</strong><small>Toque una superficie para ver sus acciones.</small></div><button type="button" className="hc-mini-button" onClick={() => { setActionTarget(null); setMobileOpen(false); }} aria-label="Cerrar odontograma"><X size={18} /></button></header> : null}
     <SectionCard title="Odontograma" subtitle="Seleccione una superficie para abrir sus acciones y registrar el hallazgo.">
-      <div className="nts-notice">{patientName || 'Paciente sin datos'} · {historyCode || 'Sin historia'}. Los cambios se conservan únicamente en este navegador; el cierre local no constituye firma digital.</div>
+      <div className="nts-notice">{patientName || 'Paciente sin datos'} · {historyCode || 'Sin historia'}. {idHistoria(historyId) ? 'Los cambios se guardan en la historia clínica. El cierre local no constituye firma digital.' : 'Los cambios se conservan únicamente en este navegador; el cierre local no constituye firma digital.'}</div>
       <details className="nts-evaluation-details nts-no-print"><summary>Datos de la evaluación</summary>
       <div className="nts-record-toolbar">
         <label className="undac-field"><span>Evaluación</span><select value={exam.id} onChange={(e) => { setExamId(e.target.value); resetEditor(); }}>{record.examinations.map((e, i) => <option key={e.id} value={e.id}>{i + 1}. {e.reason} · {e.date} · {e.status === 'closed' ? 'Cerrada' : 'Borrador'}</option>)}</select></label>

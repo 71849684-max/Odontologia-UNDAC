@@ -2,15 +2,12 @@
 
 namespace Tests;
 
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Persona;
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Rol;
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Usuario;
+use App\Identidad\Infraestructura\Persistencia\CuentaSistema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * El esquema clinico no tiene factories: persona y usuario se crean a mano
- * sobre las mismas tablas que usa la aplicacion.
+ * Crea cuentas sobre alumno/docente, que es el esquema real de la clínica.
  */
 trait CreaUsuarios
 {
@@ -19,33 +16,36 @@ trait CreaUsuarios
         string $contrasena,
         ?string $codigoRol = null,
         bool $estado = true,
-    ): Usuario {
-        $persona = Persona::create([
+    ): CuentaSistema {
+        $codigoRol ??= 'ALUMNO';
+        $rol = DB::table('rol')->where('codigo_rol', $codigoRol)->first();
+        $tipo = $rol->tipo_usuario;
+        $documento = str_pad((string) random_int(1, 99999999), 8, '0', STR_PAD_LEFT);
+        $tablaActor = $tipo === 'ALUMNO' ? 'alumno' : 'docente';
+        $columnaActor = $tipo === 'ALUMNO' ? 'id_alumno' : 'id_docente';
+        $columnaCodigo = $tipo === 'ALUMNO' ? 'codigo_alumno' : 'codigo_docente';
+
+        $idActor = DB::table($tablaActor)->insertGetId([
+            $columnaCodigo => ($tipo === 'ALUMNO' ? 'ALU-' : 'DOC-').$documento,
             'tipo_documento' => 'DNI',
-            'numero_documento' => str_pad((string) random_int(1, 99999999), 8, '0', STR_PAD_LEFT),
+            'numero_documento' => $documento,
             'nombres' => 'Persona',
             'apellidos' => 'De Prueba',
-            'estado' => true,
+            'estado' => 1,
+            'creado_en' => now(),
         ]);
 
-        $usuario = new Usuario;
-        $usuario->forceFill([
-            'id_persona' => $persona->getKey(),
+        $idUsuario = DB::table($tipo === 'ALUMNO' ? 'usuario_alumno' : 'usuario_docente')->insertGetId([
+            $columnaActor => $idActor,
+            'id_rol' => $rol->id_rol,
             'nombre_usuario' => $nombreUsuario,
             'contrasena_hash' => Hash::make($contrasena),
-            'estado' => $estado,
+            'estado' => $estado ? 1 : 0,
             'intentos_fallidos' => 0,
-        ])->save();
+            'creado_en' => now(),
+        ]);
 
-        if ($codigoRol !== null) {
-            DB::table('usuario_rol')->insert([
-                'id_usuario' => $usuario->getKey(),
-                'id_rol' => Rol::where('codigo_rol', $codigoRol)->value('id_rol'),
-                'permitido' => 1,
-                'asignado_en' => now(),
-            ]);
-        }
-
-        return $usuario;
+        return app(\App\Identidad\Dominio\Contratos\RepositorioUsuarios::class)
+            ->buscarPorId(($tipo === 'ALUMNO' ? 'ALUMNO-' : 'DOCENTE-').$idUsuario);
     }
 }

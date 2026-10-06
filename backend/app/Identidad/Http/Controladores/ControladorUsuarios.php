@@ -42,7 +42,7 @@ class ControladorUsuarios extends Controller
         ]));
     }
 
-    public function mostrar(int $idUsuario): JsonResponse
+    public function mostrar(string $idUsuario): JsonResponse
     {
         return response()->json($this->mostrarUsuario->ejecutar($idUsuario));
     }
@@ -65,7 +65,7 @@ class ControladorUsuarios extends Controller
         return response()->json($payload, 201);
     }
 
-    public function actualizar(SolicitudGuardarUsuario $solicitud, int $idUsuario): JsonResponse
+    public function actualizar(SolicitudGuardarUsuario $solicitud, string $idUsuario): JsonResponse
     {
         /** @var Cuenta $operador */
         $operador = $solicitud->user();
@@ -74,7 +74,7 @@ class ControladorUsuarios extends Controller
             $payload = $this->actualizarUsuario->ejecutar(
                 $idUsuario,
                 $solicitud->validated(),
-                $operador->id(),
+                $operador->clave(),
                 ContextoDesdePeticion::de($solicitud),
             );
         } catch (OperacionNoPermitida $excepcion) {
@@ -84,7 +84,7 @@ class ControladorUsuarios extends Controller
         return response()->json($payload);
     }
 
-    public function cambiarEstado(Request $solicitud, int $idUsuario): JsonResponse
+    public function cambiarEstado(Request $solicitud, string $idUsuario): JsonResponse
     {
         $solicitud->validate([
             'estado' => ['required', 'boolean'],
@@ -97,7 +97,7 @@ class ControladorUsuarios extends Controller
             $payload = $this->cambiarEstadoUsuario->ejecutar(
                 $idUsuario,
                 $solicitud->boolean('estado'),
-                $operador->id(),
+                $operador->clave(),
                 ContextoDesdePeticion::de($solicitud),
             );
         } catch (OperacionNoPermitida $excepcion) {

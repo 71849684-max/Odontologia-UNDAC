@@ -1,5 +1,6 @@
 <?php
 
+use App\Clinica\Http\Middleware\AsegurarSubmodulo;
 use App\Identidad\Http\Middleware\AsegurarRol;
 use App\Identidad\Http\Middleware\AsegurarUsuarioActivo;
 use Illuminate\Auth\AuthenticationException;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'rol' => AsegurarRol::class,
             'usuario.activo' => AsegurarUsuarioActivo::class,
+            'acceso' => AsegurarSubmodulo::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

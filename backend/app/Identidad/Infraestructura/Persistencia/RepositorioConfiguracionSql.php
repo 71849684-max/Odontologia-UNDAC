@@ -8,6 +8,11 @@ use Illuminate\Support\Facades\DB;
 
 class RepositorioConfiguracionSql implements RepositorioConfiguracion
 {
+    /** @var list<string> */
+    private const BOOLEANOS = [
+        'ELIMINACION_CLINICA_PERMITIDA',
+    ];
+
     public function listar(): array
     {
         return DB::table('configuracion_sistema')
@@ -23,10 +28,10 @@ class RepositorioConfiguracionSql implements RepositorioConfiguracion
         $codigos = array_keys($valores);
 
         $existentes = DB::table('configuracion_sistema')
-            ->whereIn('codigo_configuracion', $codigos)
+            ->whereIn('clave', $codigos)
             ->where('estado', 1)
             ->get()
-            ->keyBy('codigo_configuracion');
+            ->keyBy('clave');
 
         $desconocidos = array_diff($codigos, $existentes->keys()->all());
 
@@ -42,21 +47,21 @@ class RepositorioConfiguracionSql implements RepositorioConfiguracion
 
         foreach ($valores as $codigo => $valor) {
             $fila = $existentes[$codigo];
-            $antes[$codigo] = $fila->valor_texto;
+            $antes[$codigo] = $fila->valor;
+            $texto = $valor === null ? null : (string) $valor;
 
-            if ($fila->tipo_valor === 'BOOLEANO') {
-                $valor = filter_var($valor, FILTER_VALIDATE_BOOLEAN) ? '1' : '0';
+            if (in_array($codigo, self::BOOLEANOS, true)) {
+                $texto = filter_var($valor, FILTER_VALIDATE_BOOLEAN) ? '1' : '0';
             }
 
             DB::table('configuracion_sistema')
                 ->where('id_configuracion', $fila->id_configuracion)
                 ->update([
-                    'valor_texto' => $valor,
+                    'valor' => $texto,
                     'actualizado_en' => now(),
-                    'actualizado_por' => $idOperador,
                 ]);
 
-            $despues[$codigo] = $valor;
+            $despues[$codigo] = $texto;
         }
 
         return ['antes' => $antes, 'despues' => $despues];
@@ -67,18 +72,17 @@ class RepositorioConfiguracionSql implements RepositorioConfiguracion
      */
     private function serializar(object $fila): array
     {
-        $valor = $fila->valor_texto;
-
-        if ($fila->tipo_valor === 'BOOLEANO') {
-            $valor = filter_var($fila->valor_texto, FILTER_VALIDATE_BOOLEAN);
-        }
+        $booleano = in_array($fila->clave, self::BOOLEANOS, true);
+        $valor = $booleano
+            ? filter_var($fila->valor, FILTER_VALIDATE_BOOLEAN)
+            : $fila->valor;
 
         return [
             'id' => (int) $fila->id_configuracion,
-            'codigo' => $fila->codigo_configuracion,
-            'nombre' => $fila->nombre_configuracion,
+            'codigo' => $fila->clave,
+            'nombre' => $fila->descripcion ?: $fila->clave,
             'valor' => $valor,
-            'tipo' => $fila->tipo_valor,
+            'tipo' => $booleano ? 'BOOLEANO' : 'TEXTO',
             'descripcion' => $fila->descripcion,
             'actualizado_en' => $fila->actualizado_en,
         ];

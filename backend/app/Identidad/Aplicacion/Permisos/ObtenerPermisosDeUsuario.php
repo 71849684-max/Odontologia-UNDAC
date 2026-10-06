@@ -17,15 +17,15 @@ class ObtenerPermisosDeUsuario
     /**
      * @return array<string, mixed>
      */
-    public function ejecutar(int $idUsuario): array
+    public function ejecutar(string $clave): array
     {
-        $cuenta = $this->usuarios->buscarPorId($idUsuario);
+        $cuenta = $this->usuarios->buscarPorId($clave);
         $delRol = $this->permisos->idsDelRol($cuenta);
         $efectivos = $this->permisos->idsEfectivos($cuenta);
 
         return [
             'usuario' => [
-                'id' => $cuenta->id(),
+                'id' => $cuenta->clave(),
                 'nombre' => $cuenta->nombreCompleto(),
                 'nombre_usuario' => $cuenta->nombreUsuario(),
                 'roles' => $this->accesos->roles($cuenta),

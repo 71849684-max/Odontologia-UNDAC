@@ -2,9 +2,12 @@
 
 namespace App\Identidad\Http\Solicitudes\Admin;
 
+use App\Identidad\Dominio\ClaveCuenta;
 use App\Identidad\Dominio\Contratos\RepositorioUsuarios;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 class SolicitudGuardarUsuario extends FormRequest
 {
@@ -18,15 +21,28 @@ class SolicitudGuardarUsuario extends FormRequest
      */
     public function rules(): array
     {
-        $idUsuario = $this->route('idUsuario');
         $esCreacion = $this->isMethod('POST');
+        $clave = (string) $this->route('idUsuario');
 
         return [
             'nombre_usuario' => [
                 'required',
                 'string',
-                'max:80',
-                Rule::unique('usuario', 'nombre_usuario')->ignore($idUsuario, 'id_usuario'),
+                'max:120',
+                function (string $atributo, mixed $valor, \Closure $fallo) use ($clave): void {
+                    $ocupado = DB::table('usuario_alumno')->where('nombre_usuario', $valor)->when(
+                        $this->tipoDe($clave) === 'ALUMNO',
+                        fn ($q) => $q->where('id_usuario_alumno', '!=', $this->idDe($clave)),
+                    )->exists()
+                        || DB::table('usuario_docente')->where('nombre_usuario', $valor)->when(
+                            $this->tipoDe($clave) === 'DOCENTE',
+                            fn ($q) => $q->where('id_usuario_docente', '!=', $this->idDe($clave)),
+                        )->exists();
+
+                    if ($ocupado) {
+                        $fallo('Ese correo institucional ya esta en uso.');
+                    }
+                },
             ],
             'contrasena' => [$esCreacion ? 'required' : 'nullable', 'string', 'min:8', 'max:255'],
             'estado' => ['sometimes', 'boolean'],
@@ -36,9 +52,29 @@ class SolicitudGuardarUsuario extends FormRequest
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('persona', 'numero_documento')
-                    ->where(fn ($consulta) => $consulta->where('tipo_documento', $this->input('tipo_documento')))
-                    ->ignore($this->idPersonaActual(), 'id_persona'),
+                function (string $atributo, mixed $valor, \Closure $fallo): void {
+                    $tipo = (string) $this->input('tipo_documento');
+                    $clave = (string) $this->route('idUsuario');
+                    $tipoCuenta = $this->tipoDe($clave);
+                    $idActor = $clave !== ''
+                        ? app(RepositorioUsuarios::class)->idActorDe($clave)
+                        : null;
+
+                    $enAlumno = DB::table('alumno')
+                        ->where('tipo_documento', $tipo)
+                        ->where('numero_documento', $valor)
+                        ->when($tipoCuenta === 'ALUMNO' && $idActor, fn ($q) => $q->where('id_alumno', '!=', $idActor))
+                        ->exists();
+                    $enDocente = DB::table('docente')
+                        ->where('tipo_documento', $tipo)
+                        ->where('numero_documento', $valor)
+                        ->when($tipoCuenta === 'DOCENTE' && $idActor, fn ($q) => $q->where('id_docente', '!=', $idActor))
+                        ->exists();
+
+                    if ($enAlumno || $enDocente) {
+                        $fallo('Ya existe una persona con ese documento.');
+                    }
+                },
             ],
             'nombres' => ['required', 'string', 'max:100'],
             'apellidos' => ['required', 'string', 'max:120'],
@@ -54,25 +90,30 @@ class SolicitudGuardarUsuario extends FormRequest
     {
         return [
             'nombre_usuario.required' => 'Ingresa el correo institucional.',
-            'nombre_usuario.unique' => 'Ese correo institucional ya esta en uso.',
             'contrasena.required' => 'Define una contrasena inicial.',
             'contrasena.min' => 'La contrasena debe tener al menos 8 caracteres.',
             'codigo_rol.required' => 'Selecciona un rol.',
             'codigo_rol.exists' => 'El rol indicado no existe o esta inactivo.',
-            'numero_documento.unique' => 'Ya existe una persona con ese documento.',
             'nombres.required' => 'Ingresa los nombres.',
             'apellidos.required' => 'Ingresa los apellidos.',
         ];
     }
 
-    private function idPersonaActual(): ?int
+    private function tipoDe(string $clave): ?string
     {
-        $idUsuario = $this->route('idUsuario');
-
-        if ($idUsuario === null) {
+        try {
+            return ClaveCuenta::partes($clave)[0];
+        } catch (InvalidArgumentException) {
             return null;
         }
+    }
 
-        return app(RepositorioUsuarios::class)->idPersonaDe((int) $idUsuario);
+    private function idDe(string $clave): int
+    {
+        try {
+            return ClaveCuenta::partes($clave)[1];
+        } catch (InvalidArgumentException) {
+            return 0;
+        }
     }
 }

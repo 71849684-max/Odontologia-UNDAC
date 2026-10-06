@@ -115,6 +115,7 @@ export default function ClinicalWorkspace({ onExit }) {
                 patientId={history.codigo}
                 patientName={patient.nombres}
                 historyCode={history.codigo}
+                historyId={history.id}
               /> : <div className="undac-card"><p>Sección preparada para implementación.</p></div>}
             </div>
           </section>

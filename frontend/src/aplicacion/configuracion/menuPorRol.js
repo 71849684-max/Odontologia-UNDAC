@@ -5,12 +5,13 @@
 export const PERFIL_POR_CODIGO_ROL = {
     ADMINISTRADOR: 'administrador',
     DOCENTE: 'docente',
+    ALUMNO: 'alumno',
     ALUMNO_OPERADOR: 'alumno',
     ADMINISTRATIVO: 'administrativo',
 };
 
 /** Si el usuario tiene varios roles, gana el de mayor alcance. */
-const PRIORIDAD_DE_ROLES = ['ADMINISTRADOR', 'DOCENTE', 'ALUMNO_OPERADOR', 'ADMINISTRATIVO'];
+const PRIORIDAD_DE_ROLES = ['ADMINISTRADOR', 'DOCENTE', 'ALUMNO', 'ALUMNO_OPERADOR', 'ADMINISTRATIVO'];
 
 export function perfilDesdeRoles(roles = []) {
     const codigo = PRIORIDAD_DE_ROLES.find((candidato) => roles.includes(candidato));

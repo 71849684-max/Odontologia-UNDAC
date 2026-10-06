@@ -18,7 +18,7 @@ class SolicitudGuardarPermisos extends FormRequest
     {
         return [
             'permisos' => ['required', 'array'],
-            'permisos.*' => ['integer', 'distinct', 'exists:permiso,id_permiso'],
+            'permisos.*' => ['integer', 'distinct', 'exists:submodulo,id_submodulo'],
         ];
     }
 

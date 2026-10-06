@@ -19,22 +19,22 @@ class RestaurarPermisosDeUsuario
     /**
      * @return array<string, mixed>
      */
-    public function ejecutar(int $idUsuario, ContextoOperacion $contexto): array
+    public function ejecutar(string $clave, ContextoOperacion $contexto): array
     {
-        $cuenta = $this->usuarios->buscarPorId($idUsuario);
+        $cuenta = $this->usuarios->buscarPorId($clave);
         $antes = $this->permisos->idsEfectivos($cuenta);
         $this->permisos->restaurarRol($cuenta);
         $despues = $this->permisos->idsEfectivos($cuenta);
 
         $this->auditoria->registrar(
             $contexto,
-            'usuario_permiso',
-            $cuenta->id(),
+            'rol_submodulo',
+            $cuenta->clave(),
             'RESTAURAR',
             ['efectivos' => $antes],
             ['efectivos' => $despues],
         );
 
-        return $this->consulta->ejecutar($idUsuario);
+        return $this->consulta->ejecutar($clave);
     }
 }

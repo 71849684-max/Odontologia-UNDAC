@@ -8,9 +8,9 @@ interface RepositorioUsuarios
 {
     public function buscarPorNombre(string $nombreUsuario): ?Cuenta;
 
-    public function buscarPorId(int $idUsuario): Cuenta;
+    public function buscarPorId(string $clave): Cuenta;
 
-    public function idPersonaDe(int $idUsuario): ?int;
+    public function idActorDe(string $clave): ?int;
 
     /**
      * @param  array{q?: string, rol?: string, estado?: mixed}  $filtros

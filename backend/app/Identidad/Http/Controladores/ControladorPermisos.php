@@ -27,12 +27,12 @@ class ControladorPermisos extends Controller
         return response()->json($this->catalogo->ejecutar());
     }
 
-    public function deUsuario(int $idUsuario): JsonResponse
+    public function deUsuario(string $idUsuario): JsonResponse
     {
         return response()->json($this->deUsuario->ejecutar($idUsuario));
     }
 
-    public function guardar(SolicitudGuardarPermisos $solicitud, int $idUsuario): JsonResponse
+    public function guardar(SolicitudGuardarPermisos $solicitud, string $idUsuario): JsonResponse
     {
         /** @var Cuenta $operador */
         $operador = $solicitud->user();
@@ -45,7 +45,7 @@ class ControladorPermisos extends Controller
         ));
     }
 
-    public function restaurar(Request $solicitud, int $idUsuario): JsonResponse
+    public function restaurar(Request $solicitud, string $idUsuario): JsonResponse
     {
         return response()->json($this->restaurarPermisos->ejecutar(
             $idUsuario,

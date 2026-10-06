@@ -1,7 +1,5 @@
 <?php
 
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Usuario;
-
 return [
 
     /*
@@ -63,8 +61,7 @@ return [
 
     'providers' => [
         'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', Usuario::class),
+            'driver' => 'cuentas',
         ],
 
         // 'users' => [

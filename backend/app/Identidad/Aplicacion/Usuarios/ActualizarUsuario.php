@@ -20,11 +20,11 @@ class ActualizarUsuario
      * @param  array<string, mixed>  $datos
      * @return array<string, mixed>
      */
-    public function ejecutar(int $idUsuario, array $datos, int $idOperador, ContextoOperacion $contexto): array
+    public function ejecutar(string $clave, array $datos, string $claveOperador, ContextoOperacion $contexto): array
     {
-        $cuenta = $this->usuarios->buscarPorId($idUsuario);
+        $cuenta = $this->usuarios->buscarPorId($clave);
 
-        if ($cuenta->id() === $idOperador
+        if ($cuenta->clave() === $claveOperador
             && array_key_exists('estado', $datos)
             && ! $datos['estado']
         ) {
@@ -32,11 +32,11 @@ class ActualizarUsuario
         }
 
         $antes = $this->usuarios->serializar($cuenta);
-        $cuenta = $this->usuarios->actualizar($cuenta, $datos, $idOperador);
+        $cuenta = $this->usuarios->actualizar($cuenta, $datos, (int) $contexto->idUsuario);
         $this->accesos->olvidarMemoria($cuenta);
         $despues = $this->usuarios->serializar($cuenta);
 
-        $this->auditoria->registrar($contexto, 'usuario', $cuenta->id(), 'EDITAR', $antes, $despues);
+        $this->auditoria->registrar($contexto, $cuenta->tipoCuenta() === 'ALUMNO' ? 'usuario_alumno' : 'usuario_docente', $cuenta->clave(), 'EDITAR', $antes, $despues);
 
         return $despues;
     }

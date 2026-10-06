@@ -12,12 +12,13 @@ class RepositorioRolesEloquent implements RepositorioRoles
         return Rol::query()
             ->where('estado', 1)
             ->orderBy('nombre_rol')
-            ->get(['id_rol', 'codigo_rol', 'nombre_rol', 'descripcion_rol'])
+            ->get(['id_rol', 'codigo_rol', 'nombre_rol', 'descripcion', 'tipo_usuario'])
             ->map(fn (Rol $rol) => [
                 'id' => (int) $rol->getKey(),
                 'codigo' => $rol->codigo_rol,
                 'nombre' => $rol->nombre_rol,
-                'descripcion' => $rol->descripcion_rol,
+                'descripcion' => $rol->descripcion,
+                'tipo_usuario' => $rol->tipo_usuario,
             ])
             ->all();
     }

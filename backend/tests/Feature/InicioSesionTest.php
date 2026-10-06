@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Identidad\Infraestructura\Persistencia\Eloquent\Usuario;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\CreaUsuarios;
@@ -31,8 +30,8 @@ class InicioSesionTest extends TestCase
         $this->assertAuthenticatedAs($usuario->fresh(), 'web');
         $this->assertNotNull($usuario->fresh()->ultimo_inicio_sesion);
 
-        $this->assertDatabaseHas('login_historial', [
-            'id_usuario' => $usuario->getKey(),
+        $this->assertDatabaseHas('login_historial_docente', [
+            'id_usuario_docente' => $usuario->id(),
             'exito' => 1,
             'motivo_fallo' => null,
         ]);
@@ -50,7 +49,7 @@ class InicioSesionTest extends TestCase
 
     public function test_la_contrasena_incorrecta_devuelve_un_mensaje_generico_y_queda_registrada(): void
     {
-        $usuario = $this->crearUsuario('alumno.prueba', self::CLAVE, 'ALUMNO_OPERADOR');
+        $usuario = $this->crearUsuario('alumno.prueba', self::CLAVE, 'ALUMNO');
 
         $this->postJson('/api/auth/login', [
             'nombre_usuario' => 'alumno.prueba',
@@ -59,8 +58,8 @@ class InicioSesionTest extends TestCase
 
         $this->assertGuest('web');
         $this->assertSame(1, $usuario->fresh()->intentos_fallidos);
-        $this->assertDatabaseHas('login_historial', [
-            'id_usuario' => $usuario->getKey(),
+        $this->assertDatabaseHas('login_historial_alumno', [
+            'id_usuario_alumno' => $usuario->id(),
             'exito' => 0,
             'motivo_fallo' => 'CONTRASENA_INCORRECTA',
         ]);
@@ -73,7 +72,7 @@ class InicioSesionTest extends TestCase
             'contrasena' => self::CLAVE,
         ])->assertStatus(422)->assertJsonPath('errors.nombre_usuario.0', 'Las credenciales no son validas.');
 
-        $this->assertDatabaseHas('login_historial', [
+        $this->assertDatabaseHas('login_historial_docente', [
             'nombre_usuario' => 'no.existe',
             'exito' => 0,
             'motivo_fallo' => 'USUARIO_INEXISTENTE',
@@ -90,8 +89,8 @@ class InicioSesionTest extends TestCase
         ])->assertStatus(422)->assertJsonPath('errors.nombre_usuario.0', 'Las credenciales no son validas.');
 
         $this->assertGuest('web');
-        $this->assertDatabaseHas('login_historial', [
-            'id_usuario' => $usuario->getKey(),
+        $this->assertDatabaseHas('login_historial_docente', [
+            'id_usuario_docente' => $usuario->id(),
             'motivo_fallo' => 'USUARIO_INACTIVO',
         ]);
     }
@@ -119,8 +118,8 @@ class InicioSesionTest extends TestCase
         ])->assertStatus(423);
 
         $this->assertGuest('web');
-        $this->assertDatabaseHas('login_historial', [
-            'id_usuario' => $usuario->getKey(),
+        $this->assertDatabaseHas('login_historial_docente', [
+            'id_usuario_docente' => $usuario->id(),
             'motivo_fallo' => 'USUARIO_BLOQUEADO',
         ]);
     }
@@ -210,18 +209,19 @@ class InicioSesionTest extends TestCase
                 'contrasena' => self::CLAVE,
             ])->assertOk();
 
-        $registro = DB::table('login_historial')
+        $registro = DB::table('login_historial_docente')
             ->where('nombre_usuario', 'rastro.prueba')
-            ->latest('id_login')
+            ->orderByDesc('id_login_docente')
             ->first();
 
         $this->assertSame('AgenteDePrueba/1.0', $registro->agente_usuario);
         $this->assertNotEmpty($registro->direccion_ip);
     }
 
-    public function test_el_modelo_usuario_no_gestiona_token_de_recordarme(): void
+    public function test_la_cuenta_no_gestiona_token_de_recordarme(): void
     {
-        // La tabla usuario no tiene columna remember_token.
-        $this->assertSame('', (new Usuario)->getRememberTokenName());
+        $cuenta = $this->crearUsuario('token.prueba', self::CLAVE, 'DOCENTE');
+
+        $this->assertSame('', $cuenta->getRememberTokenName());
     }
 }

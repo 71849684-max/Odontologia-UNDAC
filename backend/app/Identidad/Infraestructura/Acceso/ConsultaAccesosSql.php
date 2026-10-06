@@ -9,31 +9,28 @@ use Illuminate\Support\Facades\DB;
 
 class ConsultaAccesosSql implements ConsultaAccesos
 {
-    /** @var array<int, list<string>> */
+    /** @var array<string, list<string>> */
     private array $rolesMemorizados = [];
 
     public function roles(Cuenta $cuenta): array
     {
-        $idUsuario = $cuenta->id();
+        $clave = $cuenta->clave();
 
-        if (! array_key_exists($idUsuario, $this->rolesMemorizados)) {
-            $this->rolesMemorizados[$idUsuario] = DB::table('usuario_rol as ur')
-                ->join('rol as r', 'r.id_rol', '=', 'ur.id_rol')
-                ->where('ur.id_usuario', $idUsuario)
-                ->where('ur.permitido', 1)
+        if (! array_key_exists($clave, $this->rolesMemorizados)) {
+            $tabla = $cuenta->tipoCuenta() === 'ALUMNO' ? 'usuario_alumno' : 'usuario_docente';
+            $columna = $cuenta->tipoCuenta() === 'ALUMNO' ? 'id_usuario_alumno' : 'id_usuario_docente';
+
+            $codigo = DB::table($tabla.' as ua')
+                ->join('rol as r', 'r.id_rol', '=', 'ua.id_rol')
+                ->where('ua.'.$columna, $cuenta->id())
+                ->where('ua.estado', 1)
                 ->where('r.estado', 1)
-                ->where(fn ($consulta) => $consulta
-                    ->whereNull('ur.fecha_inicio')
-                    ->orWhereDate('ur.fecha_inicio', '<=', now()))
-                ->where(fn ($consulta) => $consulta
-                    ->whereNull('ur.fecha_fin')
-                    ->orWhereDate('ur.fecha_fin', '>=', now()))
-                ->pluck('r.codigo_rol')
-                ->map(fn ($codigo) => (string) $codigo)
-                ->all();
+                ->value('r.codigo_rol');
+
+            $this->rolesMemorizados[$clave] = $codigo === null ? [] : [(string) $codigo];
         }
 
-        return $this->rolesMemorizados[$idUsuario];
+        return $this->rolesMemorizados[$clave];
     }
 
     public function esAdministrador(Cuenta $cuenta): bool
@@ -48,15 +45,25 @@ class ConsultaAccesosSql implements ConsultaAccesos
 
     public function puede(Cuenta $cuenta, string $codigoPermiso): bool
     {
-        return DB::table('vista_permisos_efectivos')
-            ->where('id_usuario', $cuenta->id())
-            ->where('codigo_permiso', $codigoPermiso)
-            ->where('permitido', 1)
+        $roles = $this->roles($cuenta);
+
+        if ($roles === []) {
+            return false;
+        }
+
+        return DB::table('rol_submodulo as rs')
+            ->join('rol as r', 'r.id_rol', '=', 'rs.id_rol')
+            ->join('submodulo as s', 's.id_submodulo', '=', 'rs.id_submodulo')
+            ->whereIn('r.codigo_rol', $roles)
+            ->where('r.estado', 1)
+            ->where('rs.estado', 1)
+            ->where('s.estado', 1)
+            ->where('s.codigo_submodulo', $codigoPermiso)
             ->exists();
     }
 
     public function olvidarMemoria(Cuenta $cuenta): void
     {
-        unset($this->rolesMemorizados[$cuenta->id()]);
+        unset($this->rolesMemorizados[$cuenta->clave()]);
     }
 }
