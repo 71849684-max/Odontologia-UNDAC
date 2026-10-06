@@ -16,3 +16,8 @@ Desktop.ini
 /frontend/node_modules/
 /frontend/dist/
 /backend/node_modules/
+
+# Artefactos generados: no forman parte del proyecto clínico
+/outputs/
+/output/
+/tmp/
