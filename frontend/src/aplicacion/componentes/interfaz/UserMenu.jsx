@@ -7,7 +7,7 @@ const ETIQUETA_POR_PERFIL = {
     administrativo: 'Personal administrativo',
 };
 
-export default function UserMenu({ usuario = { nombre: 'Usuario Demo' }, rol = 'Alumno operador', onNavigate }) {
+export default function UserMenu({ usuario = { nombre: 'Usuario' }, rol = 'Alumno operador', onNavigate }) {
     const etiquetaRol = ETIQUETA_POR_PERFIL[rol] ?? rol;
     return (
         <button type="button" className="user-menu" aria-label="Abrir mi perfil" onClick={() => onNavigate?.('perfil')}>

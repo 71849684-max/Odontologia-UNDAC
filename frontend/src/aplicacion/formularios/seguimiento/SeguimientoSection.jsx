@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { Field, SectionCard, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
+import { CollapsibleSection, Field, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 
 function today() {
@@ -15,17 +15,19 @@ export default function SeguimientoSection({ values, onChange, patient, history 
   const addRow = () => set('procedimientos')([...rows, { fecha: today(), procedimiento: '', evolucion: '', firmaOperador: history?.operador || '', firmaSupervisor: history?.docente || '' }]);
   const removeRow = (index) => set('procedimientos')(rows.filter((_, rowIndex) => rowIndex !== index));
 
+  const seguimientoEnProgreso = String(get('fecha') ?? '').trim() !== '' || String(get('evolucion') ?? '').trim() !== '';
   return <div className="undac-section-stack clinical-followup-flow">
-    <SectionCard title="Seguimiento clínico" subtitle="Registre la evolución global y añada controles únicamente cuando ocurran.">
+    <CollapsibleSection title="Seguimiento clínico" subtitle="Registre la evolución global y añada controles únicamente cuando ocurran." defaultOpen status={seguimientoEnProgreso ? 'progress' : 'pending'}>
       <div className="undac-form-grid">
         <Field label="Apellidos y nombres del paciente" value={patient?.nombres || get('paciente')} readOnly className="undac-col-2" />
         <Field label="Operador" value={history?.operador || get('operador')} readOnly />
         <Field label="Fecha de referencia" type="date" value={get('fecha')} onChange={set('fecha')} />
         <TextAreaField label="Evolución / seguimiento" value={get('evolucion')} onChange={set('evolucion')} className="undac-col-2" rows={6} />
       </div>
-    </SectionCard>
+    </CollapsibleSection>
 
-    <SectionCard title="Ficha de seguimiento de los procedimientos" subtitle="Cada control se registra como un evento clínico; no se crean filas vacías por anticipado." actions={<button type="button" className="undac-btn undac-btn--primary undac-btn--sm" onClick={addRow}><Plus size={16} />Registrar control</button>}>
+    <CollapsibleSection title="Ficha de seguimiento de los procedimientos" subtitle="Cada control se registra como un evento clínico; no se crean filas vacías por anticipado." defaultOpen status={rows.length ? 'progress' : 'pending'} summary={rows.length ? `${rows.length} control${rows.length === 1 ? '' : 'es'}` : 'Sin controles'}>
+      <div className="clinical-section-toolbar"><button type="button" className="undac-btn undac-btn--primary undac-btn--sm" onClick={addRow}><Plus size={16} />Registrar control</button></div>
       {rows.length === 0 ? <div className="clinical-empty-inline"><strong>Sin controles registrados.</strong><span>Cuando el paciente retorne, añada un evento de seguimiento.</span></div> : null}
       <div className="clinical-followup-timeline">
         {rows.map((row, index) => <article className="clinical-followup-event" key={`followup-${index}`}>
@@ -42,6 +44,6 @@ export default function SeguimientoSection({ values, onChange, patient, history 
           </div>
         </article>)}
       </div>
-    </SectionCard>
+    </CollapsibleSection>
   </div>;
 }

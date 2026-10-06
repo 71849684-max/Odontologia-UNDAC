@@ -17,7 +17,7 @@ export default function DialogoSesionExpirada({ alVolver }) {
             </span>
             <p className="rotulo-seccion">Seguridad institucional</p>
             <h2 id="titulo-sesion-expirada">Sesión expirada</h2>
-            <p>Tu sesión demostrativa finalizó. Vuelve al acceso para continuar.</p>
+            <p>Tu sesión finalizó. Vuelve al acceso para continuar.</p>
             <button type="button" onClick={alVolver}>Volver al inicio de sesión</button>
         </dialog>
     );

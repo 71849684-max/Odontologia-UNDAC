@@ -812,8 +812,8 @@ button.undac-photo-slot:disabled { cursor: progress; opacity: .75; }
   .hc-donut::after { width: 90px; }
   .hc-dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hc-dashboard-grid > article:first-child { grid-column: 1 / -1; }
-  .hc-filterbar { align-items: stretch; flex-direction: column; }
-  .hc-filterbar .hc-search { width: 100%; min-width: 0; }
+  .hc-filterbar { align-items: stretch; justify-content: flex-start; flex-direction: column; }
+  .hc-filterbar .hc-search { width: 100%; min-width: 0; flex: none; }
   .hc-filter-actions { justify-content: space-between; }
 }
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import { CollapsibleSection, Field, SectionCard, SelectField, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
+import { CollapsibleSection, Field, SelectField, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 
 const PHASES = ['Preventiva','Restauradora','Periodontal','Endodóntica','Quirúrgica','Rehabilitadora','Mantenimiento','Otra'];
@@ -15,7 +15,8 @@ export default function PlanTratamientoSection({ values, onChange }) {
   const grouped = PHASES.map((phase) => ({ phase, items: procedimientos.map((item, index) => ({ ...item, index })).filter((item) => item.fase === phase) })).filter((group) => group.items.length);
 
   return <div className="undac-section-stack clinical-treatment-flow">
-    <SectionCard title="Plan de tratamiento por fases" subtitle="Organice procedimientos en unidades que luego puedan seguirse durante la atención." actions={<button type="button" className="undac-btn undac-btn--primary undac-btn--sm" onClick={add}><Plus size={16} />Añadir procedimiento</button>}>
+    <CollapsibleSection title="Plan de tratamiento por fases" subtitle="Organice procedimientos en unidades que luego puedan seguirse durante la atención." defaultOpen status={procedimientos.length ? 'progress' : 'pending'} summary={procedimientos.length ? `${procedimientos.length} procedimiento${procedimientos.length === 1 ? '' : 's'}` : 'Sin procedimientos'}>
+      <div className="clinical-section-toolbar"><button type="button" className="undac-btn undac-btn--primary undac-btn--sm" onClick={add}><Plus size={16} />Añadir procedimiento</button></div>
       {procedimientos.length === 0 ? <div className="clinical-empty-inline"><strong>No hay procedimientos planificados.</strong><span>Agregue un procedimiento y asígnelo a una fase clínica.</span></div> : null}
       <div className="clinical-treatment-phases">
         {grouped.map((group) => <section className="clinical-treatment-phase" key={group.phase}>
@@ -33,7 +34,7 @@ export default function PlanTratamientoSection({ values, onChange }) {
           </div>
         </section>)}
       </div>
-    </SectionCard>
+    </CollapsibleSection>
 
     <CollapsibleSection title="Plan de tratamiento integral" subtitle="Campo institucional de planificación clínica abierta" summary={get('planIntegral') ? 'Resumen registrado' : 'Sin resumen'} status={get('planIntegral') ? 'progress' : 'pending'}>
       <TextAreaField label="Plan de tratamiento integral" value={get('planIntegral')} onChange={set('planIntegral')} rows={8} placeholder="Describa las fases, objetivos y consideraciones generales del plan..." />

@@ -17,7 +17,7 @@ function load(patientId, key) {
 
 
 // El padre usa una key por historia para aislar los pacientes también en memoria.
-export default function Odontograma({ patientId = 'demo', patientName = '', historyCode = '' }) {
+export default function Odontograma({ patientId = 'sin-historia', patientName = '', historyCode = '' }) {
   const storageKey = `undac:odontograma:nts188:v1:${patientId}`;
   const [initial] = useState(() => load(patientId, storageKey));
   const [record, setRecord] = useState(initial.record);
@@ -41,10 +41,10 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
   const [actionTarget, setActionTarget] = useState(null);
 
   React.useEffect(() => {
-    if (!mobileOpen) return undefined;
+    if (!mobileOpen && !actionTarget) return undefined;
     document.body.classList.add('nts-modal-open');
     return () => document.body.classList.remove('nts-modal-open');
-  }, [mobileOpen]);
+  }, [mobileOpen, actionTarget]);
 
   if (!record) return <SectionCard title="Odontograma"><p role="alert">{error}</p><p>Recupere el almacenamiento del navegador antes de continuar. El registro existente no se ha reemplazado.</p></SectionCard>;
   const exam = record.examinations.find((e) => e.id === examId) || record.examinations.at(-1);
@@ -89,17 +89,13 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
   const select = (number, nextSurface) => {
     setSelectedTooth(number); setSurface(nextSurface); setPoints([]);
     if (mobileOpen) { setActionTarget({ tooth: number, surface: nextSurface }); return; }
-    if (locked || mode === 'inspect') return;
-    if (mode === 'erase') { erase(number, nextSurface); return; }
-    apply(number, nextSurface);
+    setActionTarget({ tooth: number, surface: nextSurface });
   };
-  const applyMobileAction = () => {
+  const applySurfaceAction = () => {
     if (!actionTarget || locked || mode === 'inspect') { setActionTarget(null); return; }
     const changed = mode === 'erase' ? erase(actionTarget.tooth, actionTarget.surface) : apply(actionTarget.tooth, actionTarget.surface, points);
     if (changed) setActionTarget(null);
   };
-  const add = () => apply(selectedTooth, surface, points);
-
   return <div className={`undac-section-stack hc-odontogram nts-odontogram${mobileOpen ? ' is-mobile-open' : ''}`}>
     <div className="nts-mobile-launcher">
       <button type="button" className="undac-btn undac-btn--primary" onClick={() => setMobileOpen(true)}><Maximize2 size={18} />Abrir odontograma</button>
@@ -107,8 +103,8 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
     </div>
     <div className="nts-mobile-modal" onMouseDown={(event) => { if (event.target === event.currentTarget) { setActionTarget(null); setMobileOpen(false); } }}>
       <div className="nts-mobile-modal__window" role={mobileOpen ? 'dialog' : undefined} aria-modal={mobileOpen || undefined} aria-label={mobileOpen ? 'Odontograma' : undefined}>{mobileOpen ? <header className="nts-mobile-modal__header"><div><strong>Odontograma</strong><small>Toque una superficie para ver sus acciones.</small></div><button type="button" className="hc-mini-button" onClick={() => { setActionTarget(null); setMobileOpen(false); }} aria-label="Cerrar odontograma"><X size={18} /></button></header> : null}
-    <SectionCard title="Odontograma" subtitle="Seleccione un hallazgo y marque la pieza o superficie afectada.">
-      <div className="nts-notice">Modo de demostración · {patientName || 'Paciente de demostración'} · {historyCode}. Los cambios se conservan únicamente en este navegador; el cierre local no constituye firma digital.</div>
+    <SectionCard title="Odontograma" subtitle="Seleccione una superficie para abrir sus acciones y registrar el hallazgo.">
+      <div className="nts-notice">{patientName || 'Paciente sin datos'} · {historyCode || 'Sin historia'}. Los cambios se conservan únicamente en este navegador; el cierre local no constituye firma digital.</div>
       <details className="nts-evaluation-details nts-no-print"><summary>Datos de la evaluación</summary>
       <div className="nts-record-toolbar">
         <label className="undac-field"><span>Evaluación</span><select value={exam.id} onChange={(e) => { setExamId(e.target.value); resetEditor(); }}>{record.examinations.map((e, i) => <option key={e.id} value={e.id}>{i + 1}. {e.reason} · {e.date} · {e.status === 'closed' ? 'Cerrada' : 'Borrador'}</option>)}</select></label>
@@ -122,9 +118,6 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
       </details>
       {error && <p className="nts-error" role="alert">{error}</p>}
       {message && <p className="nts-save-status" role="status">{message}</p>}
-      <HerramientasOdontograma mode={mode} state={state} code={code} condition={condition} endTooth={endTooth}
-        selectedTooth={selectedTooth} locked={locked} onMode={setMode} onTool={chooseTool} onCode={setCode}
-        onCondition={setCondition} onEndTooth={setEndTooth} />
       <div className="nts-dentition" role="group" aria-label="Dentición visible">
         {[['permanent', 'Permanente'], ['temporary', 'Temporal'], ['mixed', 'Mixta']].map(([value, label]) => <button key={value} type="button" aria-pressed={dentition === value} onClick={() => {
           setDentition(value); setPoints([]);
@@ -145,21 +138,6 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
       <GuiaSuperficies molar={exam.teeth['16']} incisivo={exam.teeth['11']} />
     </SectionCard>
 
-    <SectionCard title={`Pieza ${selectedTooth}`} subtitle="Revise o quite los hallazgos de la pieza seleccionada." className="nts-no-print">
-      <div className="nts-mobile-surface-picker" role="group" aria-label={`Superficies de pieza ${selectedTooth}`}>
-        {toothSurfaces.map((item) => <button key={item.id} type="button" disabled={locked} aria-pressed={surface === item.id} onClick={() => select(selectedTooth, item.id)}>{item.label}</button>)}
-      </div>
-      <details className="nts-extra-details"><summary>Detalles adicionales del hallazgo</summary>
-        <fieldset disabled={locked} className="nts-editor-fields">
-          <label className="undac-field"><span>Superficie</span><select value={surface} onChange={(event) => { setSurface(event.target.value); setPoints([]); }}>{toothSurfaces.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
-          <label className="undac-field"><span>Especificación del hallazgo</span><textarea rows="2" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Detalle opcional…" /></label>
-          {state.graphic.startsWith('draw-') && <details><summary>Trazo personalizado (opcional)</summary><ShapeEditor number={selectedTooth} tooth={exam.teeth[selectedTooth]} surface={state.scope === 'surface' ? surface : null} state={state} points={points} onChange={setPoints} disabled={locked} condition={condition} /></details>}
-          <button type="button" className="undac-btn undac-btn--primary" onClick={add}>Añadir hallazgo</button>
-        </fieldset>
-      </details>
-      <div className="nts-findings"><h4>Hallazgos de la pieza {selectedTooth}</h4>{selectedMarks.length === 0 ? <p>Sin hallazgos registrados.</p> : selectedMarks.map((m) => <div key={m.id}><span style={{ color: clinicalColor(m) }}><b>{markCode(m)}</b> {stateFor(m.state).label}</span><span>{m.surface ? toothSurfaces.find((s) => s.id === m.surface)?.label : m.teeth.join(' – ')}{m.note ? ` · ${m.note}` : ''}</span>{!locked && <button type="button" className="undac-btn undac-btn--ghost" onClick={() => remove(m.id)}>Quitar del borrador</button>}</div>)}</div>
-    </SectionCard>
-
     <SectionCard title="Especificaciones y observaciones">
       <div className="nts-notes">
         <label className="undac-field"><span>Especificaciones</span><textarea rows="3" disabled={locked} value={exam.specifications} onChange={(e) => change({ specifications: e.target.value })} placeholder="Características adicionales, fluorosis y clasificación, material o color del metal…" /></label>
@@ -168,7 +146,7 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
       {allMarks.length > 0 && <details className="nts-register"><summary>Registro de hallazgos ({allMarks.length})</summary><table><thead><tr><th>Pieza(s)</th><th>Hallazgo / sigla</th><th>Superficie</th><th>Especificación</th></tr></thead><tbody>{allMarks.map((m) => <tr key={m.id}><td>{m.teeth.join(', ')}</td><td style={{ color: clinicalColor(m) }}>{stateFor(m.state).label} {markCode(m)}{stateFor(m.state).condition ? ` · ${m.condition === 'bad' ? 'Mal estado' : 'Buen estado'}` : ''}</td><td>{m.surface ? toothSurfaces.find((s) => s.id === m.surface)?.label : 'Pieza / conjunto'}</td><td>{m.note || '—'}</td></tr>)}</tbody></table></details>}
       {!locked ? <div className="nts-close nts-no-print"><label><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> He revisado el registro de esta evaluación.</label><button type="button" className="undac-btn undac-btn--primary" disabled={!reviewed} onClick={() => run(() => { if (persist(closeExamination(record, exam.id))) { setReviewed(false); setMessage('Evaluación cerrada y conservada en este navegador.'); } })}>Cerrar evaluación</button></div> : <p>Cerrada el {new Date(exam.closedAt).toLocaleString('es-PE')} · Responsable: {exam.professional} · COP {exam.cop}</p>}
     </SectionCard>
-      {mobileOpen && actionTarget && (
+      {actionTarget && (
         <div className="nts-action-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setActionTarget(null); }}>
           <section className="nts-action-modal" role="dialog" aria-modal="true" aria-label={`Acciones para pieza ${actionTarget.tooth}, ${actionSurface?.label}`}>
             <header>
@@ -178,9 +156,16 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
             <HerramientasOdontograma mode={mode} state={state} code={code} condition={condition} endTooth={endTooth}
               selectedTooth={actionTarget.tooth} locked={locked} onMode={setMode} onTool={chooseTool} onCode={setCode}
               onCondition={setCondition} onEndTooth={setEndTooth} />
+            <details className="nts-extra-details"><summary>Detalles adicionales del hallazgo</summary>
+              <fieldset disabled={locked} className="nts-editor-fields">
+                <label className="undac-field"><span>Especificación del hallazgo</span><textarea rows="2" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Detalle opcional…" /></label>
+                {state.graphic.startsWith('draw-') && <details><summary>Trazo personalizado (opcional)</summary><ShapeEditor number={selectedTooth} tooth={exam.teeth[selectedTooth]} surface={state.scope === 'surface' ? surface : null} state={state} points={points} onChange={setPoints} disabled={locked} condition={condition} /></details>}
+              </fieldset>
+            </details>
+            <div className="nts-findings"><h4>Hallazgos de la pieza {selectedTooth}</h4>{selectedMarks.length === 0 ? <p>Sin hallazgos registrados.</p> : selectedMarks.map((m) => <div key={m.id}><span style={{ color: clinicalColor(m) }}><b>{markCode(m)}</b> {stateFor(m.state).label}</span><span>{m.surface ? toothSurfaces.find((s) => s.id === m.surface)?.label : m.teeth.join(' – ')}{m.note ? ` · ${m.note}` : ''}</span>{!locked && <button type="button" className="undac-btn undac-btn--ghost" onClick={() => remove(m.id)}>Quitar del borrador</button>}</div>)}</div>
             <footer>
               <button type="button" className="undac-btn undac-btn--secondary" onClick={() => setActionTarget(null)}>Cancelar</button>
-              <button type="button" className="undac-btn undac-btn--primary" onClick={applyMobileAction}>{locked || mode === 'inspect' ? 'Cerrar' : mode === 'erase' ? 'Borrar marca' : 'Aplicar en esta superficie'}</button>
+              <button type="button" className="undac-btn undac-btn--primary" onClick={applySurfaceAction}>{locked || mode === 'inspect' ? 'Cerrar' : mode === 'erase' ? 'Borrar marca' : 'Aplicar en esta superficie'}</button>
             </footer>
           </section>
         </div>
