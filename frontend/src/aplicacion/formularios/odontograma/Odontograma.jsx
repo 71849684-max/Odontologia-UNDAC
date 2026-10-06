@@ -6,6 +6,7 @@ import './odontograma.css';
 import { arches, temporaryArches, toothSurfaces, stateFor, clinicalColor, markCode } from './odontograma.config.mjs';
 import { readRecord, updateExamination, closeExamination, addExamination, addFinding, removeFinding, toothFindings, examinationReasons, localDate } from './odontogramaRegistro.mjs';
 import { OdontogramRow } from './GraficoOdontograma.jsx';
+import GuiaSuperficies, { LeyendaSuperficies } from './GuiaSuperficies.jsx';
 import { SectionCard } from '../compartidos/ControlesClinicos.jsx';
 
 
@@ -140,6 +141,8 @@ export default function Odontograma({ patientId = 'demo', patientName = '', hist
         {dentition !== 'temporary' && <OdontogramRow title="Permanentes inferiores" teeth={arches.inferior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
       </div></div>
       <div className="nts-legend"><span><i className="nts-blue" />Azul: buen estado / característica no patológica</span><span><i className="nts-red" />Rojo: patología / mal estado / temporal</span><span>Sin marca: sin hallazgo registrado; no equivale a pieza sana.</span></div>
+      <LeyendaSuperficies />
+      <GuiaSuperficies molar={exam.teeth['16']} incisivo={exam.teeth['11']} />
     </SectionCard>
 
     <SectionCard title={`Pieza ${selectedTooth}`} subtitle="Revise o quite los hallazgos de la pieza seleccionada." className="nts-no-print">

@@ -18,6 +18,8 @@ export default function ExamenIntraoralSection({ values, onChange }) {
         })}
       </div>
     </CollapsibleSection>
-    <CollapsibleSection title="Fotografías intraorales" subtitle="Registro visual de apoyo" summary="6 vistas previstas" status="pending"><PhotoPlaceholder title="Fotografías intraorales" count={6} /></CollapsibleSection>
+    <CollapsibleSection title="Fotografías intraorales" subtitle="Registro visual de apoyo" summary="6 vistas previstas" status="pending">
+      <PhotoPlaceholder title="Fotografías intraorales" count={6} value={get('fotosIntraorales', [])} onChange={set('fotosIntraorales')} />
+    </CollapsibleSection>
   </div>;
 }

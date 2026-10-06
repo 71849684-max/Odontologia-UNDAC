@@ -1,5 +1,7 @@
 import React from 'react';
-import { ImagePlus } from 'lucide-react';
+import { BloqueCarga } from './ControlesCarga.jsx';
+
+export { BloqueCarga, SlotConstancia } from './ControlesCarga.jsx';
 
 export function StatusBadge({ status = 'Borrador' }) {
   const slug = String(status).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
@@ -128,23 +130,25 @@ export function CheckboxGroup({ label, values = [], onChange, options = [], clas
   );
 }
 
-export function PhotoPlaceholder({ title, description = 'Espacio preparado para documentar evidencia visual de la evaluación.', count = 1 }) {
+/**
+ * Bloque de evidencia visual.
+ * tipo="imagen" abre el selector de imágenes al hacer clic y muestra las vistas ya cargadas.
+ * tipo="archivo" abre el selector de documentos al hacer clic y lista los adjuntos.
+ */
+export function PhotoPlaceholder({ title, description, count = 1, tipo = 'imagen', value, onChange, accept, maximoArchivos, multiple, nota }) {
   return (
-    <section className="undac-photo-block" role="group" aria-label={title}>
-      <div className="undac-photo-block__head">
-        <div><strong>{title}</strong><span>{description}</span></div>
-        <span className="undac-photo-block__count">{count} vista{count === 1 ? '' : 's'} sugerida{count === 1 ? '' : 's'}</span>
-      </div>
-      <div className={`undac-photo-grid undac-photo-grid--${Math.min(count, 6)}`}>
-        {Array.from({ length: count }, (_, index) => (
-          <div className="undac-photo-slot" key={index}>
-            <span aria-hidden="true"><ImagePlus size={18} /></span>
-            <strong>{count > 1 ? `Vista ${index + 1}` : 'Área de imagen'}</strong>
-            <small>Pendiente de adjuntar</small>
-          </div>
-        ))}
-      </div>
-    </section>
+    <BloqueCarga
+      title={title}
+      description={description}
+      count={count}
+      tipo={tipo}
+      value={value}
+      onChange={onChange}
+      accept={accept}
+      maximoArchivos={maximoArchivos}
+      multiple={multiple}
+      nota={nota}
+    />
   );
 }
 

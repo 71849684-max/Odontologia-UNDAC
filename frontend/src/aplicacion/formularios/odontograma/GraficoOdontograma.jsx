@@ -7,17 +7,49 @@ export const surfacePolygons = {
   left: '8,60 32,72 32,83 8,95', right: '92,60 92,95 68,83 68,72', center: '32,72 68,72 68,83 32,83',
 };
 export const isUpper = (number) => ['1','2','5','6'].includes(number[0]);
+// La presentación alarga el esquema, sin cambiar las coordenadas guardadas.
+export const toothDrawingScaleY = 1.7;
+const toothColumnWidth = 60;
+const isMolar = (number) => Number(number[1]) >= (Number(number[0]) > 4 ? 4 : 6);
 // La arcada inferior se refleja al dibujar; convierta la posición visual al plano local.
 export function toothSurfacePolygon(number, surface) {
   const position = surfacePosition(number, surface);
   const polygons = Number(number[1]) <= 3 ? {
-    top: '8,60 92,60 68,77 32,77', bottom: '8,95 32,78 68,78 92,95',
-    left: '8,60 32,77 32,78 8,95', right: '92,60 92,95 68,78 68,77', center: '32,77 68,77 68,78 32,78',
-  } : surfacePolygons;
+    top: '8,60 92,60 50,77.5', bottom: '8,95 50,77.5 92,95',
+    left: '8,60 50,77.5 8,95', right: '92,60 92,95 50,77.5', center: '32,77 68,77 68,78 32,78',
+  } : isMolar(number) ? surfacePolygons : {
+    top: '8,60 92,60 68,75 32,75', bottom: '8,95 32,80 68,80 92,95',
+    left: '8,60 32,75 32,80 8,95', right: '92,60 92,95 68,80 68,75', center: '32,75 68,75 68,80 32,80',
+  };
   return polygons[!isUpper(number) ? ({ top: 'bottom', bottom: 'top' }[position] || position) : position];
 }
 
-function ToothMark({ mark }) {
+/** Punto medio de una superficie, en coordenadas locales del dibujo, para rotularla. */
+export function surfaceLabelPoint(number, surface) {
+  const puntos = String(toothSurfacePolygon(number, surface)).trim().split(/\s+/)
+    .map((par) => par.split(',').map(Number));
+  const total = puntos.length || 1;
+  const x = puntos.reduce((suma, [valor]) => suma + valor, 0) / total;
+  const y = puntos.reduce((suma, [, valor]) => suma + valor, 0) / total;
+  return { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10 };
+}
+
+/**
+ * Nombre corto de cada sección dibujado sobre la superficie.
+ * El texto contrarresta el reflejo de la arcada inferior y el alargado vertical del esquema.
+ */
+function SurfaceLabels({ number }) {
+  return <g className="nts-surface-labels" pointerEvents="none" aria-hidden="true">
+    {toothSurfaces.map((surface) => {
+      const { x, y } = surfaceLabelPoint(number, surface.id);
+      const escalaY = (isUpper(number) ? 1 : -1) / toothDrawingScaleY;
+      return <text key={surface.id} className="nts-surface-label" textAnchor="middle" dy=".34em"
+        transform={`translate(${x} ${y}) scale(1 ${escalaY})`}>{surface.short}</text>;
+    })}
+  </g>;
+}
+
+function ToothMark({ mark, number }) {
   const state = stateFor(mark.state), color = clinicalColor(mark), points = mark.points.map((p) => p.join(',')).join(' ');
   let shape = null;
   switch (state.graphic) {
@@ -35,59 +67,67 @@ function ToothMark({ mark }) {
     case 'intrusion': shape = <path d="M50 109V98M44 104L50 98L56 104" />; break;
     default: break;
   }
-  return <g fill="none" stroke={color} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none">{shape}</g>;
+  if (mark.state === 'remanente') shape = <text x="50" y="40" transform={isUpper(number) ? undefined : 'translate(0 80) scale(1 -1)'} textAnchor="middle" fill={color} stroke="none" fontSize="16">RR</text>;
+  return <g fill="none" stroke={color} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"><title>{state.label}</title>{shape}</g>;
 }
 
-export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interactive = true }) {
+export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interactive = true, showLabels = false }) {
+  const clipId = React.useId().replace(/:/g, '');
   const position = Number(number[1]), temporary = Number(number[0]) > 4;
-  const molar = position >= (temporary ? 4 : 6);
-  const roots = molar ? (isUpper(number) ? 'M8 60L17 10L36 60L50 10L64 60L83 10L92 60' : 'M8 60L25 10L50 60L75 10L92 60') : 'M8 60L50 10L92 60';
+  const molar = isMolar(number);
+  const roots = molar ? (isUpper(number) ? 'M8 77.5L17 10L36 60L50 10L64 60L83 10L92 77.5' : 'M8 77.5L25 10L50 60L75 10L92 77.5') : 'M8 77.5L50 10L92 77.5';
+  const absence = tooth.findings.findLast((mark) => mark.state === 'ausente');
   return <>
-    <path d={roots} fill="white" stroke="black" strokeWidth="1.3" />
+    <defs><clipPath id={clipId}><ellipse cx="50" cy="77.5" rx="42" ry="17.5" /></clipPath></defs>
+    <path d={roots} fill="white" stroke="black" strokeWidth="2.5" strokeLinejoin="round"><title>Raíces de pieza {number}</title></path>
     {!temporary && ['14','24'].includes(number) && <path d="M32 60L60 10L75 60" fill="none" stroke="black" strokeDasharray="3 2" />}
-    {toothSurfaces.map((s) => <polygon key={s.id} points={toothSurfacePolygon(number, s.id)} fill="white" stroke="black" strokeWidth="1.2"
-      role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-label={interactive ? `Pieza ${number}, ${s.label}` : undefined}
-      aria-pressed={interactive ? selectedSurface === s.id : undefined}
-      onClick={interactive ? () => onSelect?.(s.id) : undefined}
-      onKeyDown={interactive ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(s.id); } } : undefined}>
-      <title>{number} · {s.label}</title>
-    </polygon>)}
-    {position <= 3 && <path d="M32 77.5H68" stroke="black" strokeWidth="1" />}
-    {toothFindings(tooth).map((mark) => <ToothMark key={mark.id} mark={mark} />)}
-    {selectedSurface && <polygon points={toothSurfacePolygon(number, selectedSurface)} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
+    <g clipPath={`url(#${clipId})`}>
+      {toothSurfaces.map((s) => {
+        const finding = absence || tooth.surfaces[s.id].findings.findLast((mark) => !mark.points.length);
+        const color = finding ? clinicalColor(finding) : undefined;
+        const incisal = position <= 3 && s.id === 'oclusal';
+        const Element = incisal ? 'path' : 'polygon';
+        return <Element key={s.id} points={incisal ? undefined : toothSurfacePolygon(number, s.id)} d={incisal ? 'M32 77.5H68' : undefined}
+          className={`nts-surface${incisal ? ' nts-incisal' : ''}${selectedSurface === s.id ? ' is-selected' : ''}`}
+          fill={incisal ? 'none' : color || 'white'} stroke={incisal ? color || 'transparent' : 'black'} strokeWidth={incisal ? 3 : 2.2}
+          style={color ? { background: color } : undefined} data-state={finding?.state || absence?.state || tooth.surfaces[s.id].findings.at(-1)?.state || 'sin-registro'}
+          role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-label={interactive ? `Pieza ${number}, ${s.label}` : undefined}
+          aria-pressed={interactive ? selectedSurface === s.id : undefined}
+          onClick={interactive ? () => onSelect?.(s.id) : undefined}
+          onKeyDown={interactive ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(s.id); } } : undefined}>
+          <title>{number} · {s.label}{finding ? ` · ${markCode(finding)}` : ''}</title>
+        </Element>;
+      })}
+      {molar && <path d="M32 77.5H68" stroke="black" strokeWidth="1.8" pointerEvents="none" />}
+    </g>
+    <ellipse cx="50" cy="77.5" rx="42" ry="17.5" fill="none" stroke="black" strokeWidth="2.5" pointerEvents="none" />
+    {toothFindings(tooth).filter((mark) => !stateFor(mark.state).graphic.startsWith('draw-') || mark.points.length).map((mark) => <ToothMark key={mark.id} number={number} mark={mark} />)}
+    {selectedSurface && <polygon points={toothSurfacePolygon(number, selectedSurface)} clipPath={`url(#${clipId})`} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
+    {showLabels && <SurfaceLabels number={number} />}
   </>;
 }
 
-export function CompactTooth({ number, tooth, selectedSurface, onSelect, interactive = true }) {
-  const wholeTooth = tooth.findings.findLast((mark) => mark.state === 'ausente');
-  return <div className={`nts-tooth-map${wholeTooth ? ' nts-tooth-map--absent' : ''}`}>
-    {toothSurfaces.map((surface) => {
-      const finding = wholeTooth || tooth.surfaces[surface.id].findings.at(-1);
-      const color = finding ? clinicalColor(finding) : undefined;
-      const Element = interactive ? 'button' : 'span';
-      return <Element key={surface.id} type={interactive ? 'button' : undefined}
-        className={`nts-surface nts-surface--${surfacePosition(number, surface.id)}${selectedSurface === surface.id ? ' is-selected' : ''}`}
-        style={color ? { background: color, color: 'white' } : undefined}
-        data-state={finding?.state || 'sin-registro'}
-        aria-label={interactive ? `Pieza ${number}, ${surface.label}` : undefined}
-        aria-pressed={interactive ? selectedSurface === surface.id : undefined}
-        aria-description={finding ? `${stateFor(finding.state).label} · ${markCode(finding)}` : 'Sin hallazgo registrado'}
-        onClick={interactive ? () => onSelect?.(surface.id) : undefined}
-        title={`${number} · ${surface.label}${finding ? ` · ${markCode(finding)}` : ''}`} />;
-    })}
-    {wholeTooth && <svg className="nts-tooth-absence" viewBox="0 0 100 100" aria-hidden="true"><path d="M12 12L88 88M88 12L12 88" /></svg>}
-  </div>;
+export function CompactTooth({ number, tooth, selectedSurface, onSelect, interactive = true, showLabels = false, ariaLabel }) {
+  return <svg className="nts-tooth-map" viewBox={`0 0 100 ${110 * toothDrawingScaleY}`} aria-label={ariaLabel || `Gráfico de pieza ${number}`}>
+    <g transform={`scale(1 ${toothDrawingScaleY})`}>
+    <g transform={isUpper(number) ? undefined : 'translate(0 100) scale(1 -1)'}>
+      <ToothDrawing number={number} tooth={tooth} selectedSurface={selectedSurface} onSelect={onSelect} interactive={interactive} showLabels={showLabels} />
+    </g>
+    </g>
+  </svg>;
 }
 
-function RangeMark({ mark, teeth }) {
-  const start = teeth.indexOf(mark.teeth[0]) * 48 + 24, end = teeth.indexOf(mark.teeth.at(-1)) * 48 + 24;
+function RangeMark({ mark, teeth, upper }) {
+  const start = teeth.indexOf(mark.teeth[0]) * toothColumnWidth + 30, end = teeth.indexOf(mark.teeth.at(-1)) * toothColumnWidth + 30;
   if (start < 0 || end < 0) return null;
-  const state = stateFor(mark.state), y = 15, crown = 66, numberY = 34;
+  // Posiciones en píxeles de la fila: corona superior al pie de las raíces;
+  // corona inferior antes de las raíces y numeración debajo de la pieza.
+  const state = stateFor(mark.state), y = upper ? 15 : 157, crown = upper ? 113 : 34, numberY = upper ? 24 : 132;
   const mid = (start + end) / 2;
   let shape;
   switch (state.graphic) {
-    case 'double': shape = <path d={`M${start - 24} ${y}H${end + 24}M${start - 24} ${y + 5}H${end + 24}`} />; break;
-    case 'edentulous': shape = <path d={`M${start - 24} ${crown}H${end + 24}`} />; break;
+    case 'double': shape = <path d={`M${start - 30} ${y}H${end + 30}M${start - 30} ${y + 5}H${end + 30}`} />; break;
+    case 'edentulous': shape = <path d={`M${start - 30} ${crown}H${end + 30}`} />; break;
     case 'bridge': shape = <path d={`M${start} ${y + 9}V${y}H${end}V${y + 9}`} />; break;
     case 'brackets': shape = <><path d={`M${start} ${y}H${end}`} />{[start,end].map((x) => <g key={x}><rect x={x - 5} y={y - 5} width="10" height="10" /><path d={`M${x - 3} ${y}H${x + 3}M${x} ${y - 3}V${y + 3}`} /></g>)}</>; break;
     case 'zigzag': shape = <polyline points={Array.from({ length: Math.round((end - start) / 6) + 1 }, (_, i) => `${start + i * 6},${y + (i % 2 ? 4 : -4)}`).join(' ')} />; break;
@@ -103,18 +143,18 @@ function RangeMark({ mark, teeth }) {
 export function OdontogramRow({ title, teeth, exam, selectedTooth, selectedSurface, onSelect }) {
   return <section className="nts-arch" aria-label={title}>
     <h4>{title}</h4>
-    <div className="nts-compact-row" style={{ width: `${teeth.length * 48}px` }}>
+    <div className="nts-compact-row" style={{ width: `${teeth.length * toothColumnWidth}px` }}>
       {teeth.map((number, index) => {
         const tooth = exam.teeth[number], marks = toothFindings(tooth);
         const codes = marks;
-        return <div key={number} className={`nts-tooth${selectedTooth === number ? ' is-selected' : ''}${index === teeth.length / 2 ? ' nts-midline' : ''}`}>
+        return <div key={number} className={`nts-tooth${!isUpper(number) ? ' nts-tooth--lower' : ''}${selectedTooth === number ? ' is-selected' : ''}${index === teeth.length / 2 ? ' nts-midline' : ''}`}>
           <button type="button" className="nts-tooth-number" aria-label={`Seleccionar pieza ${number}`} aria-pressed={selectedTooth === number} onClick={() => onSelect(number, 'oclusal')}>{number}</button>
           <CompactTooth number={number} tooth={tooth} selectedSurface={selectedTooth === number ? selectedSurface : null} onSelect={(surface) => onSelect(number, surface)} />
           <div className="nts-tooth-codes">{codes.map((mark) => <span key={mark.id} style={{ color: clinicalColor(mark) }} title={stateFor(mark.state).label}>{markCode(mark) || stateFor(mark.state).symbol}</span>)}</div>
         </div>;
       })}
-      <svg className="nts-range-overlay" viewBox={`0 0 ${teeth.length * 48} 110`} aria-label={`Hallazgos entre piezas: ${title}`}>
-        {exam.ranges.filter((m) => m.teeth.every((n) => teeth.includes(n))).map((m) => <RangeMark key={m.id} mark={m} teeth={teeth} />)}
+      <svg className="nts-range-overlay" viewBox={`0 0 ${teeth.length * toothColumnWidth} 170`} aria-label={`Hallazgos entre piezas: ${title}`}>
+        {exam.ranges.filter((m) => m.teeth.every((n) => teeth.includes(n))).map((m) => <RangeMark key={m.id} mark={m} teeth={teeth} upper={isUpper(teeth[0])} />)}
       </svg>
     </div>
   </section>;

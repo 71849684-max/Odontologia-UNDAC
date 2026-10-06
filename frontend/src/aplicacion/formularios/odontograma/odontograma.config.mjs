@@ -30,6 +30,18 @@ export const toothSurfaces = [
   { id: 'oclusal', label: 'Oclusal / Incisal', short: 'O/I' },
 ];
 
+// NTS 188 / nomenclatura de caras: el odontograma puede mostrar el nombre de cada sección.
+export const superficiesDentales = [
+  { term: 'Mesial', short: 'M', surface: 'mesial', desc: 'Cara del diente más cercana a la línea media que divide la boca en dos mitades iguales.' },
+  { term: 'Distal', short: 'D', surface: 'distal', desc: 'Cara del diente más alejada de esa línea media.' },
+  { term: 'Vestibular (labial / bucal)', short: 'V', surface: 'vestibular', desc: 'Cara que mira hacia los labios (dientes anteriores) o hacia las mejillas (dientes posteriores).' },
+  { term: 'Lingual', surface: 'lingual', desc: 'Cara que mira hacia la lengua en la arcada inferior.' },
+  { term: 'Palatina', surface: 'lingual', desc: 'Cara que mira hacia el paladar en la arcada superior.' },
+  { term: 'Oclusal', short: 'O/I', surface: 'oclusal', desc: 'Superficie de masticación en molares y premolares.' },
+  { term: 'Borde incisal', short: 'O/I', surface: 'oclusal', desc: 'Borde cortante que sirve para cortar, presente en incisivos y caninos.' },
+  { term: 'Proximal', desc: 'Término que engloba las caras en contacto con los dientes vecinos: mesial y distal.' },
+];
+
 // NTS 188-MINSA/DGIESP-2022, 6.1. Los símbolos gráficos no son siglas clínicas.
 const finding = (id, label, symbol, scope, graphic, color = 'blue', options = [], condition = false) => ({
   id, label, symbol, scope, graphic, color, options, condition, className: color === 'red' ? 'state-pathology' : 'state-clinical-blue',

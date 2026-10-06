@@ -33,6 +33,16 @@ Antes de uso asistencial deben integrarse pacientes reales, persistencia del ser
 
 Los campos vacíos significan “sin hallazgo registrado”, no “sano”. El profesional debe revisar la evaluación antes de cerrarla.
 
+## Corrección visual de coronas y raíces (2026-10-03)
+
+La propuesta generada con ImageGen coincidía en orden FDI y disposición de las cuatro filas, pero simplificaba algunas raíces y coronas. Para corregir la vista se usó como referencia principal la imagen del odontograma aportada por el usuario, no la imagen generada.
+
+La vista compacta y el editor de trazos ahora comparten el mismo dibujo SVG: anteriores con cuatro sectores diagonales y un borde incisal seleccionable sin casilla central; premolares con franja oclusal estrecha; molares con zona oclusal central. Se muestran raíces superiores hacia arriba e inferiores hacia abajo, con tres ramas en molares superiores y dos en inferiores, además de la línea discontinua de los primeros premolares superiores del esquema. Son convenciones gráficas de la referencia, no una inferencia de la anatomía de cada paciente.
+
+Se mantienen las cinco superficies lógicas del registro, los datos guardados y las coordenadas de los trazos anteriores. Los tratamientos de conductos y el remanente radicular se muestran en la zona radicular, y las ausencias abarcan corona y raíces. La vista temporal, permanente y mixta continúa disponible.
+
+El ajuste posterior de proporciones amplía cada columna a 60 px y cada SVG a 56 px de ancho, con escala vertical de 1,7 para evitar coronas aplanadas. El editor de trazos aplica la escala inversa al capturar el puntero, de modo que el registro sigue usando sus coordenadas originales. El borde incisal sin hallazgo queda transparente, los contornos son más gruesos y la línea media es recta.
+
 ## Verificación reproducible
 
 Desde `frontend`:

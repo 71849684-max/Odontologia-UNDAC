@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import { SectionCard, Field, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
+import { SectionCard, Field, TextAreaField, SlotConstancia } from '../compartidos/ControlesClinicos.jsx';
 import { consentParagraphs } from './consentimiento.config.mjs';
 import useSection from '../compartidos/useSection.js';
 import Subheading from '../compartidos/Subheading.jsx';
@@ -32,7 +32,12 @@ export default function ConsentimientoSection({ values, onChange, patient, histo
     </SectionCard>
     <SectionCard title="Firmas, acompañante y programación" subtitle="Las constancias quedan preparadas para su validación cuando se integre la firma electrónica.">
       <div className="undac-signature-grid">
-        {['Firma del paciente','Huella dactilar — dedo índice derecho','Firma del acompañante','Firma del docente — autorización de cirugía'].map((label) => <div className="undac-signature-slot" key={label}><span>Constancia pendiente</span><strong>{label}</strong></div>)}
+        {[
+          ['firmaPaciente', 'Firma del paciente'],
+          ['huellaDactilar', 'Huella dactilar — dedo índice derecho'],
+          ['firmaAcompanante', 'Firma del acompañante'],
+          ['firmaDocente', 'Firma del docente — autorización de cirugía'],
+        ].map(([key, label]) => <SlotConstancia key={key} label={label} value={get(key)} onChange={set(key)} />)}
       </div>
       <Subheading>Familiar que lo acompaña</Subheading>
       <div className="undac-form-grid">

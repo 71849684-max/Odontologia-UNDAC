@@ -2,7 +2,7 @@ import React from 'react';
 import { beforeEach, afterEach, describe, test, expect, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent, within } from '@testing-library/react';
 import Odontograma from './Odontograma.jsx';
-import { CompactTooth, toothSurfacePolygon, surfacePolygons } from './GraficoOdontograma.jsx';
+import { CompactTooth, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
 import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition } from './odontograma.config.mjs';
 import { createRecord, addFinding, removeFinding, toothFindings, closeExamination, updateExamination, addExamination, readRecord, findingTeeth } from './odontogramaRegistro.mjs';
 
@@ -13,6 +13,30 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const mark = (overrides = {}) => ({ state: 'caries', tooth: '11', surface: 'vestibular', code: 'CE', points: [[30,63],[45,64],[40,69]], ...overrides });
+
+test('el gráfico visible incluye raíces y conserva marcas radiculares al recargar', () => {
+  const record = createRecord('raices');
+  record.examinations[0] = addFinding(record.examinations[0], mark({ tooth: '16', state: 'endodoncia', code: 'TC', points: [] }));
+  localStorage.setItem('undac:odontograma:nts188:v1:raices', JSON.stringify(record));
+  render(<Odontograma patientId="raices" />);
+  const tooth = screen.getByLabelText('Gráfico de pieza 16');
+  expect(tooth.tagName.toLowerCase()).toBe('svg');
+  expect(within(tooth).getByText('Raíces de pieza 16', { selector: 'title' }).parentElement.tagName.toLowerCase()).toBe('path');
+  const treatment = within(tooth).getByText('Tratamiento de conductos / pulpectomía', { selector: 'title' }).parentElement;
+  expect(treatment).toHaveAttribute('stroke', '#1d4ed8');
+  expect(treatment.querySelector('path')).toBeInTheDocument();
+});
+
+test('la selección incisal anterior sigue accesible sin una quinta casilla', () => {
+  render(<Odontograma patientId="incisal" />);
+  const incisal = screen.getByRole('button', { name: 'Pieza 11, Oclusal / Incisal' });
+  expect(incisal.tagName.toLowerCase()).toBe('path');
+  fireEvent.click(incisal);
+  expect(incisal).toHaveAttribute('aria-pressed', 'true');
+  const vestibular = screen.getByRole('button', { name: 'Pieza 11, Vestibular' });
+  fireEvent.keyDown(vestibular, { key: 'Enter' });
+  expect(vestibular).toHaveAttribute('aria-pressed', 'true');
+});
 
 describe('estructura NTS 188', () => {
   test('dispone 32 permanentes y 20 temporales desde la perspectiva del observador', () => {
@@ -78,6 +102,39 @@ describe('estructura NTS 188', () => {
     const record = createRecord('a'); delete record.examinations[0].teeth['11'];
     expect(() => readRecord(JSON.stringify(record), 'a')).toThrow();
   });
+});
+
+test('muestra el nombre de cada sección del diente en la leyenda y en la guía', () => {
+  render(<Odontograma patientId="superficies" />);
+
+  const leyenda = screen.getByLabelText('Leyenda de superficies del diente');
+  for (const nombre of ['Vestibular', 'Lingual / Palatina', 'Mesial', 'Distal', 'Oclusal / Incisal']) {
+    expect(leyenda).toHaveTextContent(nombre);
+  }
+
+  const molar = screen.getByLabelText('Guía de superficies: molar 16');
+  const incisivo = screen.getByLabelText('Guía de superficies: incisivo 11');
+  for (const rotulo of ['V', 'L/P', 'M', 'D', 'O/I']) {
+    expect(within(molar).getByText(rotulo)).toBeInTheDocument();
+    expect(within(incisivo).getByText(rotulo)).toBeInTheDocument();
+  }
+
+  const definiciones = document.querySelector('.nts-surface-guide__definiciones');
+  expect(definiciones.querySelectorAll('dt')).toHaveLength(8);
+  expect(definiciones.textContent).toContain('línea media');
+  expect(definiciones.textContent).toContain('Superficie de masticación');
+  expect(definiciones.textContent).toContain('Borde cortante');
+  expect(definiciones.textContent).toContain('mesial y distal');
+});
+
+test('sitúa el rótulo de cada superficie en el centro de su polígono', () => {
+  expect(surfaceLabelPoint('16', 'oclusal')).toEqual({ x: 50, y: 77.5 });
+  expect(surfaceLabelPoint('16', 'vestibular')).toEqual({ x: 50, y: 66 });
+  expect(surfaceLabelPoint('41', 'vestibular')).toEqual({ x: 50, y: 65.8 });
+
+  // La arcada inferior se refleja al dibujar: el rótulo se contrarresta para quedar derecho.
+  render(<CompactTooth number="41" tooth={createEmptyOdontogram()['41']} interactive={false} showLabels />);
+  expect(screen.getByText('V').getAttribute('transform')).toMatch(/^translate\(50 65\.8\) scale\(1 -0\.\d+\)$/);
 });
 
 test('expone un viewport desplazable y conserva los controles de dentición', () => {

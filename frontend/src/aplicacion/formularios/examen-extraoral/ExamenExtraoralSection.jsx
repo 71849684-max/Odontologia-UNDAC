@@ -20,7 +20,7 @@ export default function ExamenExtraoralSection({ values, onChange }) {
       </div>
     </CollapsibleSection>
     <CollapsibleSection title="Fotografías extraorales" subtitle="Registro visual de apoyo" summary="5 vistas previstas" status="pending">
-      <PhotoPlaceholder title="Fotografías extraorales" count={5} />
+      <PhotoPlaceholder title="Fotografías extraorales" count={5} value={get('fotosExtraorales', [])} onChange={set('fotosExtraorales')} />
     </CollapsibleSection>
   </div>;
 }

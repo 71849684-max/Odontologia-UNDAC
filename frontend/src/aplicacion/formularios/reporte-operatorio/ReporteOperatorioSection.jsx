@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import { SectionCard, Field, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
+import { SectionCard, Field, TextAreaField, SlotConstancia } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 import Subheading from '../compartidos/Subheading.jsx';
 
@@ -40,7 +40,10 @@ export default function ReporteOperatorioSection({ values, onChange, patient, hi
         <TextAreaField label="12. Epicrisis" value={get('epicrisis')} onChange={set('epicrisis')} className="undac-col-2" rows={5} />
         <Field label="Fecha" type="date" value={get('fecha')} onChange={set('fecha')} />
       </div>
-      <div className="undac-signature-grid undac-signature-grid--2"><div className="undac-signature-slot"><span>Área reservada</span><strong>Firma del docente</strong></div><div className="undac-signature-slot"><span>Área reservada</span><strong>Firma del alumno</strong></div></div>
+      <div className="undac-signature-grid undac-signature-grid--2">
+        <SlotConstancia label="Firma del docente" textoPendiente="Área reservada" value={get('firmaDocenteReporte')} onChange={set('firmaDocenteReporte')} />
+        <SlotConstancia label="Firma del alumno" textoPendiente="Área reservada" value={get('firmaAlumnoReporte')} onChange={set('firmaAlumnoReporte')} />
+      </div>
     </SectionCard>
   </div>;
 }
