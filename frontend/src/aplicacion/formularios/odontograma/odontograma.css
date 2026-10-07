@@ -31,8 +31,8 @@ body.nts-modal-open { overflow: hidden; }
 .nts-tooth-map { display: block; width: var(--tooth-size, 56px); height: auto; aspect-ratio: 100 / 187; overflow: visible; }
 .nts-surface[role=button] { cursor: pointer; }
 .nts-surface:hover, .nts-surface:focus-visible, .nts-surface.is-selected { outline: none; stroke: #475569; stroke-width: 3; }
-.nts-incisal { pointer-events: stroke; }
-.nts-incisal[role=button] { stroke-width: 5; }
+/* El borde incisal es una banda rellena: el área es la que se pulsa. */
+.nts-incisal { pointer-events: fill; }
 .nts-tooth--lower .nts-tooth-map { order: 0; }
 .nts-tooth--lower .nts-tooth-number { order: 1; }
 .nts-tooth--lower .nts-tooth-codes { order: 2; }

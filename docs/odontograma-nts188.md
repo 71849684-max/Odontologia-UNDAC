@@ -37,11 +37,20 @@ Los campos vacíos significan “sin hallazgo registrado”, no “sano”. El p
 
 La propuesta generada con ImageGen coincidía en orden FDI y disposición de las cuatro filas, pero simplificaba algunas raíces y coronas. Para corregir la vista se usó como referencia principal la imagen del odontograma aportada por el usuario, no la imagen generada.
 
-La vista compacta y el editor de trazos ahora comparten el mismo dibujo SVG: anteriores con cuatro sectores diagonales y un borde incisal seleccionable sin casilla central; premolares con franja oclusal estrecha; molares con zona oclusal central. Se muestran raíces superiores hacia arriba e inferiores hacia abajo, con tres ramas en molares superiores y dos en inferiores, además de la línea discontinua de los primeros premolares superiores del esquema. Son convenciones gráficas de la referencia, no una inferencia de la anatomía de cada paciente.
+La vista compacta y el editor de trazos ahora comparten el mismo dibujo SVG: anteriores con cuatro sectores diagonales y un borde incisal seleccionable sin casilla central; premolares con franja oclusal estrecha; molares con zona oclusal central. Se muestran raíces superiores hacia arriba e inferiores hacia abajo, con tres ramas en molares superiores y dos en inferiores, además de la línea discontinua de los primeros premolares superiores del esquema (defecto corregido el 2026-10-06, ver más abajo). Son convenciones gráficas de la referencia, no una inferencia de la anatomía de cada paciente.
 
 Se mantienen las cinco superficies lógicas del registro, los datos guardados y las coordenadas de los trazos anteriores. Los tratamientos de conductos y el remanente radicular se muestran en la zona radicular, y las ausencias abarcan corona y raíces. La vista temporal, permanente y mixta continúa disponible.
 
 El ajuste posterior de proporciones amplía cada columna a 60 px y cada SVG a 56 px de ancho, con escala vertical de 1,7 para evitar coronas aplanadas. El editor de trazos aplica la escala inversa al capturar el puntero, de modo que el registro sigue usando sus coordenadas originales. El borde incisal sin hallazgo queda transparente, los contornos son más gruesos y la línea media es recta.
+
+## Corrección de la raíz de 14/24 y del centro fantasma (2026-10-06)
+
+Dos defectos reportados en uso se corrigieron sacando la geometría del componente y centralizándola en `frontend/src/aplicacion/formularios/odontograma/odontogramaGeometria.mjs`, que clasifica la pieza (anterior, premolar o molar), traza sus raíces, define los polígonos de la corona y la banda del borde incisal.
+
+- **Piezas 14 y 24**: se dibujaban dos trazos superpuestos, el triángulo radicular sólido y un `V` discontinuo con vértice desplazado que lo cruzaba. Ahora es un único contorno con dos ramas (puntas en x = 33 y x = 67, muesca a la altura de y = 60), sin trazos discontinuos. La lámina oficial sí distingue 14 y 24, pero con una marca punteada que, al superponerse al triángulo, producía el cruce visible.
+- **Piezas anteriores**: el modelo forzaba la quinta superficie `oclusal`, que se dibujaba como una línea invisible en el centro de la X y se resaltaba con un rectángulo degenerado de 36 × 1 px. Las cuatro divisiones siguen compartiendo el punto central, pero el borde incisal pasa a ser una banda ancha en el borde orientado al plano oclusal (y ∈ [86, 95] en coordenadas locales: la arcada inferior se refleja al dibujar, por lo que ese borde es el incisal en ambas arcadas). El resaltado y el rótulo O/I se desplazan con ella y el centro deja de ofrecer una casilla vacía. Supera lo declarado en la sección del 2026-10-03.
+
+Las cinco superficies de cada corona suman exactamente 84 × 35 unidades, es decir, sin huecos ni solapes; con la geometría anterior las piezas anteriores sumaban 2976 por la celda degenerada. La comprobación, el número de ramas por pieza y la ausencia de trazos discontinuos forman parte de `odontogramaGeometria.test.mjs`.
 
 ## Verificación reproducible
 

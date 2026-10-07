@@ -1,26 +1,16 @@
 import React from 'react';
 import { clinicalColor, markCode, stateFor, surfacePosition, toothSurfaces } from './odontograma.config.mjs';
 import { toothFindings } from './odontogramaRegistro.mjs';
+import { isMolar, isUpper, surfacePolygons, toothCrownPolygons, toothIncisalPath, toothRootsPath } from './odontogramaGeometria.mjs';
 
-export const surfacePolygons = {
-  top: '8,60 92,60 68,72 32,72', bottom: '8,95 32,83 68,83 92,95',
-  left: '8,60 32,72 32,83 8,95', right: '92,60 92,95 68,83 68,72', center: '32,72 68,72 68,83 32,83',
-};
-export const isUpper = (number) => ['1','2','5','6'].includes(number[0]);
+export { isUpper, surfacePolygons };
 // La presentación alarga el esquema, sin cambiar las coordenadas guardadas.
 export const toothDrawingScaleY = 1.7;
 const toothColumnWidth = 60;
-const isMolar = (number) => Number(number[1]) >= (Number(number[0]) > 4 ? 4 : 6);
 // La arcada inferior se refleja al dibujar; convierta la posición visual al plano local.
 export function toothSurfacePolygon(number, surface) {
   const position = surfacePosition(number, surface);
-  const polygons = Number(number[1]) <= 3 ? {
-    top: '8,60 92,60 50,77.5', bottom: '8,95 50,77.5 92,95',
-    left: '8,60 50,77.5 8,95', right: '92,60 92,95 50,77.5', center: '32,77 68,77 68,78 32,78',
-  } : isMolar(number) ? surfacePolygons : {
-    top: '8,60 92,60 68,75 32,75', bottom: '8,95 32,80 68,80 92,95',
-    left: '8,60 32,75 32,80 8,95', right: '92,60 92,95 68,80 68,75', center: '32,75 68,75 68,80 32,80',
-  };
+  const polygons = toothCrownPolygons(number);
   return polygons[!isUpper(number) ? ({ top: 'bottom', bottom: 'top' }[position] || position) : position];
 }
 
@@ -73,23 +63,21 @@ function ToothMark({ mark, number }) {
 
 export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interactive = true, showLabels = false }) {
   const clipId = React.useId().replace(/:/g, '');
-  const position = Number(number[1]), temporary = Number(number[0]) > 4;
   const molar = isMolar(number);
-  const roots = molar ? (isUpper(number) ? 'M8 77.5L17 10L36 60L50 10L64 60L83 10L92 77.5' : 'M8 77.5L25 10L50 60L75 10L92 77.5') : 'M8 77.5L50 10L92 77.5';
+  const incisalPath = toothIncisalPath(number);
   const absence = tooth.findings.findLast((mark) => mark.state === 'ausente');
   return <>
     <defs><clipPath id={clipId}><ellipse cx="50" cy="77.5" rx="42" ry="17.5" /></clipPath></defs>
-    <path d={roots} fill="white" stroke="black" strokeWidth="2.5" strokeLinejoin="round"><title>Raíces de pieza {number}</title></path>
-    {!temporary && ['14','24'].includes(number) && <path d="M32 60L60 10L75 60" fill="none" stroke="black" strokeDasharray="3 2" />}
+    <path className="nts-roots" d={toothRootsPath(number)} fill="white" stroke="black" strokeWidth="2.5" strokeLinejoin="round"><title>Raíces de pieza {number}</title></path>
     <g clipPath={`url(#${clipId})`}>
       {toothSurfaces.map((s) => {
         const finding = absence || tooth.surfaces[s.id].findings.findLast((mark) => !mark.points.length);
         const color = finding ? clinicalColor(finding) : undefined;
-        const incisal = position <= 3 && s.id === 'oclusal';
+        const incisal = s.id === 'oclusal' && incisalPath !== null;
         const Element = incisal ? 'path' : 'polygon';
-        return <Element key={s.id} points={incisal ? undefined : toothSurfacePolygon(number, s.id)} d={incisal ? 'M32 77.5H68' : undefined}
+        return <Element key={s.id} points={incisal ? undefined : toothSurfacePolygon(number, s.id)} d={incisal ? incisalPath : undefined}
           className={`nts-surface${incisal ? ' nts-incisal' : ''}${selectedSurface === s.id ? ' is-selected' : ''}`}
-          fill={incisal ? 'none' : color || 'white'} stroke={incisal ? color || 'transparent' : 'black'} strokeWidth={incisal ? 3 : 2.2}
+          fill={color || 'white'} stroke={incisal ? color || 'transparent' : 'black'} strokeWidth={2.2}
           style={color ? { background: color } : undefined} data-state={finding?.state || absence?.state || tooth.surfaces[s.id].findings.at(-1)?.state || 'sin-registro'}
           role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-label={interactive ? `Pieza ${number}, ${s.label}` : undefined}
           aria-pressed={interactive ? selectedSurface === s.id : undefined}

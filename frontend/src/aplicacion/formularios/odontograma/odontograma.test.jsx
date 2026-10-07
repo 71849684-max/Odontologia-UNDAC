@@ -38,6 +38,19 @@ test('la selección incisal anterior sigue accesible sin una quinta casilla', ()
   expect(vestibular).toHaveAttribute('aria-pressed', 'true');
 });
 
+test('la pieza 14 dibuja una sola raíz bifurcada, sin el trazo discontinuo duplicado', () => {
+  render(<CompactTooth number="14" tooth={createEmptyOdontogram()['14']} interactive={false} />);
+  const tooth = screen.getByLabelText('Gráfico de pieza 14');
+  expect(within(tooth).getAllByText('Raíces de pieza 14', { selector: 'title' })).toHaveLength(1);
+  expect(tooth.querySelectorAll('[stroke-dasharray]')).toHaveLength(0);
+});
+
+test('el resaltado del borde incisal recae en el borde de la corona, no en un centro vacío', () => {
+  render(<CompactTooth number="11" tooth={createEmptyOdontogram()['11']} selectedSurface="oclusal" interactive={false} />);
+  const tooth = screen.getByLabelText('Gráfico de pieza 11');
+  expect(tooth.querySelector('polygon[stroke-dasharray]')).toHaveAttribute('points', '8,86 92,86 92,95 8,95');
+});
+
 describe('estructura NTS 188', () => {
   test('dispone 32 permanentes y 20 temporales desde la perspectiva del observador', () => {
     expect(Object.keys(createEmptyOdontogram())).toHaveLength(52);
