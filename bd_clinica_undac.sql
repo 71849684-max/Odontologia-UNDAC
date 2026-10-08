@@ -1666,7 +1666,7 @@ INSERT INTO catalogo_tratamiento_dental (id_tratamiento_dental, codigo, nombre, 
 
 INSERT INTO configuracion_sistema (clave, valor, descripcion) VALUES
 ('ELIMINACION_CLINICA_PERMITIDA','0','Las historias clínicas y registros clínicos no se eliminan físicamente.'),
-('NOMBRE_INSTITUCION','Universidad Nacional Daniel Alcides Carrión','Nombre institucional mostrado en documentos.'),
+('NOMBRE_INSTITUCION','Sistema de Odontología','Nombre institucional mostrado en documentos.'),
 ('ZONA_HORARIA','America/Lima','Zona horaria de operación del sistema.');
 
 -- =============================================================

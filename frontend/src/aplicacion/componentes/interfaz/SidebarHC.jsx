@@ -46,7 +46,7 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected,
 
     return (
         <aside className="barra-lateral--hc" aria-label="Navegación principal">
-            <div className="marca-hc"><span className="marca-hc__icon"><Stethoscope size={20} aria-hidden="true" /></span><span className="marca-hc__text">Historia Clínica<small>Odontología UNDAC</small></span></div>
+            <div className="marca-hc"><span className="marca-hc__icon"><Stethoscope size={20} aria-hidden="true" /></span><span className="marca-hc__text">Historia Clínica<small>Sistema de Odontología</small></span></div>
             <nav>
                 <ul className="menu-principal">
                     {menu.map((item) => {
@@ -87,7 +87,7 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected,
             </nav>
             <div className="barra-footer">
                 <button type="button" className="barra-footer__logout" onClick={onLogout}><LogOut size={17} aria-hidden="true" /><span>Cerrar sesión</span></button>
-                <span>Facultad de Ciencias de la Salud · UNDAC</span>
+                <span>Sistema de Odontología</span>
             </div>
         </aside>
     );

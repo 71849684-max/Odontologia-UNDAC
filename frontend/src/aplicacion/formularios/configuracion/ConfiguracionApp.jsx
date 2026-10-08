@@ -69,7 +69,7 @@ export default function ConfiguracionApp() {
                 <div>
                     <p className="hc-kicker">Sistema</p>
                     <h1 className="hc-page-title">Configuración</h1>
-                    <p className="hc-page-subtitle">Parámetros institucionales de la clínica odontológica UNDAC.</p>
+                    <p className="hc-page-subtitle">Parámetros del Sistema de Odontología.</p>
                 </div>
                 <button type="button" className="hc-button hc-button--primary" onClick={guardar} disabled={guardando || cargando}>
                     {guardado ? <Check size={17} /> : <Save size={17} />}

@@ -32,7 +32,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
             <section className="acceso-identidad" aria-labelledby="titulo-acceso">
                 <MarcaInstitucional inversa />
                 <div className="acceso-identidad__contenido">
-                    <p className="rotulo-acceso">Clínica Odontológica Universitaria</p>
+                    <p className="rotulo-acceso">Sistema de Odontología</p>
                     <h1 id="titulo-acceso">Historia Clínica Digital</h1>
                     <p className="acceso-identidad__introduccion">
                         Un espacio institucional para integrar la atención clínica,
@@ -47,7 +47,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                         ))}
                     </div>
                 </div>
-                <p className="acceso-identidad__pie">Facultad de Ciencias de la Salud · UNDAC</p>
+                <p className="acceso-identidad__pie">Sistema de Odontología</p>
             </section>
 
             <section className="acceso-formulario" aria-label="Acceso al sistema">
@@ -108,7 +108,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                         </button>
                     </form>
                     <div className="ayuda-acceso"><span aria-hidden="true">i</span><p>¿Necesitas asistencia? Comunícate con el soporte de la clínica odontológica.</p></div>
-                    <p className="acceso-formulario__pie">© 2026 Universidad Nacional Daniel Alcides Carrión</p>
+                    <p className="acceso-formulario__pie">© 2026 Sistema de Odontología</p>
                 </div>
             </section>
         </main>

@@ -67,7 +67,7 @@ export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
 
     return <div className="hc-dashboard space-y-5">
         <section className="hc-dashboard-welcome">
-            <div><p className="hc-kicker">Clínica odontológica universitaria</p><h1 className="hc-page-title">{saludoActual()}, {nombreCorto(usuario?.nombre)}</h1><p className="hc-page-subtitle">Resumen de actividad clínica. {perfil.contexto}</p></div>
+            <div><p className="hc-kicker">Sistema de Odontología</p><h1 className="hc-page-title">{saludoActual()}, {nombreCorto(usuario?.nombre)}</h1><p className="hc-page-subtitle">Resumen de actividad clínica. {perfil.contexto}</p></div>
             <div className="hc-dashboard-context"><strong>{perfil.etiqueta}</strong><span>{fecha}</span></div>
         </section>
 

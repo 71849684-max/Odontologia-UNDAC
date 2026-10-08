@@ -10,7 +10,7 @@ export default function BibliotecaRecursos({ recursos = [] }) {
                         <span className={`recurso-clinico__icono recurso-clinico__icono--${indice % 2 ? 'academico' : 'clinico'}`} aria-hidden="true">{indice % 2 ? <BookOpenCheck size={22} /> : <FileText size={22} />}</span>
                         <span className="recurso-clinico__categoria">{recurso.categoria}</span>
                         <h3>{recurso.titulo}</h3>
-                        <p>{recurso.descripcion ?? 'Material de consulta para la práctica clínica universitaria.'}</p>
+                        <p>{recurso.descripcion ?? 'Material de consulta para la práctica clínica.'}</p>
                         <div><small>{recurso.formato}</small><button type="button" aria-label={`Abrir ${recurso.titulo}`}><Download size={16} /></button></div>
                     </article>
                 ))}

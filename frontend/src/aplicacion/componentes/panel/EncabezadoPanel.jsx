@@ -4,7 +4,7 @@ export default function EncabezadoPanel({ configuracion, alCerrarSesion }) {
     return (
         <header className="encabezado-panel">
             <div className="encabezado-panel__barra">
-                <div><strong>Historia Clínica Digital</strong><small>Clínica Odontológica UNDAC</small></div>
+                <div><strong>Historia Clínica Digital</strong><small>Sistema de Odontología</small></div>
                 <div className="herramientas-usuario">
                     <button type="button" aria-label="Notificaciones"><Bell size={19} /></button>
                     <span className="avatar-usuario" aria-hidden="true">{configuracion.persona.charAt(0)}</span>
