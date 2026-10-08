@@ -8,6 +8,19 @@ use Illuminate\Support\Facades\DB;
 
 class ServicioOdontograma
 {
+    /**
+     * El frontend identifica el hallazgo por su estado (`ectopico`) y el catálogo
+     * por su código (`ECTOPICA`); solo estos cinco estados no se derivan de forma
+     * literal, así que se declaran uno a uno.
+     */
+    private const CODIGOS_HALLAZGO = [
+        'ECTOPICO' => 'ECTOPICA',
+        'EXTRUIDO' => 'EXTRUIDA',
+        'INTRUIDO' => 'INTRUIDA',
+        'SUPERNUMERARIO' => 'SUPERNUMERARIA',
+        'POSICION' => 'POSICION_ANORMAL',
+    ];
+
     public function leer(int $idHistoria): ?array
     {
         $filas = DB::table('odontograma')
@@ -106,15 +119,15 @@ class ServicioOdontograma
         }
 
         foreach ($marcas as $item) {
+            if (! is_array($item['marca'])) {
+                continue;
+            }
             $idPiezaCatalogo = DB::table('pieza_dental')->where('codigo_fdi', $item['codigo'])->value('id_pieza_dental');
-            $codigoHallazgo = (string) ($item['marca']['code'] ?? '');
             $idHallazgo = DB::table('catalogo_hallazgo_dental')
                 ->where('estado', 1)
-                ->where(function ($q) use ($codigoHallazgo) {
-                    $q->where('simbolo', $codigoHallazgo)->orWhere('codigo', $codigoHallazgo);
-                })
+                ->where('codigo', $this->codigoCatalogo($item['marca']['state'] ?? ''))
                 ->value('id_hallazgo_dental');
-            if (! $idPiezaCatalogo || ! $idHallazgo || ! is_array($item['marca'])) {
+            if (! $idPiezaCatalogo || ! $idHallazgo) {
                 continue;
             }
             if (! isset($piezas[$item['codigo']])) {
@@ -167,6 +180,19 @@ class ServicioOdontograma
                 $orden++;
             }
         }
+    }
+
+    /**
+     * Traduce el estado que envía el frontend (`ectopico`) al código del catálogo
+     * (`ECTOPICA`). La asociación se hacía antes por la sigla (`code`), que
+     * colisiona —la M es a la vez movilidad y posición anormal— y que, cuando la
+     * marca no lleva sigla, hacía que el hallazgo ni siquiera se guardara.
+     */
+    private function codigoCatalogo(string $estado): string
+    {
+        $codigo = strtoupper(str_replace(['-', ' '], '_', $estado));
+
+        return self::CODIGOS_HALLAZGO[$codigo] ?? $codigo;
     }
 
     private function fecha(mixed $valor): string

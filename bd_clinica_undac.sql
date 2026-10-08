@@ -1596,10 +1596,12 @@ INSERT INTO pieza_dental (id_pieza_dental, codigo_fdi, denticion, cuadrante, tip
 -- DATOS SEMILLA: CATALOGO DE HALLAZGOS DENTALES
 -- =============================================================
 
+-- NTS N.° 188 (1.9 discrómico, 1.22 migración, 1.30 semi-impactación) más dos
+-- nomenclaturas propias de la clínica admitidas por el DG 14 (caries cervical, cálculo).
 INSERT INTO catalogo_hallazgo_dental (id_hallazgo_dental, codigo, nombre, categoria, alcance, permite_superficie, requiere_condicion, simbolo, descripcion, estado) VALUES
 (1,'ORTODONCIA_FIJA','Aparato ortodóntico fijo','ORTODONCIA','RANGO',0,1,'⊞—⊞',NULL,1),
 (2,'ORTODONCIA_REMOVIBLE','Aparato ortodóntico removible','ORTODONCIA','RANGO',0,1,'⌁',NULL,1),
-(3,'CORONA','Corona','TRATAMIENTO_EXISTENTE','PIEZA',0,1,'CM',NULL,1),
+(3,'CORONA','Corona definitiva','TRATAMIENTO_EXISTENTE','PIEZA',0,1,'CC',NULL,1),
 (4,'CORONA_TEMPORAL','Corona temporal','TRATAMIENTO_EXISTENTE','PIEZA',0,0,'CT',NULL,1),
 (5,'DEFECTO_ESMALTE','Defectos de desarrollo del esmalte','PATOLOGIA','SUPERFICIE',1,0,'O',NULL,1),
 (6,'DIASTEMA','Diastema','ESTADO','PAR',0,0,')(',NULL,1),
@@ -1634,7 +1636,12 @@ INSERT INTO catalogo_hallazgo_dental (id_hallazgo_dental, codigo, nombre, catego
 (35,'SELLANTE','Sellante','TRATAMIENTO_EXISTENTE','SUPERFICIE',1,1,'S',NULL,1),
 (36,'DESGASTE','Superficie desgastada','PATOLOGIA','SUPERFICIE',1,0,'DES',NULL,1),
 (37,'ENDODONCIA','Tratamiento de conductos / pulpectomía','TRATAMIENTO_EXISTENTE','PIEZA',0,1,'TC',NULL,1),
-(38,'TRANSPOSICION','Transposición dentaria','POSICION','PAR',0,0,'⇄',NULL,1);
+(38,'TRANSPOSICION','Transposición dentaria','POSICION','PAR',0,0,'⇄',NULL,1),
+(39,'DISCROMICO','Diente discrómico','ANOMALIA','PIEZA',0,0,'DIS',NULL,1),
+(40,'SEMI_IMPACTACION','Semi-impactación','POSICION','PIEZA',0,0,'SI',NULL,1),
+(41,'MIGRACION','Migración','POSICION','PIEZA',0,0,'→',NULL,1),
+(42,'CARIES_CERVICAL','Caries cervical','PATOLOGIA','PIEZA',0,0,'C',NULL,1),
+(43,'CALCULO','Cálculo dental','PATOLOGIA','PIEZA',0,0,'CAL',NULL,1);
 
 -- =============================================================
 -- DATOS SEMILLA: CATALOGO DE TRATAMIENTOS

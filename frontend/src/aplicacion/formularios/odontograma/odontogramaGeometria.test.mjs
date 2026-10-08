@@ -2,7 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { arches, temporaryArches } from './odontograma.config.mjs';
 import {
   isAnterior, isMolar, isUpper, surfacePolygons, toothCrownPolygons,
-  toothIncisalPath, toothRootCount, toothRootsPath,
+  toothIncisalPath, toothRootCount, toothRootPolygon, toothRootsPath,
 } from './odontogramaGeometria.mjs';
 
 const allTeeth = [
@@ -59,6 +59,22 @@ describe('raíces', () => {
     // 15 conserva una sola rama: la bifurcación no se propaga al resto de premolares.
     expect(toothRootsPath('15')).not.toBe(bifurcada);
     expect(apexes(toothRootsPath('15'))).toEqual([50]);
+  });
+
+  test('la zona radicular es el mismo contorno que se dibuja, como polígono pulsable', () => {
+    for (const number of allTeeth) {
+      const polygon = toothRootPolygon(number);
+      // Mismo trazo que las raíces visibles: ninguna pieza queda sin zona registrable.
+      expect(polygon.trim().split(/\s+/).flatMap((pair) => pair.split(',').map(Number)), `pieza ${number}`)
+        .toEqual(coordinates(toothRootsPath(number)));
+      const box = rectangle(polygon);
+      expect(box.minX, `pieza ${number}`).toBe(8);
+      expect(box.maxX, `pieza ${number}`).toBe(92);
+      // Arranca y cierra en la base de la corona, que queda tapada por ella.
+      expect(box.maxY, `pieza ${number}`).toBe(77.5);
+      expect(box.minY, `pieza ${number}`).toBe(10);
+      expect(area(polygon), `pieza ${number}`).toBeGreaterThan(0);
+    }
   });
 });
 

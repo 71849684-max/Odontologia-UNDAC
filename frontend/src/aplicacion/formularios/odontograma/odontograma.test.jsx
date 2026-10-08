@@ -2,8 +2,8 @@ import React from 'react';
 import { beforeEach, afterEach, describe, test, expect, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent, within } from '@testing-library/react';
 import Odontograma from './Odontograma.jsx';
-import { CompactTooth, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
-import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition } from './odontograma.config.mjs';
+import { CompactTooth, OdontogramRow, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
+import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition, odontogramStates } from './odontograma.config.mjs';
 import { createRecord, addFinding, removeFinding, toothFindings, closeExamination, updateExamination, addExamination, readRecord, findingTeeth } from './odontogramaRegistro.mjs';
 
 // Node 25 también expone localStorage: use un almacén controlado para jsdom.
@@ -51,6 +51,48 @@ test('el resaltado del borde incisal recae en el borde de la corona, no en un ce
   expect(tooth.querySelector('polygon[stroke-dasharray]')).toHaveAttribute('points', '8,86 92,86 92,95 8,95');
 });
 
+test('la zona radicular es una superficie pulsable y su resaltado no se recorta', () => {
+  render(<CompactTooth number="16" tooth={createEmptyOdontogram()['16']} selectedSurface="raiz" />);
+  const tooth = screen.getByLabelText('Gráfico de pieza 16');
+  const root = screen.getByRole('button', { name: 'Pieza 16, Raíz' });
+  expect(root.tagName.toLowerCase()).toBe('path');
+  expect(root).toHaveAttribute('aria-pressed', 'true');
+  expect(root).toHaveAttribute('data-state', 'sin-registro');
+  // Queda fuera de la elipse de la corona: el recorte la dejaría invisible.
+  const highlight = tooth.querySelector('polygon[stroke-dasharray]');
+  expect(highlight).not.toHaveAttribute('clip-path');
+  expect(highlight).toHaveAttribute('points', '8,77.5 17,10 36,60 50,10 64,60 83,10 92,77.5');
+  // El contorno de las raíces sigue visible con su propio título.
+  expect(within(tooth).getByText('Raíces de pieza 16', { selector: 'title' }).parentElement.tagName.toLowerCase()).toBe('path');
+});
+
+test('la raíz abre sus acciones y admite registrar un hallazgo en esa zona', () => {
+  render(<Odontograma patientId="zona-radicular" />);
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Raíz' }));
+  const modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Raíz' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Caries', exact: true }));
+  fireEvent.click(within(modal).getByRole('button', { name: 'Aplicar en esta superficie' }));
+  const stored = JSON.parse(localStorage.getItem('undac:odontograma:nts188:v1:zona-radicular'));
+  expect(stored.examinations[0].teeth['11'].surfaces.raiz.findings[0]).toMatchObject({ state: 'caries', surface: 'raiz' });
+  expect(screen.getByRole('button', { name: 'Pieza 11, Raíz' })).toHaveAttribute('data-state', 'caries');
+});
+
+test('lee odontogramas guardados sin zona radicular y rechaza una zona corrupta', () => {
+  const legacy = createRecord('legacy');
+  for (const tooth of Object.values(legacy.examinations[0].teeth)) delete tooth.surfaces.raiz;
+  legacy.examinations[0].teeth['11'].surfaces.vestibular = { state: 'caries', note: '', findings: [{ id: 'm1', state: 'caries', code: 'CE', condition: 'good', note: '', points: [], representation: 'schematic', teeth: ['11'], surface: 'vestibular' }] };
+  const raw = JSON.stringify(legacy);
+  expect(JSON.parse(raw).examinations[0].teeth['11'].surfaces).not.toHaveProperty('raiz');
+  const record = readRecord(raw, 'legacy');
+  // Lo escrito se conserva y la zona radicular se completa al leer.
+  expect(record.examinations[0].teeth['11'].surfaces.vestibular.findings).toHaveLength(1);
+  expect(record.examinations[0].teeth['11'].surfaces.raiz).toEqual({ state: 'sin-registro', note: '', findings: [] });
+
+  const corrupta = JSON.parse(raw);
+  corrupta.examinations[0].teeth['11'].surfaces.raiz = { findings: 'x' };
+  expect(() => readRecord(JSON.stringify(corrupta), 'legacy')).toThrow();
+});
+
 describe('estructura NTS 188', () => {
   test('dispone 32 permanentes y 20 temporales desde la perspectiva del observador', () => {
     expect(Object.keys(createEmptyOdontogram())).toHaveLength(52);
@@ -65,13 +107,68 @@ describe('estructura NTS 188', () => {
     expect(toothSurfacePolygon('46', 'vestibular')).toBe(surfacePolygons.top);
     expect(toothSurfacePolygon('46', 'lingual')).toBe(surfacePolygons.bottom);
   });
-  test('usa rojo en movilidad y desgaste, y distingue buen y mal estado', () => {
-    expect(clinicalColor({ state: 'movilidad' })).toBe('#dc2626');
-    expect(clinicalColor({ state: 'desgaste' })).toBe('#dc2626');
+  test('usa azul en movilidad y desgaste (numerales 1.6 y 1.23) y distingue buen y mal estado', () => {
+    expect(clinicalColor({ state: 'movilidad' })).toBe('#1d4ed8');
+    expect(clinicalColor({ state: 'desgaste' })).toBe('#1d4ed8');
     expect(clinicalColor({ state: 'restauracion', condition: 'bad' })).toBe('#dc2626');
     expect(clinicalColor({ state: 'ausente' })).toBe('#1d4ed8');
     expect(stateFor('endodoncia').options).toEqual(['TC','PC']);
     expect(stateFor('extraccion-indicada').id).toBe('sin-registro');
+  });
+  test('la nomenclatura obligatoria de la NTS N.° 188 coincide con el catálogo de la base', () => {
+    // 1.9, 1.30 y 1.22: DIS, SI y la flecha de migración en azul, sobre la pieza.
+    expect(stateFor('discromico')).toMatchObject({ symbol: 'DIS', color: 'blue', scope: 'tooth', graphic: 'code' });
+    expect(stateFor('semi-impactacion')).toMatchObject({ symbol: 'SI', color: 'blue', scope: 'tooth', graphic: 'code' });
+    expect(stateFor('migracion')).toMatchObject({ symbol: '→', color: 'blue', scope: 'tooth', graphic: 'migration', options: ['Derecha', 'Izquierda'] });
+    // 1.4 y 1.28: las siglas que la norma enumera, ni más ni menos.
+    expect(stateFor('corona').options).toEqual(['CC','CF','CMC','3/4','4/5','7/8','CV','CJ']);
+    expect(stateFor('restauracion').options).toEqual(['AM','R','IV','IM','IE']);
+    // 1.33: conductos, pulpectomía y pulpotomía comparten la línea sobre la raíz.
+    expect(stateFor('pulpotomia')).toMatchObject({ graphic: 'root', symbol: 'PP', color: 'blue' });
+    // El resto de estados sigue teniendo símbolo para el recuadro.
+    for (const state of odontogramStates) expect(state.symbol, state.id).toBeTruthy();
+  });
+  test('las coronas se dibujan como circunferencia que encierra la corona (1.4 y 1.5)', () => {
+    const exam = addFinding(createRecord('a').examinations[0], mark({ tooth: '16', state: 'corona-temporal', code: 'CT', points: [] }));
+    const { container } = render(<CompactTooth number="16" tooth={exam.teeth['16']} interactive={false} />);
+    const circulo = container.querySelector('ellipse[rx="46"]');
+    expect(circulo).toBeInTheDocument();
+    expect(Number(circulo.getAttribute('ry'))).toBe(22);
+    // Encierra la corona entera, que ocupa x 8–92 e y 60–95.
+    expect(Number(circulo.getAttribute('cx')) - Number(circulo.getAttribute('rx'))).toBeLessThanOrEqual(8);
+    expect(Number(circulo.getAttribute('cy')) - Number(circulo.getAttribute('ry'))).toBeLessThanOrEqual(60);
+    expect(Number(circulo.getAttribute('cy')) + Number(circulo.getAttribute('ry'))).toBeGreaterThanOrEqual(95);
+  });
+  test('la migración se dibuja como flecha horizontal a nivel oclusal (1.22)', () => {
+    const exam = addFinding(createRecord('a').examinations[0], mark({ tooth: '16', state: 'migracion', code: 'Izquierda', points: [] }));
+    const { container } = render(<CompactTooth number="16" tooth={exam.teeth['16']} interactive={false} />);
+    const flecha = container.querySelector('path[d="M18 100H80M72 94L80 100L72 106"]');
+    expect(flecha).toBeInTheDocument();
+    expect(flecha.parentElement).toHaveAttribute('transform', 'translate(100 0) scale(-1 1)');
+    expect(flecha.closest('svg')).toHaveAttribute('aria-label', 'Gráfico de pieza 16');
+  });
+  test('el triángulo de la pieza en clavija circunscribe al número, no a la pieza (1.11)', () => {
+    let exam = addFinding(createRecord('a').examinations[0], mark({ tooth: '16', state: 'clavija', code: '△', points: [] }));
+    exam = addFinding(exam, mark({ tooth: '46', state: 'clavija', code: '△', points: [] }));
+    const { container } = render(<OdontogramRow title="Prueba" teeth={['16','46']} exam={exam} selectedTooth="16" selectedSurface="oclusal" onSelect={vi.fn()} />);
+    expect(container.querySelectorAll('.nts-clavija')).toHaveLength(2);
+    // Comparte celda con el número en ambas arcadas: arriba en la superior y debajo del gráfico en la inferior.
+    expect(container.querySelector('.nts-tooth:not(.nts-tooth--lower) .nts-clavija')).toBeInTheDocument();
+    expect(container.querySelector('.nts-tooth--lower .nts-clavija')).toBeInTheDocument();
+    // Sobre la corona no se dibuja ninguna marca para este hallazgo.
+    expect(container.querySelector('.nts-tooth-map path[d="M35 8L50 0L65 8Z"]')).not.toBeInTheDocument();
+  });
+  test('las circunferencias de geminación rodean al número (1.16)', () => {
+    const exam = addFinding(createRecord('a').examinations[0], mark({ tooth: '21', state: 'geminacion', code: '', points: [] }));
+    const { container } = render(<OdontogramRow title="Prueba" teeth={['21']} exam={exam} selectedTooth="21" selectedSurface="oclusal" onSelect={vi.fn()} />);
+    const anillos = container.querySelector('.nts-gemination');
+    expect(anillos).toBeInTheDocument();
+    expect(anillos.querySelectorAll('ellipse')).toHaveLength(2);
+    // Entre los dos encierran la caja del número (0–34 px) y se interceptan.
+    const bordes = [...anillos.querySelectorAll('ellipse')].map((e) => [Number(e.getAttribute('cx')) - Number(e.getAttribute('rx')), Number(e.getAttribute('cx')) + Number(e.getAttribute('rx'))]);
+    expect(Math.min(bordes[0][0], bordes[1][0])).toBeLessThan(0);
+    expect(Math.max(bordes[0][1], bordes[1][1])).toBeGreaterThan(34);
+    expect(Math.max(bordes[0][0], bordes[1][0])).toBeLessThan(Math.min(bordes[0][1], bordes[1][1]));
   });
   test('conserva varios hallazgos y retirar uno no borra el resto', () => {
     const exam = createRecord('a').examinations[0];
@@ -121,13 +218,13 @@ test('muestra el nombre de cada sección del diente en la leyenda y en la guía'
   render(<Odontograma patientId="superficies" />);
 
   const leyenda = screen.getByLabelText('Leyenda de superficies del diente');
-  for (const nombre of ['Vestibular', 'Lingual / Palatina', 'Mesial', 'Distal', 'Oclusal / Incisal']) {
+  for (const nombre of ['Vestibular', 'Lingual / Palatina', 'Mesial', 'Distal', 'Oclusal / Incisal', 'Raíz']) {
     expect(leyenda).toHaveTextContent(nombre);
   }
 
   const molar = screen.getByLabelText('Guía de superficies: molar 16');
   const incisivo = screen.getByLabelText('Guía de superficies: incisivo 11');
-  for (const rotulo of ['V', 'L/P', 'M', 'D', 'O/I']) {
+  for (const rotulo of ['V', 'L/P', 'M', 'D', 'O/I', 'R']) {
     expect(within(molar).getByText(rotulo)).toBeInTheDocument();
     expect(within(incisivo).getByText(rotulo)).toBeInTheDocument();
   }
@@ -211,7 +308,7 @@ test('interfaz guarda, recupera y separa el registro por historia', () => {
   expect(within(modal).getByText('Sin hallazgos registrados.')).toBeInTheDocument();
   other.unmount();
   render(<Odontograma patientId="a" />);
-  expect(screen.getAllByRole('button', { name: /^Pieza 11,/ })).toHaveLength(5);
+  expect(screen.getAllByRole('button', { name: /^Pieza 11,/ })).toHaveLength(6);
   for (const button of screen.getAllByRole('button', { name: /^Pieza 11,/ })) {
     expect(button).toHaveAttribute('data-state', 'ausente');
   }
@@ -265,25 +362,25 @@ test('marca directamente sin trazado y permite consultar y borrar sin duplicar h
 });
 
 test.each([['11', 'DEX'], ['41', 'DAO'], ['51', 'DAO'], ['81', 'DEX']])(
-  'la ausencia de %s cubre cinco superficies y quitarla restaura los hallazgos anteriores', (number, code) => {
+  'la ausencia de %s cubre las cinco caras y la raíz, y quitarla restaura lo anterior', (number, code) => {
     const original = addFinding(createRecord('a').examinations[0], mark({ tooth: number }));
     const absent = addFinding(original, mark({ tooth: number, state: 'ausente', code, points: [] }));
     const select = vi.fn();
     const { rerender } = render(<CompactTooth number={number} tooth={absent.teeth[number]} onSelect={select} />);
     const surfaces = screen.getAllByRole('button');
-    expect(surfaces).toHaveLength(5);
+    expect(surfaces).toHaveLength(6);
     for (const button of surfaces) {
       expect(button).toHaveAttribute('data-state', 'ausente');
       expect(button).toHaveStyle('background-color: rgb(29, 78, 216)');
     }
-    fireEvent.click(surfaces[2]);
+    fireEvent.click(screen.getByRole('button', { name: `Pieza ${number}, Mesial` }));
     expect(select).toHaveBeenCalledWith('mesial');
     expect(toothFindings(absent.teeth[number])).toHaveLength(2);
     const restored = removeFinding(absent, absent.teeth[number].findings[0].id);
     expect(restored.teeth[number]).toEqual(original.teeth[number]);
     rerender(<CompactTooth number={number} tooth={restored.teeth[number]} />);
     expect(screen.getByRole('button', { name: `Pieza ${number}, Vestibular` })).toHaveAttribute('data-state', 'caries');
-    expect(screen.getAllByRole('button').filter((button) => button.dataset.state === 'sin-registro')).toHaveLength(4);
+    expect(screen.getAllByRole('button').filter((button) => button.dataset.state === 'sin-registro')).toHaveLength(5);
   },
 );
 

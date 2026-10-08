@@ -28,7 +28,13 @@ export const toothSurfaces = [
   { id: 'mesial', label: 'Mesial', short: 'M' },
   { id: 'distal', label: 'Distal', short: 'D' },
   { id: 'oclusal', label: 'Oclusal / Incisal', short: 'O/I' },
+  // D-05: la zona radicular también es superficie de registro (caries cervical,
+  // restauración de raíz, remanente). No es una cara de la corona.
+  { id: 'raiz', label: 'Raíz', short: 'R' },
 ];
+
+/** Las cinco caras de la corona; `toothSurfaces` añade además la zona radicular. */
+export const crownSurfaces = toothSurfaces.filter((surface) => surface.id !== 'raiz');
 
 // NTS 188 / nomenclatura de caras: el odontograma puede mostrar el nombre de cada sección.
 export const superficiesDentales = [
@@ -50,10 +56,11 @@ export const odontogramStates = [
   finding('sin-registro', 'Sin registrar', '—', 'surface', 'none'),
   finding('ortodoncia-fija', 'Aparato ortodóntico fijo', '⊞—⊞', 'range', 'brackets', 'blue', [], true),
   finding('ortodoncia-removible', 'Aparato ortodóntico removible', '⌁', 'range', 'zigzag', 'blue', [], true),
-  finding('corona', 'Corona', 'CM', 'tooth', 'crown', 'blue', ['CM','CF','CMC','CV','CLM'], true),
+  finding('corona', 'Corona definitiva', 'CC', 'tooth', 'crown', 'blue', ['CC','CF','CMC','3/4','4/5','7/8','CV','CJ'], true),
   finding('corona-temporal', 'Corona temporal', 'CT', 'tooth', 'crown', 'red'),
   finding('defecto-esmalte', 'Defectos de desarrollo del esmalte', 'O', 'surface', 'code', 'red', ['O','PE']),
   finding('diastema', 'Diastema', ')(', 'pair', 'diastema'),
+  finding('discromico', 'Diente discrómico', 'DIS', 'tooth', 'code', 'blue'),
   finding('edentulo', 'Edéntulo total', '—', 'arch', 'edentulous'),
   finding('espigo', 'Espigo – muñón', '▣', 'tooth', 'post', 'blue', [], true),
   finding('fosas', 'Fosas y fisuras profundas', 'FFP', 'tooth', 'code'),
@@ -64,9 +71,13 @@ export const odontogramStates = [
   finding('impactacion', 'Impactación', 'I', 'tooth', 'code'),
   finding('implante', 'Implante dental', 'IMP', 'tooth', 'code', 'blue', [], true),
   finding('caries', 'Lesión de caries dental', 'CE', 'surface', 'draw-fill', 'red', ['MB','CE','CD','CDP']),
+  // Adicional de la clínica (DG 14 permite nomenclatura propia): sigla en el recuadro.
+  finding('caries-cervical', 'Caries cervical', 'C', 'tooth', 'code', 'red'),
+  finding('calculo', 'Cálculo dental', 'CAL', 'tooth', 'draw-line', 'red'),
   finding('macrodoncia', 'Macrodoncia', 'MAC', 'tooth', 'code'),
   finding('microdoncia', 'Microdoncia', 'MIC', 'tooth', 'code'),
-  finding('movilidad', 'Movilidad patológica', 'M', 'tooth', 'code', 'red', ['M1','M2','M3']),
+  finding('migracion', 'Migración', '→', 'tooth', 'migration', 'blue', ['Derecha', 'Izquierda']),
+  finding('movilidad', 'Movilidad patológica', 'M', 'tooth', 'code', 'blue', ['M1','M2','M3']),
   finding('ausente', 'Pieza dentaria ausente / extraída', 'DAO', 'tooth', 'missing', 'blue', ['DNE','DEX','DAO']),
   finding('clavija', 'Pieza dentaria en clavija', '△', 'tooth', 'triangle'),
   finding('ectopico', 'Pieza dentaria ectópica', 'E', 'tooth', 'code'),
@@ -74,21 +85,25 @@ export const odontogramStates = [
   finding('extruido', 'Pieza dentaria extruida', '↓', 'tooth', 'extrusion'),
   finding('intruido', 'Pieza dentaria intruida', '↑', 'tooth', 'intrusion'),
   finding('supernumerario', 'Pieza dentaria supernumeraria', 'Ⓢ', 'pair', 'supernumerary'),
-  finding('pulpotomia', 'Pulpotomía', 'PP', 'tooth', 'pulp', 'blue', [], true),
+  // 1.33: la línea vertical azul va sobre la raíz para TC, PC y PP; la sigla va al recuadro.
+  finding('pulpotomia', 'Pulpotomía', 'PP', 'tooth', 'root', 'blue', [], true),
   finding('posicion', 'Posición anormal dentaria', 'M', 'tooth', 'code', 'blue', ['M','D','V','P','L']),
   finding('protesis-fija', 'Prótesis dental parcial fija', '┬─┬', 'range', 'bridge', 'blue', [], true),
   finding('protesis-completa', 'Prótesis dental completa', '═', 'arch', 'double', 'blue', [], true),
   finding('protesis-removible', 'Prótesis dental parcial removible', '═', 'range', 'double', 'blue', [], true),
   finding('remanente', 'Remanente radicular', 'RR', 'tooth', 'code', 'red'),
-  finding('restauracion', 'Restauración definitiva', 'R', 'surface', 'draw-fill', 'blue', ['AM','R','IV','IM','IE','C'], true),
+  finding('restauracion', 'Restauración definitiva', 'R', 'surface', 'draw-fill', 'blue', ['AM','R','IV','IM','IE'], true),
   finding('restauracion-temporal', 'Restauración temporal', 'Contorno', 'surface', 'draw-line', 'red'),
   finding('sellante', 'Sellante', 'S', 'surface', 'draw-line', 'blue', [], true),
-  finding('desgaste', 'Superficie desgastada', 'DES', 'surface', 'draw-line', 'red'),
+  finding('semi-impactacion', 'Semi-impactación', 'SI', 'tooth', 'code', 'blue'),
+  // 1.6: “DES” en mayúsculas y de color azul, en el recuadro de la pieza.
+  finding('desgaste', 'Superficie desgastada', 'DES', 'surface', 'draw-line', 'blue'),
   finding('endodoncia', 'Tratamiento de conductos / pulpectomía', 'TC', 'tooth', 'root', 'blue', ['TC','PC'], true),
   finding('transposicion', 'Transposición dentaria', '⇄', 'pair', 'transposition'),
 ];
 
 export function surfacePosition(number, surface) {
+  // Solo las caras de la corona: la zona radicular no tiene posición en la elipse.
   const right = ['1','4','5','8'].includes(String(number)[0]);
   const upper = ['1','2','5','6'].includes(String(number)[0]);
   return { vestibular: upper ? 'top' : 'bottom', lingual: upper ? 'bottom' : 'top', mesial: right ? 'right' : 'left', distal: right ? 'left' : 'right', oclusal: 'center' }[surface];
@@ -110,6 +125,18 @@ function emptyTooth(number) {
     generalNote: '',
     findings: [],
     surfaces: Object.fromEntries(toothSurfaces.map((surface) => [surface.id, emptySurface()])),
+  };
+}
+
+/**
+ * Conserva lo guardado y añade las superficies que falten. Permite leer
+ * odontogramas escritos antes de que existiera la zona radicular (D-05) sin
+ * perder hallazgos ni romper el registro.
+ */
+export function completeToothSurfaces(tooth) {
+  return {
+    ...tooth,
+    surfaces: Object.fromEntries(toothSurfaces.map((surface) => [surface.id, tooth.surfaces?.[surface.id] || emptySurface()])),
   };
 }
 

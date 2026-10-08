@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { clinicalSections, clinicalMoments, dashboardServices, healthQuestions, consentParagraphs, intraoralTissues, labFields } from '../configuracion/historiaClinica.config.mjs';
-import { permanentTeeth, toothSurfaces, odontogramStates, createEmptyOdontogram, applyOdontogramMark } from '../formularios/odontograma/odontograma.config.mjs';
+import { permanentTeeth, toothSurfaces, crownSurfaces, odontogramStates, createEmptyOdontogram, applyOdontogramMark } from '../formularios/odontograma/odontograma.config.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const src = path.resolve(__dirname, '../..');
@@ -51,11 +51,13 @@ test('el dashboard ofrece accesos KPI a los servicios clinicos', () => {
   assert.ok(dashboardServices.some((s) => s.target.section === 'seguimiento'));
 });
 
-test('el odontograma usa denticion permanente FDI de 32 piezas y cinco superficies', () => {
+test('el odontograma usa denticion permanente FDI de 32 piezas, cinco caras y la raiz', () => {
   assert.equal(permanentTeeth.length, 32);
   assert.equal(new Set(permanentTeeth.map((t) => t.number)).size, 32);
-  assert.equal(toothSurfaces.length, 5);
-  assert.deepEqual(toothSurfaces.map((s) => s.id), ['vestibular','lingual','mesial','distal','oclusal']);
+  assert.equal(toothSurfaces.length, 6);
+  assert.deepEqual(toothSurfaces.map((s) => s.id), ['vestibular','lingual','mesial','distal','oclusal','raiz']);
+  // La corona sigue teniendo exactamente cinco caras: la raíz no es una cara.
+  assert.equal(crownSurfaces.length, 5);
 });
 
 test('los estados del odontograma tienen etiqueta y simbolo ademas del color', () => {

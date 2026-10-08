@@ -1,4 +1,4 @@
-import { allTeeth, arches, temporaryArches, createEmptyOdontogram, stateFor, toothSurfaces } from './odontograma.config.mjs';
+import { allTeeth, arches, temporaryArches, createEmptyOdontogram, stateFor, toothSurfaces, crownSurfaces, completeToothSurfaces } from './odontograma.config.mjs';
 
 export const examinationReasons = ['Inicial', 'Nuevos hallazgos', 'Fin de tratamiento', 'Reingreso', 'Solicitud judicial', 'Solicitud personal'];
 const id = () => globalThis.crypto.randomUUID();
@@ -83,9 +83,19 @@ export function readRecord(raw, patientId) {
   if (!raw) return createRecord(patientId);
   const value = JSON.parse(raw);
   const validMark = (m) => m && typeof m.id === 'string' && typeof m.note === 'string' && typeof m.code === 'string' && ['good','bad'].includes(m.condition) && stateFor(m.state).id !== 'sin-registro' && Array.isArray(m.teeth) && m.teeth.length > 0 && m.teeth.every((n) => allTeeth.some((t) => t.number === n)) && Array.isArray(m.points) && m.points.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v) && v >= 0 && v <= 100));
+  const validSurface = (tooth, id) => {
+    const surface = tooth.surfaces?.[id];
+    // Solo la zona radicular puede faltar: los registros previos a la Fase 2 no la traían (D-05).
+    if (!surface) return !crownSurfaces.some((item) => item.id === id);
+    return Array.isArray(surface.findings) && surface.findings.every(validMark);
+  };
   if (value?.version !== 1 || value.patientId !== String(patientId) || !Array.isArray(value.examinations) || !value.examinations.length || value.examinations.filter((e) => e.status === 'draft').length > 1 || value.examinations.some((e) => !e || typeof e.id !== 'string' || !['draft','closed'].includes(e.status) || !['date','professional','cop','specifications','observations'].every((key) => typeof e[key] === 'string') || !Array.isArray(e.ranges) || !e.ranges.every(validMark) || !allTeeth.every(({ number }) => {
     const t = e.teeth?.[number];
-    return t && Array.isArray(t.findings) && t.findings.every(validMark) && toothSurfaces.every((s) => Array.isArray(t.surfaces?.[s.id]?.findings) && t.surfaces[s.id].findings.every(validMark));
+    return t && Array.isArray(t.findings) && t.findings.every(validMark) && toothSurfaces.every((s) => validSurface(t, s.id));
   }))) throw new Error('No se pudo leer el odontograma guardado. Se conservó el contenido original; no se sobrescribirá.');
-  return value;
+  // Rellena las superficies que falten sin tocar lo ya registrado.
+  return {
+    ...value,
+    examinations: value.examinations.map((e) => ({ ...e, teeth: Object.fromEntries(Object.entries(e.teeth).map(([number, tooth]) => [number, completeToothSurfaces(tooth)])) })),
+  };
 }

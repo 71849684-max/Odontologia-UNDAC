@@ -69,6 +69,19 @@ export function toothRootsPath(number) {
   return BIFURCATED_TEETH.has(String(number)) ? ROOTS_BIFURCATED : ROOTS_SINGLE;
 }
 
+/**
+ * Silueta de las raíces como polígono cerrado: es la zona pulsable de la
+ * superficie `raiz` (D-05), donde se registran caries cervicales, restauraciones
+ * de raíz y remanentes. El contorno arranca y cierra en la base de la corona,
+ * que queda tapada por ella al dibujar.
+ */
+export function toothRootPolygon(number) {
+  const coords = toothRootsPath(number).slice(1).replace(/[ML]/g, ' ').trim().split(/\s+/);
+  const puntos = [];
+  for (let i = 0; i + 1 < coords.length; i += 2) puntos.push(`${coords[i]},${coords[i + 1]}`);
+  return puntos.join(' ');
+}
+
 function polygonPath(points) {
   return `M${points.split(' ').map((point) => point.replace(',', ' ')).join('L')}Z`;
 }

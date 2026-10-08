@@ -1,7 +1,7 @@
 import React from 'react';
-import { clinicalColor, markCode, stateFor, surfacePosition, toothSurfaces } from './odontograma.config.mjs';
+import { clinicalColor, crownSurfaces, markCode, stateFor, surfacePosition, toothSurfaces } from './odontograma.config.mjs';
 import { toothFindings } from './odontogramaRegistro.mjs';
-import { isMolar, isUpper, surfacePolygons, toothCrownPolygons, toothIncisalPath, toothRootsPath } from './odontogramaGeometria.mjs';
+import { isMolar, isUpper, surfacePolygons, toothCrownPolygons, toothIncisalPath, toothRootPolygon, toothRootsPath } from './odontogramaGeometria.mjs';
 
 export { isUpper, surfacePolygons };
 // La presentación alarga el esquema, sin cambiar las coordenadas guardadas.
@@ -9,6 +9,8 @@ export const toothDrawingScaleY = 1.7;
 const toothColumnWidth = 60;
 // La arcada inferior se refleja al dibujar; convierta la posición visual al plano local.
 export function toothSurfacePolygon(number, surface) {
+  // La zona radicular no está en la elipse: su polígono es la silueta de las raíces (D-05).
+  if (surface === 'raiz') return toothRootPolygon(number);
   const position = surfacePosition(number, surface);
   const polygons = toothCrownPolygons(number);
   return polygons[!isUpper(number) ? ({ top: 'bottom', bottom: 'top' }[position] || position) : position];
@@ -46,11 +48,15 @@ function ToothMark({ mark, number }) {
     case 'draw-fill': shape = <polygon points={points} fill={color} />; break;
     case 'draw-line': shape = <polyline points={points} />; break;
     case 'missing': shape = <path d="M8 10L92 95M92 10L8 95" />; break;
-    case 'crown': shape = <rect x="6" y="58" width="88" height="39" />; break;
+    // 1.4 y 1.5: una circunferencia que encierra la corona. La de la corona
+    // definitiva es azul y la de la temporal roja; el color viene del estado.
+    case 'crown': shape = <ellipse cx="50" cy="77.5" rx="46" ry="22" />; break;
     case 'root': shape = <path d="M50 16V79" />; break;
-    case 'pulp': shape = <path d="M35 77H65" strokeWidth="7" />; break;
     case 'post': shape = <><path d="M50 16V73" /><rect x="39" y="72" width="22" height="13" /></>; break;
-    case 'triangle': shape = <path d="M35 8L50 0L65 8Z" />; break;
+    // 1.22: flecha horizontal a nivel del plano oclusal, en el sentido de la migración.
+    case 'migration': shape = <g transform={mark.code === 'Izquierda' ? 'translate(100 0) scale(-1 1)' : undefined}><path d="M18 100H80M72 94L80 100L72 106" /></g>; break;
+    // 1.11: el triángulo de la pieza en clavija circunscribe el número, así que se
+    // dibuja en OdontogramRow, donde vive el número; sobre la pieza no lleva marca.
     case 'rotation': shape = <g transform={mark.code === 'antihorario' ? 'translate(100 0) scale(-1 1)' : undefined}><path d="M25 97Q50 112 75 97M65 97H75V105" /></g>; break;
     case 'eruption': shape = <path d="M50 15L40 32L60 48L40 64L50 89M40 80L50 89L60 80" />; break;
     case 'extrusion': shape = <path d="M50 98V109M44 103L50 109L56 103" />; break;
@@ -65,12 +71,32 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
   const clipId = React.useId().replace(/:/g, '');
   const molar = isMolar(number);
   const incisalPath = toothIncisalPath(number);
+  const roots = toothRootsPath(number);
   const absence = tooth.findings.findLast((mark) => mark.state === 'ausente');
+  // D-05: la raíz es superficie de registro y hereda la ausencia igual que la corona.
+  const rootMarks = tooth.surfaces.raiz?.findings || [];
+  const rootFinding = absence || rootMarks.findLast((mark) => !mark.points.length);
+  const rootColor = rootFinding ? clinicalColor(rootFinding) : undefined;
+  const surfaceProps = (id, label) => ({
+    role: interactive ? 'button' : undefined,
+    tabIndex: interactive ? 0 : undefined,
+    'aria-label': interactive ? `Pieza ${number}, ${label}` : undefined,
+    'aria-pressed': interactive ? selectedSurface === id : undefined,
+    onClick: interactive ? () => onSelect?.(id) : undefined,
+    onKeyDown: interactive ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(id); } } : undefined,
+  });
   return <>
     <defs><clipPath id={clipId}><ellipse cx="50" cy="77.5" rx="42" ry="17.5" /></clipPath></defs>
-    <path className="nts-roots" d={toothRootsPath(number)} fill="white" stroke="black" strokeWidth="2.5" strokeLinejoin="round"><title>Raíces de pieza {number}</title></path>
+    <path className="nts-roots" d={roots} fill="white" stroke="black" strokeWidth="2.5" strokeLinejoin="round"><title>Raíces de pieza {number}</title></path>
+    {/* Zona radicular pulsable, bajo la corona: esta solo cubre la elipse. */}
+    <path className={`nts-surface nts-root${selectedSurface === 'raiz' ? ' is-selected' : ''}`} d={roots}
+      fill={rootColor || 'transparent'} stroke={rootColor || 'transparent'} strokeWidth={2.2} strokeLinejoin="round"
+      style={rootColor ? { background: rootColor } : undefined}
+      data-state={rootFinding?.state || rootMarks.at(-1)?.state || 'sin-registro'} {...surfaceProps('raiz', 'Raíz')}>
+      <title>{number} · Raíz{rootFinding ? ` · ${markCode(rootFinding)}` : ''}</title>
+    </path>
     <g clipPath={`url(#${clipId})`}>
-      {toothSurfaces.map((s) => {
+      {crownSurfaces.map((s) => {
         const finding = absence || tooth.surfaces[s.id].findings.findLast((mark) => !mark.points.length);
         const color = finding ? clinicalColor(finding) : undefined;
         const incisal = s.id === 'oclusal' && incisalPath !== null;
@@ -79,10 +105,7 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
           className={`nts-surface${incisal ? ' nts-incisal' : ''}${selectedSurface === s.id ? ' is-selected' : ''}`}
           fill={color || 'white'} stroke={incisal ? color || 'transparent' : 'black'} strokeWidth={2.2}
           style={color ? { background: color } : undefined} data-state={finding?.state || absence?.state || tooth.surfaces[s.id].findings.at(-1)?.state || 'sin-registro'}
-          role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-label={interactive ? `Pieza ${number}, ${s.label}` : undefined}
-          aria-pressed={interactive ? selectedSurface === s.id : undefined}
-          onClick={interactive ? () => onSelect?.(s.id) : undefined}
-          onKeyDown={interactive ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(s.id); } } : undefined}>
+          {...surfaceProps(s.id, s.label)}>
           <title>{number} · {s.label}{finding ? ` · ${markCode(finding)}` : ''}</title>
         </Element>;
       })}
@@ -90,7 +113,7 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
     </g>
     <ellipse cx="50" cy="77.5" rx="42" ry="17.5" fill="none" stroke="black" strokeWidth="2.5" pointerEvents="none" />
     {toothFindings(tooth).filter((mark) => !stateFor(mark.state).graphic.startsWith('draw-') || mark.points.length).map((mark) => <ToothMark key={mark.id} number={number} mark={mark} />)}
-    {selectedSurface && <polygon points={toothSurfacePolygon(number, selectedSurface)} clipPath={`url(#${clipId})`} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
+    {selectedSurface && <polygon points={toothSurfacePolygon(number, selectedSurface)} clipPath={selectedSurface === 'raiz' ? undefined : `url(#${clipId})`} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
     {showLabels && <SurfaceLabels number={number} />}
   </>;
 }
@@ -114,7 +137,8 @@ function RangeMark({ mark, teeth, upper }) {
   const mid = (start + end) / 2;
   let shape;
   switch (state.graphic) {
-    case 'double': shape = <path d={`M${start - 30} ${y}H${end + 30}M${start - 30} ${y + 5}H${end + 30}`} />; break;
+    // 1.25 lleva las dos líneas a nivel de los ápices; 1.26, sobre las coronas.
+    case 'double': shape = <path d={`M${start - 30} ${mark.state === 'protesis-completa' ? crown : y}H${end + 30}M${start - 30} ${mark.state === 'protesis-completa' ? crown + 5 : y + 5}H${end + 30}`} />; break;
     case 'edentulous': shape = <path d={`M${start - 30} ${crown}H${end + 30}`} />; break;
     case 'bridge': shape = <path d={`M${start} ${y + 9}V${y}H${end}V${y + 9}`} />; break;
     case 'brackets': shape = <><path d={`M${start} ${y}H${end}`} />{[start,end].map((x) => <g key={x}><rect x={x - 5} y={y - 5} width="10" height="10" /><path d={`M${x - 3} ${y}H${x + 3}M${x} ${y - 3}V${y + 3}`} /></g>)}</>; break;
@@ -135,8 +159,14 @@ export function OdontogramRow({ title, teeth, exam, selectedTooth, selectedSurfa
       {teeth.map((number, index) => {
         const tooth = exam.teeth[number], marks = toothFindings(tooth);
         const codes = marks;
+        // 1.11: el triángulo azul circunscribe el número, no la pieza.
+        const clavija = marks.some((mark) => mark.state === 'clavija');
+        // 1.16: las circunferencias interceptadas rodean al número, igual que el triángulo.
+        const geminacion = marks.some((mark) => mark.state === 'geminacion');
         return <div key={number} className={`nts-tooth${!isUpper(number) ? ' nts-tooth--lower' : ''}${selectedTooth === number ? ' is-selected' : ''}${index === teeth.length / 2 ? ' nts-midline' : ''}`}>
           <button type="button" className="nts-tooth-number" aria-label={`Seleccionar pieza ${number}`} aria-pressed={selectedTooth === number} onClick={() => onSelect(number, 'oclusal')}>{number}</button>
+          {clavija && <svg className="nts-clavija" aria-hidden="true"><title>Pieza en clavija: {number}</title><path d="M-9 31L17 -8L43 31Z" /></svg>}
+          {geminacion && <svg className="nts-gemination" aria-hidden="true"><title>Pieza con geminación: {number}</title><ellipse cx="9" cy="12" rx="20" ry="11" /><ellipse cx="25" cy="12" rx="20" ry="11" /></svg>}
           <CompactTooth number={number} tooth={tooth} selectedSurface={selectedTooth === number ? selectedSurface : null} onSelect={(surface) => onSelect(number, surface)} />
           <div className="nts-tooth-codes">{codes.map((mark) => <span key={mark.id} style={{ color: clinicalColor(mark) }} title={stateFor(mark.state).label}>{markCode(mark) || stateFor(mark.state).symbol}</span>)}</div>
         </div>;

@@ -8,7 +8,15 @@ NTS N.° 188-MINSA/DGIESP-2022, aprobada por RM N.° 559-2022/MINSA.
 - Publicación oficial consultada: https://bvs.minsa.gob.pe/local/MINSA/5925.pdf
 - Numerales 5.4–5.18, catálogo 6.1.1–6.1.38 y anexo gráfico (página impresa 35).
 
-Se consultó también el PDF aportado por el usuario. No se copiaron sus convenciones antiguas cuando difieren de la edición de 2022: esta representa coronas con un cuadrado y siglas CM/CF/CMC/CV/CLM; movilidad y desgaste en rojo; ausencias con aspa azul y DNE/DEX/DAO.
+Se consultó también el PDF aportado por el usuario, «Norma Técnica del Odontograma» (12 páginas,
+membrete del Colegio Odontológico del Perú). Es la fuente que se audité y se implementó en la Fase 3,
+y sus numerales mandan lo siguiente: corona definitiva y temporal como **circunferencia** que encierre
+la corona (azul y roja respectivamente), `DES` (1.6) y `M` (1.23) **en azul**, siglas de corona
+`CC/CF/CMC/3-4/4-5/7-8/CV/CJ` y de restauración `AM/R/IV/IM/IE`. ⚠️ Pendiente de confirmar en la
+Fase 5: ese PDF **no muestra el número de norma** en su texto y su numeración (Disposiciones
+Generales 1–15, Disposiciones Específicas 1.1–1.33) no coincide con la de la sección anterior
+(numerales 5.4–5.18 y catálogo 6.1.1–6.1.38), así que conviene fijar con el responsable de
+odontología cuál de las dos es la que aplica antes de la validación clínica.
 
 ## Cambios implementados
 
@@ -51,6 +59,53 @@ Dos defectos reportados en uso se corrigieron sacando la geometría del componen
 - **Piezas anteriores**: el modelo forzaba la quinta superficie `oclusal`, que se dibujaba como una línea invisible en el centro de la X y se resaltaba con un rectángulo degenerado de 36 × 1 px. Las cuatro divisiones siguen compartiendo el punto central, pero el borde incisal pasa a ser una banda ancha en el borde orientado al plano oclusal (y ∈ [86, 95] en coordenadas locales: la arcada inferior se refleja al dibujar, por lo que ese borde es el incisal en ambas arcadas). El resaltado y el rótulo O/I se desplazan con ella y el centro deja de ofrecer una casilla vacía. Supera lo declarado en la sección del 2026-10-03.
 
 Las cinco superficies de cada corona suman exactamente 84 × 35 unidades, es decir, sin huecos ni solapes; con la geometría anterior las piezas anteriores sumaban 2976 por la celda degenerada. La comprobación, el número de ramas por pieza y la ausencia de trazos discontinuos forman parte de `odontogramaGeometria.test.mjs`.
+
+## Zona radicular como superficie de registro (2026-10-07)
+
+La raíz deja de ser decorativa y pasa a ser una superficie de registro pulsable (decisión D-05), lo
+que habilita los numerales 1.15, 1.27 y 1.33 de la norma: restauración de raíz, remanente y
+tratamiento pulpar, además de las lesiones sobre la zona apical. Supera lo declarado en la sección del
+2026-10-03
+("se mantienen las cinco superficies lógicas"): ahora son **cinco caras de corona y una zona
+radicular**, sin que la corona deje de tener exactamente cinco caras.
+
+- `toothSurfaces` incorpora `raiz` (etiqueta "Raíz", sigla `R`) y `crownSurfaces` mantiene el conjunto
+  de las cinco caras para el dibujo de la elipse.
+- `toothRootPolygon()` deriva el polígono pulsable del mismo trazo de raíces que se dibuja: una sola
+  fuente de verdad, sin geometría paralela que pueda divergir.
+- La zona pulsable se dibuja **antes** que la corona, que solo cubre la elipse; su resaltado va sin
+  `clipPath`, que la recortaría entera al quedar fuera de la elipse.
+- La ausencia marcada desde cualquier superficie colorea también la raíz: la pieza ausente cubre seis
+  secciones, y la ayuda en pantalla se ajusta en consecuencia.
+- `readRecord()` completa la superficie que falte en odontogramas guardados con anterioridad, de modo
+  que ningún registro existente deja de abrirse, y rechaza el archivo si `raiz` existe pero está
+  corrupta.
+
+El backend no requiere cambios: `odontograma_superficie.superficie` admite texto libre de 30
+caracteres y `normalizarHallazgos()` persiste cualquier superficie que reciba.
+
+## Conformidad normativa (Fase 3, 2026-10-07)
+
+Los símbolos y los colores pasan a reproducir el texto de la norma, numeral por numeral.
+
+- **Colores**: `movilidad` (1.23) y `desgaste` (1.6) dejan el rojo por el **azul**; siguen en rojo los
+  tratamientos temporales y el mal estado (Disposición General 8).
+- **Siglas de recuadro**: la corona definitiva adopta las del 1.4 (`CC`, `CF`, `CMC`, `3/4`, `4/5`,
+  `7/8`, `CV`, `CJ`) y la restauración definitiva pierde la `C`, que no figura en el 1.28 (`AM`, `R`,
+  `IV`, `IM`, `IE`).
+- **Dibujos**: corona definitiva y temporal se dibujan como **circunferencia** que encierra la corona
+  (1.4 y 1.5) y no como rectángulo; la migración es una flecha horizontal a nivel del plano oclusal
+  (1.22); el triángulo de clavija (1.11) y los anillos de geminación (1.16) rodean al **número**, no a
+  la pieza; la prótesis total se dibuja sobre las coronas y no en los ápices (1.26); la pulpotomía
+  comparte con la endodoncia la línea vertical sobre la raíz (1.33).
+- **Cinco hallazgos nuevos**: discrómico `DIS`, semi-impactación `SI`, migración, caries cervical y
+  cálculo dental, dados de alta en el frontend y en `catalogo_hallazgo_dental`, que pasa de 38 a 43
+  filas. Los dos últimos son nomenclatura propia de la clínica, admitida por el Disposicional General 14.
+- **Backend**: `normalizarHallazgos()` asocia cada marca por su estado y no por la sigla, con lo que
+  dejan de perderse las marcas sin sigla y de colisionar la `M` de movilidad con la de posición anormal.
+
+La matriz ítem por ítem, con lo que queda pendiente, está en
+`docs/odontograma-nts188-conformidad.md`.
 
 ## Verificación reproducible
 
