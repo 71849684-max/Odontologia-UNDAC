@@ -107,6 +107,29 @@ Los símbolos y los colores pasan a reproducir el texto de la norma, numeral por
 La matriz ítem por ítem, con lo que queda pendiente, está en
 `docs/odontograma-nts188-conformidad.md`.
 
+## Elementos de lámina y hoja de impresión (Fase 4, 2026-10-08)
+
+La lámina pasa a tener las piezas del Anexo II, tomadas literalmente del gráfico de esa página:
+
+- **Recuadros de piezas dentarias**: dos filas de 16 casillas sobre (o bajo) cada arcada permanente y
+  una de 10 sobre cada arcada temporal, alineadas columna a columna con los dibujos. La sigla de cada
+  hallazgo se escribe en la casilla de su pieza, que es lo que piden los numerales ("en el recuadro
+  correspondiente a la pieza dentaria"); cuando una pieza acumula más siglas que casillas, la última
+  casilla añade `+n` y el `title` lista todas. Las siglas dejan de flotar sobre el dibujo.
+- **Rotulación de zonas**: el separador central se rotula **"Zona Oclusal"** (el plano oclusal queda en
+  el `title` del elemento) y al pie de la lámina aparece **"Zona Apical"**. La sección de texto libre
+  pasa a llamarse **"Ítem Especificaciones"**, como en el Anexo.
+- **Impresión (DG 12)**: hoja de impresión en horizontal que esconde los controles (`.nts-no-print`),
+  anula el halo de selección de la interfaz y ensancha la pieza a 60 px, con lo que la corona impresa
+  mide ≈ 1,02 cm², por encima del mínimo de 1 cm² del DG 12. El trazo base ya era negro.
+
+Desviación anotada en `docs/odontograma-nts188-conformidad.md`: el gráfico oficial junta las tres
+filas de recuadros en el borde de la lámina; aquí la fila estrecha va junto a las piezas temporales a
+las que pertenece, para no separar la sigla de su columna.
+
+La matriz completa, con el estado de cada numeral y de las cinco fases, sigue en
+`docs/odontograma-nts188-conformidad.md`.
+
 ## Verificación reproducible
 
 Desde `frontend`:

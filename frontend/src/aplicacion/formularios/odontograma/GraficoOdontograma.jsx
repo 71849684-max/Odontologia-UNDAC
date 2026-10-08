@@ -152,13 +152,32 @@ function RangeMark({ mark, teeth, upper }) {
   return <g fill="none" stroke="currentColor" color={clinicalColor(mark)} strokeWidth="2" pointerEvents="none"><title>{state.label}: {mark.teeth.join(', ')}</title>{shape}</g>;
 }
 
-export function OdontogramRow({ title, teeth, exam, selectedTooth, selectedSurface, onSelect }) {
+export function OdontogramRow({ title, teeth, exam, selectedTooth, selectedSurface, onSelect, recuadros = 0 }) {
+  const ancho = `${teeth.length * toothColumnWidth}px`;
+  const esInferior = !isUpper(teeth[0]);
+  /* Anexo II: la sigla se escribe en el recuadro de la pieza, no sobre el dibujo.
+     Cada arcada lleva tres filas en total: dos para las 16 piezas permanentes y
+     una para las 10 temporales; cada fila tiene una casilla por pieza. */
+  const cajas = recuadros > 0 && <div className="nts-recuadros" role="group" aria-label={`Recuadros de piezas dentarias — ${title}`} style={{ width: ancho }}>
+    {Array.from({ length: recuadros }, (_, fila) => <div className="nts-recuadro-row" key={fila}>
+      {teeth.map((number) => {
+        const marks = toothFindings(exam.teeth[number]);
+        const mark = marks[fila];
+        const excedentes = fila === recuadros - 1 ? marks.length - recuadros : 0;
+        const sigla = mark ? (markCode(mark) || stateFor(mark.state).symbol) : '';
+        return <span key={number} className="nts-recuadro" style={mark ? { color: clinicalColor(mark) } : undefined}
+          title={marks.length ? `${number} · ${marks.map((item) => `${markCode(item) || stateFor(item.state).symbol || '—'} (${stateFor(item.state).label})`).join(', ')}` : `${number} · sin sigla`}>
+          {sigla}{excedentes > 0 ? ` +${excedentes}` : ''}
+        </span>;
+      })}
+    </div>)}
+  </div>;
   return <section className="nts-arch" aria-label={title}>
     <h4>{title}</h4>
-    <div className="nts-compact-row" style={{ width: `${teeth.length * toothColumnWidth}px` }}>
+    {!esInferior && cajas}
+    <div className="nts-compact-row" style={{ width: ancho }}>
       {teeth.map((number, index) => {
         const tooth = exam.teeth[number], marks = toothFindings(tooth);
-        const codes = marks;
         // 1.11: el triángulo azul circunscribe el número, no la pieza.
         const clavija = marks.some((mark) => mark.state === 'clavija');
         // 1.16: las circunferencias interceptadas rodean al número, igual que el triángulo.
@@ -168,12 +187,13 @@ export function OdontogramRow({ title, teeth, exam, selectedTooth, selectedSurfa
           {clavija && <svg className="nts-clavija" aria-hidden="true"><title>Pieza en clavija: {number}</title><path d="M-9 31L17 -8L43 31Z" /></svg>}
           {geminacion && <svg className="nts-gemination" aria-hidden="true"><title>Pieza con geminación: {number}</title><ellipse cx="9" cy="12" rx="20" ry="11" /><ellipse cx="25" cy="12" rx="20" ry="11" /></svg>}
           <CompactTooth number={number} tooth={tooth} selectedSurface={selectedTooth === number ? selectedSurface : null} onSelect={(surface) => onSelect(number, surface)} />
-          <div className="nts-tooth-codes">{codes.map((mark) => <span key={mark.id} style={{ color: clinicalColor(mark) }} title={stateFor(mark.state).label}>{markCode(mark) || stateFor(mark.state).symbol}</span>)}</div>
+          {!recuadros && <div className="nts-tooth-codes">{marks.map((mark) => <span key={mark.id} style={{ color: clinicalColor(mark) }} title={stateFor(mark.state).label}>{markCode(mark) || stateFor(mark.state).symbol}</span>)}</div>}
         </div>;
       })}
       <svg className="nts-range-overlay" viewBox={`0 0 ${teeth.length * toothColumnWidth} 170`} aria-label={`Hallazgos entre piezas: ${title}`}>
         {exam.ranges.filter((m) => m.teeth.every((n) => teeth.includes(n))).map((m) => <RangeMark key={m.id} mark={m} teeth={teeth} upper={isUpper(teeth[0])} />)}
       </svg>
     </div>
+    {esInferior && cajas}
   </section>;
 }

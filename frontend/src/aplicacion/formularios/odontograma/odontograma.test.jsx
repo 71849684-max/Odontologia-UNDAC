@@ -5,6 +5,7 @@ import Odontograma from './Odontograma.jsx';
 import { CompactTooth, OdontogramRow, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
 import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition, odontogramStates } from './odontograma.config.mjs';
 import { createRecord, addFinding, removeFinding, toothFindings, closeExamination, updateExamination, addExamination, readRecord, findingTeeth } from './odontogramaRegistro.mjs';
+import hojaOdontograma from './odontograma.css?raw';
 
 // Node 25 también expone localStorage: use un almacén controlado para jsdom.
 beforeEach(() => {
@@ -415,4 +416,69 @@ test('detecta modificaciones de otra pestaña sin sobrescribirlas', () => {
   fireEvent.change(screen.getByLabelText('Observaciones'), { target: { value: 'Prueba' } });
   expect(screen.getByRole('alert')).toHaveTextContent('otra pestaña');
   expect(localStorage.getItem('undac:odontograma:nts188:v1:a')).toBe(external);
+});
+
+// Fase 4 — Anexo II: recuadros de piezas dentarias, rotulación de zonas y hoja de impresión.
+describe('Anexo II: recuadros, zonas e impresión', () => {
+  const guardar = (id, record) => localStorage.setItem(`undac:odontograma:nts188:v1:${id}`, JSON.stringify(record));
+
+  test('cada arcada lleva sus recuadros: dos filas en las permanentes y una en las temporales', () => {
+    render(<Odontograma patientId="anexo-recuadros" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mixta' }));
+    const superiores = screen.getByRole('group', { name: 'Recuadros de piezas dentarias — Permanentes superiores' });
+    expect(superiores.querySelectorAll('.nts-recuadro-row')).toHaveLength(2);
+    expect(superiores.querySelectorAll('.nts-recuadro')).toHaveLength(32);
+    // En la arcada superior los recuadros van entre el rótulo y el dibujo…
+    expect(superiores.previousElementSibling.tagName).toBe('H4');
+    expect(superiores.nextElementSibling).toHaveClass('nts-compact-row');
+    // …y en la inferior, por debajo del dibujo y de los números.
+    const inferiores = screen.getByRole('group', { name: 'Recuadros de piezas dentarias — Permanentes inferiores' });
+    expect(inferiores.previousElementSibling).toHaveClass('nts-compact-row');
+    expect(inferiores.querySelectorAll('.nts-recuadro')).toHaveLength(32);
+    const temporales = screen.getByRole('group', { name: 'Recuadros de piezas dentarias — Temporales superiores' });
+    expect(temporales.querySelectorAll('.nts-recuadro-row')).toHaveLength(1);
+    expect(temporales.querySelectorAll('.nts-recuadro')).toHaveLength(10);
+  });
+
+  test('la sigla se escribe en el recuadro de su columna, no sobre el dibujo', () => {
+    const record = createRecord('anexo-siglas');
+    record.examinations[0] = addFinding(record.examinations[0], mark({ tooth: '16', state: 'restauracion', code: 'AM', condition: 'good' }));
+    guardar('anexo-siglas', record);
+    render(<Odontograma patientId="anexo-siglas" />);
+    const grupo = screen.getByRole('group', { name: 'Recuadros de piezas dentarias — Permanentes superiores' });
+    const celda = grupo.querySelectorAll('.nts-recuadro-row')[0].querySelectorAll('.nts-recuadro')[2];
+    expect(celda).toHaveTextContent('AM');
+    expect(celda.getAttribute('style')).toContain('rgb(29, 78, 216)');
+    expect(document.querySelector('.nts-tooth-codes')).toBeNull();
+  });
+
+  test('más siglas que recuadros no se pierden: el último casilla suma el excedente', () => {
+    const record = createRecord('anexo-excedente');
+    let exam = record.examinations[0];
+    exam = addFinding(exam, mark({ tooth: '55', surface: 'vestibular', code: 'CE', state: 'caries' }));
+    exam = addFinding(exam, mark({ tooth: '55', surface: 'oclusal', state: 'restauracion', code: 'R', condition: 'bad' }));
+    record.examinations[0] = exam;
+    guardar('anexo-excedente', record);
+    render(<Odontograma patientId="anexo-excedente" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mixta' }));
+    const grupo = screen.getByRole('group', { name: 'Recuadros de piezas dentarias — Temporales superiores' });
+    const celda = grupo.querySelector('.nts-recuadro-row .nts-recuadro');
+    expect(celda).toHaveTextContent('CE');
+    expect(celda).toHaveTextContent('+1');
+  });
+
+  test('rotula Zona Oclusal, Zona Apical y el Ítem Especificaciones', () => {
+    render(<Odontograma patientId="anexo-zonas" />);
+    expect(screen.getByText('Zona Oclusal')).toHaveAttribute('title', 'Plano oclusal');
+    expect(screen.getByText('Zona Apical')).toHaveClass('nts-zona--apical');
+    expect(screen.queryByText('Plano oclusal')).toBeNull();
+    expect(screen.getByText('Ítem Especificaciones')).toBeInTheDocument();
+  });
+
+  test('la hoja de impresión deja sola la lámina, en horizontal y con corona de 1 cm²', () => {
+    const impresion = hojaOdontograma.slice(hojaOdontograma.indexOf('@media print'));
+    expect(impresion).toMatch(/@page\s*{\s*size:\s*landscape/);
+    expect(impresion).toContain('.nts-no-print');
+    expect(impresion).toContain('--tooth-size: 60px');
+  });
 });

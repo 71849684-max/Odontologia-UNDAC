@@ -55,6 +55,14 @@ body.nts-modal-open { overflow: hidden; }
 .nts-row [role=button] { cursor: pointer; }
 .nts-row [role=button]:hover, .nts-row [role=button]:focus-visible { fill: #e2e8f0; outline: none; stroke: #475569; stroke-width: 2.5; }
 .nts-occlusal { width: 600px; margin: 8px auto; border-top: 1px solid #64748b; color: #64748b; font-size: 10px; }
+/* Anexo II: los recuadros de las piezas dentarias se escriben fuera del dibujo, dos
+   filas en cada arcada permanente y una en cada arcada temporal, alineadas por columna. */
+.nts-recuadros { display: flex; flex-direction: column; gap: 3px; margin: 6px auto 0; }
+.nts-recuadro-row { display: flex; width: 100%; }
+.nts-recuadro { flex: 1 1 0; min-width: 0; height: 15px; display: flex; align-items: center; justify-content: center; border: 1px solid #94a3b8; background: #fff; color: #0f172a; font-size: 9px; font-weight: 750; line-height: 1; overflow: hidden; white-space: nowrap; }
+/* Rotulación de zonas del Anexo II. */
+.nts-zona { width: 600px; margin: 8px auto; color: #64748b; font-size: 10px; }
+.nts-zona--apical { border-top: 1px solid #64748b; padding-top: 3px; }
 .nts-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; font-size: 12px; line-height: 1.5; }
 .nts-legend span { display: flex; align-items: center; gap: 6px; }
 .nts-legend i { width: 10px; height: 10px; border-radius: 50%; }
@@ -223,4 +231,21 @@ body.nts-modal-open { overflow: hidden; }
   .nts-surface-legend { gap: 6px 10px; font-size: 11px; }
   .nts-surface-guide__figuras { grid-template-columns: minmax(0, 1fr); }
   .nts-surface-guide__definiciones > div { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Impresión: la lámina sale como gráfico único sin los controles de la interfaz
+   (DG 12). El trazo base ya es negro; el halo de selección no lleva tinta y la
+   pieza se ensancha a la columna completa (60 px), con lo que la corona impresa
+   mide 55 × 26 px ≈ 1,02 cm², por encima del mínimo del DG 12. */
+@media print {
+  @page { size: landscape; margin: 8mm; }
+  .nts-no-print, .nts-mobile-launcher, .nts-action-modal-overlay, .nts-surface-legend { display: none !important; }
+  .nts-chart-scroll { overflow: visible; border: 0; border-radius: 0; }
+  .nts-chart { min-width: 0; padding: 0; }
+  .nts-tooth.is-selected { background: none; box-shadow: none; }
+  .nts-tooth.is-selected .nts-tooth-number { background: none; color: #0f172a; }
+  .nts-tooth-map { --tooth-size: 60px; }
+  .nts-arch, .nts-compact-row, .nts-recuadros, .nts-occlusal, .nts-zona, .nts-register { break-inside: avoid; }
+  .nts-register > table { width: 100%; border-collapse: collapse; }
+  .nts-register tr { break-inside: avoid; }
 }

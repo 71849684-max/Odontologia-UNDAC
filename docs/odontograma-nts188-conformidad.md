@@ -35,6 +35,8 @@ de odontogramas guardados sin zona radicular).
 Estado tras la Fase 3: **17 archivos, 171 pruebas, todas en verde** (los cinco estados nuevos,
 los colores de los numerales 1.6 y 1.23, la elipse de corona, la flecha de migración, las marcas
 sobre el número y la asociación de hallazgos por `state` en el backend).
+Estado tras la Fase 4: **17 archivos, 176 pruebas, todas en verde** (recuadros del Anexo II,
+rotulación de zonas, Ítem Especificaciones y hoja de impresión).
 El timeout de 5 s por defecto expira en esta máquina (los casos del odontograma tardan hasta 8 s),
 por eso se eleva a 60000 ms.
 
@@ -114,11 +116,16 @@ por eso se eleva a 60000 ms.
 
 | Elemento oficial | Estado | Observación |
 | --- | --- | --- |
-| Filas de **recuadros** de piezas dentarias (3 arriba, 3 abajo) | ⏸️ | Hoy solo se muestran siglas bajo cada pieza (`nts-tooth-codes`) |
+| Filas de **recuadros** de piezas dentarias (3 arriba, 3 abajo) | ✅ | `.nts-recuadros`: dos filas de 16 casillas por arcada permanente y una de 10 por temporal, alineadas a la misma columna que los dibujos. Las siglas se escriben ahí; si sobran, la última casilla avisa con `+n` |
 | **Número de piezas dentarias** en fila | ✅ | `nts-tooth-number` |
 | Dibujos de corona y raíces por pieza | ✅ | `GraficoOdontograma.jsx` |
-| **Zona Oclusal** / **Zona Apical** rotuladas | ⏸️ | Solo existe el separador "Plano oclusal" |
-| **Ítem Especificaciones** | ✅ | Campo de texto propio en la sección |
+| **Zona Oclusal** / **Zona Apical** rotuladas | ✅ | `.nts-occlusal` rotula "Zona Oclusal" (el plano oclusal queda en el `title`) y `.nts-zona--apical` añade "Zona Apical" al pie de la lámina |
+| **Ítem Especificaciones** | ✅ | La sección se titula "Ítem Especificaciones" y conserva el campo de texto |
+| Lámina **impresa en negro** con corona ≥ 1 cm² (DG 12) | ✅ | Hoja de impresión: horizontal, sin controles ni halo de selección, pieza a 60 px → corona ≈ 1,02 cm² |
+
+> Desviación anotada respecto al gráfico del Anexo: este dibuja las tres filas de recuadros juntas en
+> el borde de la lámina. Aquí las dos filas de permanentes van sobre sus dibujos y la fila estrecha va
+> sobre las temporales a las que pertenece, para no separar la sigla de su columna.
 
 ## 4. Errores visuales corregidos en la Fase 1
 
@@ -159,6 +166,19 @@ La comprobación visual se hizo sobre una lámina generada con las piezas marcad
 corona definitiva y temporal, migración, ausencia, endodoncia, desgaste, movilidad y discrómico) y
 revisada en el navegador.
 
+## 7. Elementos de lámina (Fase 4, 2026-10-08)
+
+| Pieza del cambio | Qué hace |
+| --- | --- |
+| `GraficoOdontograma.jsx` → `OdontogramRow recuadros={n}` | Añade las **filas de recuadros del Anexo II**: dos filas de 16 casillas en cada arcada permanente y una de 10 en cada temporal, con el mismo paso de columna que los dibujos (desfase medido en el navegador: **0 px** en las 16 columnas). La sigla de cada marca se escribe en la casilla de su columna y, si hay más siglas que casillas, la última avisa con `+n` para que nada se pierda |
+| `Odontograma.jsx` | Pasa `recuadros={2}` a las permanentes y `recuadros={1}` a las temporales; el separador rotula **"Zona Oclusal"** (el plano oclusal queda en el `title`), se añade **"Zona Apical"** al pie de la lámina y la sección pasa a llamarse **"Ítem Especificaciones"** |
+| `odontograma.css` | `.nts-recuadros` y `.nts-recuadro` (cajas de 60 × 15 px con borde gris y la sigla en azul o rojo) y **hoja de impresión**: `@page` en horizontal, se ocultan los controles (`.nts-no-print`), se anula el halo de selección de la interfaz y la pieza se ensancha a 60 px para imprimir una corona de ≈ 1,02 cm², por encima del mínimo del DG 12 |
+
+Las siglas dejan de vivir sobre el dibujo: `.nts-tooth-codes` solo se conserva cuando una fila se
+renderiza sin recuadros (los dibujos sueltos de las pruebas). La comprobación se hizo sobre una lámina
+exportada a HTML con las once marcas de ejemplo y medida en el navegador: orden de filas, alineación
+columna a columna, colores de las siglas y ausencia de texto recortado.
+
 ## Decisiones registradas
 
 | ID | Decisión | Fundamento |
@@ -173,7 +193,7 @@ revisada en el navegador.
 | ID | Pregunta | Recomendación | Estado (2026-10-07) |
 | --- | --- | --- | --- |
 | D-05 | ¿Hacer la raíz clickeable como superficie `raiz`? | Sí: es lo que habilita los ítems 1.15, 1.27 y 1.33 | ✅ **Aprobada** — implementada en la Fase 2 |
-| D-06 | ¿Implementar las filas de recuadros del Anexo II? | Sí, son prescriptivas | ⏸️ **Aprobada** — pendiente de la Fase 4 |
+| D-06 | ¿Implementar las filas de recuadros del Anexo II? | Sí, son prescriptivas | ✅ **Aprobada** — implementada en la Fase 4 |
 | D-07 | ¿Corregir `desgaste` y `movilidad` a azul? | Sí, es lo que exige la norma (implica actualizar una prueba) | ✅ **Aprobada** — implementada en la Fase 3 |
 | D-08 | ¿Dar de alta `DIS`, `SI`, `MIGRACIÓN`, caries cervical y cálculo dental? | Sí, al menos los que use la clínica | ✅ **Aprobada** (los 5) — implementada en la Fase 3 |
 | D-09 | ¿Corona temporal como circunferencia en vez de rectángulo? | Sí, es literal del ítem 1.5 | ✅ **Confirmada** — implementada en la Fase 3 |
@@ -186,7 +206,7 @@ revisada en el navegador.
 | 1 | Módulo de geometría, corrección de 14/24 y del centro fantasma | ✅ |
 | 2 | Zona radicular interactiva (modelo de datos) | ✅ |
 | 3 | Conformidad normativa (hallazgos, colores, catálogo BD) | ✅ |
-| 4 | Elementos de lámina (recuadros, zonas, impresión) | ⏸️ |
+| 4 | Elementos de lámina (recuadros, zonas, impresión) | ✅ |
 | 5 | Validación y checklist clínico | ⏸️ |
 
 ## Hallazgo transversal corregido en la Fase 3

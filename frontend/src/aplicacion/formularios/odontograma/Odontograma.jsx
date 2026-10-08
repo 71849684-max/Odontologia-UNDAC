@@ -130,18 +130,19 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
       </div>
       <div className="nts-chart-scroll" role="region" aria-label="Odontograma desplazable" tabIndex={0}><div className="nts-chart">
         <div className="nts-orientation"><span>Derecha del paciente</span><span>Izquierda del paciente</span></div>
-        {dentition !== 'temporary' && <OdontogramRow title="Permanentes superiores" teeth={arches.superior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
-        {dentition !== 'permanent' && <OdontogramRow title="Temporales superiores" teeth={temporaryArches.superior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
-        <div className="nts-occlusal">Plano oclusal</div>
-        {dentition !== 'permanent' && <OdontogramRow title="Temporales inferiores" teeth={temporaryArches.inferior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
-        {dentition !== 'temporary' && <OdontogramRow title="Permanentes inferiores" teeth={arches.inferior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
+        {dentition !== 'temporary' && <OdontogramRow recuadros={2} title="Permanentes superiores" teeth={arches.superior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
+        {dentition !== 'permanent' && <OdontogramRow recuadros={1} title="Temporales superiores" teeth={temporaryArches.superior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
+        <div className="nts-occlusal" title="Plano oclusal">Zona Oclusal</div>
+        {dentition !== 'permanent' && <OdontogramRow recuadros={1} title="Temporales inferiores" teeth={temporaryArches.inferior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
+        {dentition !== 'temporary' && <OdontogramRow recuadros={2} title="Permanentes inferiores" teeth={arches.inferior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
+        <div className="nts-zona nts-zona--apical">Zona Apical</div>
       </div></div>
       <div className="nts-legend"><span><i className="nts-blue" />Azul: buen estado / característica no patológica</span><span><i className="nts-red" />Rojo: patología / mal estado / temporal</span><span>Sin marca: sin hallazgo registrado; no equivale a pieza sana.</span></div>
       <LeyendaSuperficies />
       <GuiaSuperficies molar={exam.teeth['16']} incisivo={exam.teeth['11']} />
     </SectionCard>
 
-    <SectionCard title="Especificaciones y observaciones">
+    <SectionCard title="Ítem Especificaciones" subtitle="Texto libre del Anexo II, además de las observaciones y el registro de hallazgos.">
       <div className="nts-notes">
         <label className="undac-field"><span>Especificaciones</span><textarea rows="3" disabled={locked} value={exam.specifications} onChange={(e) => change({ specifications: e.target.value })} placeholder="Características adicionales, fluorosis y clasificación, material o color del metal…" /></label>
         <label className="undac-field"><span>Observaciones</span><textarea rows="3" disabled={locked} value={exam.observations} onChange={(e) => change({ observations: e.target.value })} placeholder="Hallazgos clínicos no contemplados en la nomenclatura…" /></label>
