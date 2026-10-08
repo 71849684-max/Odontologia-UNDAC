@@ -79,9 +79,59 @@ export function removeFinding(exam, markId) {
 export function toothFindings(tooth) {
   return [...tooth.findings, ...Object.values(tooth.surfaces).flatMap((s) => s.findings)];
 }
+/**
+ * El backend guarda el odontograma como documento JSON, pero el middleware del
+ * formulario convierte cada cadena vacía en `null` antes de persistirlo. El
+ * `null` recuperado no es corrupción: es el mismo campo vacío, así que se
+ * devuelve como `""` para que un registro guardado vuelva a ser legible.
+ */
+const CAMPOS_DE_EXAMEN = ['date', 'reason', 'professional', 'cop', 'specifications', 'observations'];
+const vacio = (valor) => (valor === null ? '' : valor);
+
+function restaurarMarca(marca) {
+  if (!marca || typeof marca !== 'object' || (marca.note !== null && marca.code !== null)) return marca;
+  return { ...marca, code: vacio(marca.code), note: vacio(marca.note) };
+}
+
+function restaurarDiente(diente) {
+  if (!diente || typeof diente !== 'object') return diente;
+  const salida = { ...diente };
+  if (Array.isArray(salida.findings)) salida.findings = salida.findings.map(restaurarMarca);
+  if (salida.surfaces && typeof salida.surfaces === 'object') {
+    salida.surfaces = Object.fromEntries(Object.entries(salida.surfaces).map(([clave, superficie]) => {
+      if (!superficie || typeof superficie !== 'object') return [clave, superficie];
+      return [clave, {
+        ...superficie,
+        ...(superficie.note === null ? { note: '' } : {}),
+        ...(Array.isArray(superficie.findings) ? { findings: superficie.findings.map(restaurarMarca) } : {}),
+      }];
+    }));
+  }
+  return salida;
+}
+
+function restaurarTextos(registro) {
+  if (!registro || typeof registro !== 'object' || !Array.isArray(registro.examinations)) return registro;
+  return {
+    ...registro,
+    examinations: registro.examinations.map((examen) => {
+      if (!examen || typeof examen !== 'object') return examen;
+      const salida = { ...examen };
+      for (const campo of CAMPOS_DE_EXAMEN) {
+        if (salida[campo] === null) salida[campo] = '';
+      }
+      if (salida.teeth && typeof salida.teeth === 'object') {
+        salida.teeth = Object.fromEntries(Object.entries(salida.teeth).map(([numero, diente]) => [numero, restaurarDiente(diente)]));
+      }
+      if (Array.isArray(salida.ranges)) salida.ranges = salida.ranges.map(restaurarMarca);
+      return salida;
+    }),
+  };
+}
+
 export function readRecord(raw, patientId) {
   if (!raw) return createRecord(patientId);
-  const value = JSON.parse(raw);
+  const value = restaurarTextos(JSON.parse(raw));
   const validMark = (m) => m && typeof m.id === 'string' && typeof m.note === 'string' && typeof m.code === 'string' && ['good','bad'].includes(m.condition) && stateFor(m.state).id !== 'sin-registro' && Array.isArray(m.teeth) && m.teeth.length > 0 && m.teeth.every((n) => allTeeth.some((t) => t.number === n)) && Array.isArray(m.points) && m.points.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v) && v >= 0 && v <= 100));
   const validSurface = (tooth, id) => {
     const surface = tooth.surfaces?.[id];

@@ -101,3 +101,12 @@ export async function guardarOdontograma(historiaId, registro) {
     sinRedEnPrueba();
     return clienteHttp.actualizar(`/historias/${historiaId}/odontograma`, { registro });
 }
+
+/**
+ * El odontograma es una sola vez guardada en la historia: este es el camino de lectura.
+ * Devuelve `{ registro }` con el registro completo o `null` si la historia aún no tiene uno.
+ */
+export async function leerOdontograma(historiaId) {
+    sinRedEnPrueba();
+    return clienteHttp.obtener(`/historias/${historiaId}/odontograma`);
+}

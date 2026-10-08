@@ -5,7 +5,7 @@ import { Maximize2, X } from 'lucide-react';
 import './odontograma.css';
 import { arches, temporaryArches, toothSurfaces, stateFor, clinicalColor, markCode } from './odontograma.config.mjs';
 import { readRecord, updateExamination, closeExamination, addExamination, addFinding, removeFinding, toothFindings, examinationReasons, localDate } from './odontogramaRegistro.mjs';
-import { guardarOdontograma, idHistoria } from '../../servicios/servicioClinico.js';
+import { guardarOdontograma, leerOdontograma, idHistoria } from '../../servicios/servicioClinico.js';
 import { OdontogramRow } from './GraficoOdontograma.jsx';
 import GuiaSuperficies, { LeyendaSuperficies } from './GuiaSuperficies.jsx';
 import { SectionCard } from '../compartidos/ControlesClinicos.jsx';
@@ -15,6 +15,10 @@ function load(patientId, key) {
   try { const raw = localStorage.getItem(key); return { record: readRecord(raw, patientId), raw, error: '' }; }
   catch (error) { return { record: null, raw: null, error: error.message || 'El almacenamiento local no está disponible.' }; }
 }
+
+// Marca de "quedó sin subir": si el autoguardado no llegó al servidor, la copia local
+// manda en la siguiente sincronización en lugar de ser reemplazada por la del servidor.
+function clavePendiente(key) { return `${key}:pendiente`; }
 
 
 // El padre usa una key por historia para aislar los pacientes también en memoria.
@@ -40,6 +44,9 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
   const [message, setMessage] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [actionTarget, setActionTarget] = useState(null);
+  const servidor = idHistoria(historyId);
+  // Sin copia local que mostrar, la historia manda: esperarla en lugar de un odontograma vacío.
+  const [cargandoServidor, setCargandoServidor] = useState(() => Boolean(idHistoria(historyId)) && !initial.raw);
 
   React.useEffect(() => {
     if (!mobileOpen && !actionTarget) return undefined;
@@ -47,6 +54,49 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
     return () => document.body.classList.remove('nts-modal-open');
   }, [mobileOpen, actionTarget]);
 
+  // Adopta la copia del servidor como nueva verdad local.
+  function adoptarRegistro(raw) {
+    try {
+      const siguiente = readRecord(raw, patientId);
+      localStorage.setItem(storageKey, raw);
+      localStorage.removeItem(clavePendiente(storageKey));
+      expectedRaw.current = raw;
+      setRecord(siguiente);
+      setExamId(siguiente.examinations.at(-1).id);
+      setError('');
+    } catch (e) { setError(e.message || 'El registro del servidor no se pudo leer.'); }
+  }
+
+  // Sube la copia local cuando el servidor aún no la tiene o quedó pendiente.
+  function subirRegistro(raw) {
+    if (!servidor || !raw) return;
+    let registro;
+    try { registro = JSON.parse(raw); } catch { return; }
+    guardarOdontograma(servidor, registro)
+      .then(() => localStorage.removeItem(clavePendiente(storageKey)))
+      .catch(() => localStorage.setItem(clavePendiente(storageKey), '1'));
+  }
+
+  // Sincronización inicial con la historia clínica del servidor.
+  React.useEffect(() => {
+    if (!servidor) return undefined;
+    let vigente = true;
+    // Si la red no responde, la lámina local vuelve a estar disponible en 10 s.
+    const reloj = setTimeout(() => { if (vigente) setCargandoServidor(false); }, 10000);
+    leerOdontograma(servidor).then((cuerpo) => {
+      if (!vigente) return;
+      const remoto = cuerpo?.registro ?? null;
+      const local = localStorage.getItem(storageKey);
+      const pendiente = localStorage.getItem(clavePendiente(storageKey)) === '1';
+      if (!remoto) subirRegistro(local);          // servidor vacío: subir lo que hay local
+      else if (pendiente) subirRegistro(local);   // autoguardado fallido: manda lo local
+      else adoptarRegistro(JSON.stringify(remoto));
+      setCargandoServidor(false);
+    }).catch(() => { if (vigente) setCargandoServidor(false); }).finally(() => clearTimeout(reloj));
+    return () => { vigente = false; clearTimeout(reloj); };
+  }, [servidor]);
+
+  if (cargandoServidor) return <SectionCard title="Odontograma"><p role="status">Cargando el odontograma de la historia clínica…</p></SectionCard>;
   if (!record) return <SectionCard title="Odontograma"><p role="alert">{error}</p><p>Recupere el almacenamiento del navegador antes de continuar. El registro existente no se ha reemplazado.</p></SectionCard>;
   const exam = record.examinations.find((e) => e.id === examId) || record.examinations.at(-1);
   const locked = exam.status === 'closed', state = stateFor(stateId);
@@ -60,9 +110,13 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
       const raw = JSON.stringify(next);
       localStorage.setItem(storageKey, raw);
       expectedRaw.current = raw;
-      setRecord(next); setError(''); setMessage(idHistoria(historyId) ? 'Guardado en la historia clínica.' : 'Guardado en este navegador.');
-      const servidor = idHistoria(historyId);
-      if (servidor) guardarOdontograma(servidor, next).catch(() => setMessage('Guardado en este navegador. No se pudo sincronizar con el servidor.'));
+      setRecord(next); setError(''); setMessage(servidor ? 'Guardado en la historia clínica.' : 'Guardado en este navegador.');
+      if (servidor) guardarOdontograma(servidor, next)
+        .then(() => localStorage.removeItem(clavePendiente(storageKey)))
+        .catch(() => {
+          localStorage.setItem(clavePendiente(storageKey), '1');
+          setMessage('Guardado en este navegador. No se pudo sincronizar con el servidor.');
+        });
       return true;
     } catch (e) { setError(`No se guardó el cambio. ${e.message}`); setMessage(''); return false; }
   };

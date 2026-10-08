@@ -1,16 +1,29 @@
 import React from 'react';
 import { beforeEach, afterEach, describe, test, expect, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent, within } from '@testing-library/react';
+import { cleanup, render, screen, fireEvent, within, waitFor } from '@testing-library/react';
 import Odontograma from './Odontograma.jsx';
 import { CompactTooth, OdontogramRow, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
 import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition, odontogramStates } from './odontograma.config.mjs';
 import { createRecord, addFinding, removeFinding, toothFindings, closeExamination, updateExamination, addExamination, readRecord, findingTeeth } from './odontogramaRegistro.mjs';
+import { leerOdontograma, guardarOdontograma } from '../../servicios/servicioClinico.js';
 import hojaOdontograma from './odontograma.css?raw';
+
+// La red se sustituye por estas funciones: el componente decide cuándo leer y cuándo subir.
+vi.mock('../../servicios/servicioClinico.js', async (originales) => ({
+  ...(await originales()),
+  leerOdontograma: vi.fn(),
+  guardarOdontograma: vi.fn(),
+}));
 
 // Node 25 también expone localStorage: use un almacén controlado para jsdom.
 beforeEach(() => {
   const data = new Map();
-  vi.stubGlobal('localStorage', { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, String(value)), clear: () => data.clear() });
+  vi.stubGlobal('localStorage', {
+    getItem: (key) => data.get(key) ?? null,
+    setItem: (key, value) => data.set(key, String(value)),
+    removeItem: (key) => data.delete(key),
+    clear: () => data.clear(),
+  });
 });
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 const mark = (overrides = {}) => ({ state: 'caries', tooth: '11', surface: 'vestibular', code: 'CE', points: [[30,63],[45,64],[40,69]], ...overrides });
@@ -480,5 +493,105 @@ describe('Anexo II: recuadros, zonas e impresión', () => {
     expect(impresion).toMatch(/@page\s*{\s*size:\s*landscape/);
     expect(impresion).toContain('.nts-no-print');
     expect(impresion).toContain('--tooth-size: 60px');
+  });
+});
+
+describe('Sincronización con la historia clínica (Track B)', () => {
+  const clave = (id) => `undac:odontograma:nts188:v1:${id}`;
+  const conHallazgo = (patientId, tooth) => {
+    const record = createRecord(patientId);
+    record.examinations[0] = addFinding(record.examinations[0], mark({ tooth }));
+    return record;
+  };
+
+  beforeEach(() => {
+    leerOdontograma.mockReset();
+    guardarOdontograma.mockReset();
+    guardarOdontograma.mockResolvedValue({});
+  });
+
+  test('carga el odontograma de la historia cuando el navegador no tiene copia', async () => {
+    leerOdontograma.mockResolvedValue({ registro: conHallazgo('remoto', '26') });
+
+    render(<Odontograma patientId="remoto" historyId={12} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Cargando el odontograma de la historia clínica…');
+
+    await screen.findByLabelText('Gráfico de pieza 26');
+    expect(leerOdontograma).toHaveBeenCalledWith(12);
+    const local = JSON.parse(localStorage.getItem(clave('remoto')));
+    expect(toothFindings(local.examinations[0].teeth['26']).map((m) => m.state)).toContain('caries');
+    expect(screen.queryByText(/Recupere el almacenamiento/)).toBeNull();
+  });
+
+  test('lee como campo vacío el null que devuelve el servidor', () => {
+    const record = createRecord('nulos');
+    record.examinations[0] = addFinding(record.examinations[0], mark({ tooth: '16' }));
+    const sucio = JSON.parse(JSON.stringify(record));
+    sucio.examinations[0].professional = null;
+    sucio.examinations[0].cop = null;
+    sucio.examinations[0].observations = null;
+    sucio.examinations[0].teeth['16'].surfaces.vestibular.findings[0].code = null;
+    sucio.examinations[0].teeth['16'].surfaces.vestibular.findings[0].note = null;
+
+    const leido = readRecord(JSON.stringify(sucio), 'nulos');
+
+    expect(leido.examinations[0].professional).toBe('');
+    expect(leido.examinations[0].observations).toBe('');
+    const hallazgo = leido.examinations[0].teeth['16'].surfaces.vestibular.findings[0];
+    expect(hallazgo.code).toBe('');
+    expect(hallazgo.note).toBe('');
+    expect(hallazgo.state).toBe('caries');
+  });
+
+  test('la versión de la historia reemplaza la copia local desactualizada', async () => {
+    localStorage.setItem(clave('actualizado'), JSON.stringify(createRecord('actualizado')));
+    leerOdontograma.mockResolvedValue({ registro: conHallazgo('actualizado', '21') });
+
+    render(<Odontograma patientId="actualizado" historyId={5} />);
+    await screen.findByLabelText('Gráfico de pieza 21');
+
+    const local = JSON.parse(localStorage.getItem(clave('actualizado')));
+    expect(toothFindings(local.examinations[0].teeth['21'])).toHaveLength(1);
+    expect(guardarOdontograma).not.toHaveBeenCalled();
+  });
+
+  test('sube al servidor la copia local cuando la historia aún no tiene odontograma', async () => {
+    localStorage.setItem(clave('sin-historia'), JSON.stringify(conHallazgo('sin-historia', '36')));
+    leerOdontograma.mockResolvedValue({ registro: null });
+
+    render(<Odontograma patientId="sin-historia" historyId={9} />);
+    await waitFor(() => expect(guardarOdontograma).toHaveBeenCalledWith(9, expect.objectContaining({ patientId: 'sin-historia' })));
+    await waitFor(() => expect(localStorage.getItem(`${clave('sin-historia')}:pendiente`)).toBeNull());
+  });
+
+  test('un autoguardado que no llegó al servidor conserva la copia local', async () => {
+    localStorage.setItem(clave('conflicto'), JSON.stringify(conHallazgo('conflicto', '46')));
+    localStorage.setItem(`${clave('conflicto')}:pendiente`, '1');
+    leerOdontograma.mockResolvedValue({ registro: createRecord('conflicto') });
+
+    render(<Odontograma patientId="conflicto" historyId={11} />);
+    await waitFor(() => expect(guardarOdontograma).toHaveBeenCalledWith(11, expect.objectContaining({ patientId: 'conflicto' })));
+    const subido = guardarOdontograma.mock.calls[0][1];
+    expect(toothFindings(subido.examinations[0].teeth['46'])).toHaveLength(1);
+    await waitFor(() => expect(localStorage.getItem(`${clave('conflicto')}:pendiente`)).toBeNull());
+    const local = JSON.parse(localStorage.getItem(clave('conflicto')));
+    expect(toothFindings(local.examinations[0].teeth['46'])).toHaveLength(1);
+  });
+
+  test('un cambio sin conexión queda en el navegador y marcado para subir después', async () => {
+    localStorage.setItem(clave('sin-red'), JSON.stringify(createRecord('sin-red')));
+    leerOdontograma.mockResolvedValue({ registro: null });
+    guardarOdontograma.mockRejectedValue(new Error('Sin conexión'));
+
+    render(<Odontograma patientId="sin-red" historyId={4} />);
+    await waitFor(() => expect(leerOdontograma).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
+    const modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Caries', exact: true }));
+    fireEvent.click(within(modal).getByRole('button', { name: 'Aplicar en esta superficie' }));
+
+    await waitFor(() => expect(localStorage.getItem(`${clave('sin-red')}:pendiente`)).toBe('1'));
+    expect(screen.getByText('Guardado en este navegador. No se pudo sincronizar con el servidor.')).toBeInTheDocument();
   });
 });

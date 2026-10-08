@@ -44,6 +44,12 @@ class ServicioOdontograma
             throw new OperacionNoPermitida('odontograma', 'El registro del odontograma no tiene el formato esperado.');
         }
 
+        // El middleware global del framework convierte cada cadena vacía en `null`
+        // antes de que el registro llegue aquí. El odontograma es un documento JSON,
+        // no un formulario: sin restaurarlas, el registro guardado no vuelve a pasar
+        // la validación de `readRecord` en el navegador y quedaría ilegible.
+        $registro = $this->restaurarCadenasVacias($registro);
+
         $json = json_encode($registro, JSON_UNESCAPED_UNICODE);
         if ($json === false || strlen($json) > 65000) {
             throw new OperacionNoPermitida('odontograma', 'El odontograma supera el tamaño que se puede conservar en la historia.');
@@ -75,6 +81,84 @@ class ServicioOdontograma
         });
 
         return $registro;
+    }
+
+    /**
+     * Devuelve `''` donde el middleware del formulario dejó `null`. Solo en los
+     * campos que el navegador escribe como cadena: un `null` ahí rompe su
+     * validación de lectura y el registro quedaría guardado pero ilegible.
+     */
+    private function restaurarCadenasVacias(array $registro): array
+    {
+        $campos = ['date', 'reason', 'professional', 'cop', 'specifications', 'observations'];
+
+        foreach ($registro['examinations'] as $indice => $examen) {
+            if (! is_array($examen)) {
+                continue;
+            }
+
+            foreach ($campos as $campo) {
+                if (array_key_exists($campo, $examen) && $examen[$campo] === null) {
+                    $registro['examinations'][$indice][$campo] = '';
+                }
+            }
+
+            if (is_array($examen['teeth'] ?? null)) {
+                $registro['examinations'][$indice]['teeth'] = $this->restaurarDientes($examen['teeth']);
+            }
+            if (is_array($examen['ranges'] ?? null)) {
+                $registro['examinations'][$indice]['ranges'] = $this->restaurarMarcas($examen['ranges']);
+            }
+        }
+
+        return $registro;
+    }
+
+    private function restaurarDientes(array $dientes): array
+    {
+        foreach ($dientes as $numero => $diente) {
+            if (! is_array($diente)) {
+                continue;
+            }
+
+            if (is_array($diente['findings'] ?? null)) {
+                $dientes[$numero]['findings'] = $this->restaurarMarcas($diente['findings']);
+            }
+            if (! is_array($diente['surfaces'] ?? null)) {
+                continue;
+            }
+
+            foreach ($diente['surfaces'] as $clave => $superficie) {
+                if (! is_array($superficie)) {
+                    continue;
+                }
+                if (is_array($superficie['findings'] ?? null)) {
+                    $dientes[$numero]['surfaces'][$clave]['findings'] = $this->restaurarMarcas($superficie['findings']);
+                }
+                if (array_key_exists('note', $superficie) && $superficie['note'] === null) {
+                    $dientes[$numero]['surfaces'][$clave]['note'] = '';
+                }
+            }
+        }
+
+        return $dientes;
+    }
+
+    private function restaurarMarcas(array $marcas): array
+    {
+        foreach ($marcas as $indice => $marca) {
+            if (! is_array($marca)) {
+                continue;
+            }
+
+            foreach (['code', 'note'] as $campo) {
+                if (array_key_exists($campo, $marca) && $marca[$campo] === null) {
+                    $marcas[$indice][$campo] = '';
+                }
+            }
+        }
+
+        return $marcas;
     }
 
     private function eliminar(int $idHistoria): void

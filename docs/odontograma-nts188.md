@@ -133,13 +133,81 @@ las que pertenece, para no separar la sigla de su columna.
 La matriz completa, con el estado de cada numeral y de las cinco fases, sigue en
 `docs/odontograma-nts188-conformidad.md`.
 
+## Uso real (Track B, 2026-10-08)
+
+La lámina cumple la norma; falta que el registro sea firme para usarlo con pacientes reales.
+Este es el frente de **uso real** (Track B), distinto de las fases 0–5 del Track A.
+
+| Tarea | Contenido | Estado |
+| --- | --- | --- |
+| B1 | Datos clínicos en el servidor con aviso visible cuando la red falla | ⏳ |
+| B2 | El odontograma se lee y se escribe en la historia clínica, sin carreras de guardado | ✅ |
+| B3 | Responsabilidad profesional: COP ligado a la sesión y bloqueo server-side de evaluaciones cerradas | ⏳ |
+| B4 | Auditoría de escrituras clínicas y firma digital | ⏳ |
+
+### B2 — Persistencia del odontograma (2026-10-08)
+
+**Lectura.** `leerOdontograma()` en `servicioClinico.js` consulta
+`GET /api/historias/{id}/odontograma`, que ya existía en el backend pero nunca se llamaba.
+`Odontograma.jsx` lo usa al montar: sin copia local espera la historia («Cargando el odontograma de
+la historia clínica…») en lugar de abrir una lámina vacía, y si la red no responde en 10 s vuelve a
+la copia local.
+
+**Regla de conflicto.** Manda el servidor, salvo que el autoguardado local haya fallado: ese caso
+queda marcado con `<clave>:pendiente` en `localStorage` y la copia local se sube en lugar de ser
+reemplazada. Si el servidor aún no tiene odontograma, la copia local se sube (historia abierta sin
+conexión). Una vez subida, la marca se borra.
+
+**Una sola vía de escritura.** `ServicioExpediente::guardar()` dejó de reescribir el odontograma:
+`formData.odontograma` es un eco de lectura que `obtener()` devuelve, y persistirlo de nuevo hacía
+que **cualquier autoguardado de otra sección pisara los cambios recientes** del odontograma. La
+carrera se reprodujo (la prueba de regresión falla con el código viejo) y quedó cerrada con
+`PUT /api/historias/{id}/odontograma` como única escritura.
+
+**Cadena vacía no es `null`.** La prueba en vivo destapó que el middleware global del framework
+convierte cada `""` en `null` en la entrada (`professional`, `cop`, `observations`, `code` y `note`
+de cada hallazgo). El registro se guardaba bien, pero al volver a leerlo `readRecord` lo rechazaba
+como malformado: odontograma guardado **pero ilegible**, un fallo silencioso que solo aparece al
+reabrir la historia desde otro equipo. Corregido en los dos extremos: el backend restaura las
+cadenas vacías antes de persistir (`ServicioOdontograma::restaurarCadenasVacias()`) y el navegador
+lee un `null` de esos campos como campo vacío (`restaurarTextos()` en `odontogramaRegistro.mjs`),
+de modo que los registros ya guardados con `null` siguen siendo legibles sin migración.
+
+**Verificación.** 6 pruebas nuevas en `odontograma.test.jsx` (hidratación, `null` heredado, copia
+local vencida, subida al servidor, conflicto con pendiente y guardado sin conexión) y 4 en
+`backend/tests/Feature/OdontogramaPersistenciaTest.php`; las de backend se comprobaron con el
+arreglo retirado para confirmar que detectan la carrera y la pérdida de cadenas vacías.
+
 ## Verificación reproducible
 
 Desde `frontend`:
 
 ```sh
-npm test -- --maxWorkers=1 --testTimeout=20000
-npm run build
+npx.cmd vitest run --testTimeout=60000
+npm.cmd run build
 ```
 
-Las pruebas del odontograma cubren orden FDI, superficies, colores, coexistencia de hallazgos, validaciones de rangos, cierre, separación de pacientes, recuperación de registros, errores de almacenamiento y conflictos entre pestañas.
+Desde `backend` (requiere la BD de pruebas, ver abajo):
+
+```sh
+php artisan test
+```
+
+Línea base tras la B2: **17 archivos / 182 pruebas** en el frontend y **40 pruebas** en el backend,
+más `npm run build` sin errores.
+
+Comprobación de extremo a extremo en navegador (Vite + `php artisan serve` sobre
+`bd_clinica_undac`): paciente y historia creados por la interfaz, marca puesta en el odontograma y
+verificada en `odontograma` + `odontograma_hallazgo` de MySQL, después se borró `localStorage` y se
+recargó: la lámina volvió desde el servidor con la misma marca y sin errores de consola.
+
+La BD de pruebas `bd_clinica_undac_test` no venía creada. El volcado `bd_clinica_undac.sql` elimina
+y recrea la base con su nombre original, así que hay que sustituir el nombre antes de importarlo:
+
+```powershell
+$texto = (Get-Content ..\bd_clinica_undac.sql -Raw) -replace 'bd_clinica_undac','bd_clinica_undac_test'
+[System.IO.File]::WriteAllText("$env:TEMP\bd_clinica_undac_test.sql", $texto, (New-Object System.Text.UTF8Encoding($false)))
+cmd /c 'mysql -u root --default-character-set=utf8mb4 < "%TEMP%\bd_clinica_undac_test.sql"'
+```
+
+Las pruebas del odontograma cubren orden FDI, superficies, colores, coexistencia de hallazgos, validaciones de rangos, cierre, separación de pacientes, recuperación de registros, errores de almacenamiento, conflictos entre pestañas y sincronización con la historia clínica.

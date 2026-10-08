@@ -130,9 +130,10 @@ class ServicioExpediente
             if (isset($formulario['seguimiento'])) {
                 $this->guardarSeguimiento($id, $formulario['seguimiento']);
             }
-            if (isset($formulario['odontograma']['registro']) && is_array($formulario['odontograma']['registro'])) {
-                $this->odontograma->guardar($id, $formulario['odontograma']['registro'], $actor);
-            }
+            // El odontograma tiene una sola vía de escritura:
+            // PUT /api/historias/{id}/odontograma (ServicioOdontograma::guardar).
+            // Aquí solo viaja como eco de lectura (obtener() lo devuelve en formData), así que
+            // ignorarlo evita que un autoguardado de otra sección pise los cambios recientes.
 
             foreach ($estados as $codigo => $estado) {
                 if (! is_string($codigo) || ! is_string($estado)) {
