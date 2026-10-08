@@ -12,11 +12,14 @@ Se consultó también el PDF aportado por el usuario, «Norma Técnica del Odont
 membrete del Colegio Odontológico del Perú). Es la fuente que se audité y se implementó en la Fase 3,
 y sus numerales mandan lo siguiente: corona definitiva y temporal como **circunferencia** que encierre
 la corona (azul y roja respectivamente), `DES` (1.6) y `M` (1.23) **en azul**, siglas de corona
-`CC/CF/CMC/3-4/4-5/7-8/CV/CJ` y de restauración `AM/R/IV/IM/IE`. ⚠️ Pendiente de confirmar en la
-Fase 5: ese PDF **no muestra el número de norma** en su texto y su numeración (Disposiciones
-Generales 1–15, Disposiciones Específicas 1.1–1.33) no coincide con la de la sección anterior
-(numerales 5.4–5.18 y catálogo 6.1.1–6.1.38), así que conviene fijar con el responsable de
-odontología cuál de las dos es la que aplica antes de la validación clínica.
+`CC/CF/CMC/3-4/4-5/7-8/CV/CJ` y de restauración `AM/R/IV/IM/IE`.
+
+**Decisión D-10 (2026-10-08)**: el responsable del proyecto confirmó que la norma que rige es ese
+PDF. La referencia a la *NTS N.° 188-MINSA/DGIESP-2022* (numerales 5.4–5.18, catálogo 6.1.1–6.1.38)
+que aparecía más arriba queda como antecedente de la fase inicial y **no se usa para validar**; el
+número de norma no aparece en el texto del PDF aportado y su numeración (Disposiciones Generales 1–15,
+Disposiciones Específicas 1.1–1.33) es la que se audita. El proyecto conserva el nombre «nts188» en
+sus ficheros y claves de almacenamiento.
 
 ## Cambios implementados
 

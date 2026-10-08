@@ -1,7 +1,9 @@
-# Conformidad del odontograma con la NTS N.° 188-MINSA/DGIESP-2022
+# Conformidad del odontograma con la Norma Técnica del Odontograma
 
-Matriz de verificación ítem por ítem entre la Norma Técnica del Odontograma (RM N.° 559-2022/MINSA,
-texto y Anexo II del PDF aportado) y la implementación del frontend.
+Matriz de verificación ítem por ítem entre la Norma Técnica del Odontograma (texto y Anexo II del PDF
+aportado, con el membrete del Colegio Odontológico del Perú) y la implementación del frontend. El
+proyecto conserva el nombre «NTS 188» en sus ficheros y en su documentación inicial; la fuente que
+rige es la de este PDF desde la decisión D-10.
 
 - Fuente normativa de esta matriz: el PDF aportado `Norma-Tecnica-del-Odontograma.pdf` (12 páginas),
   que se titula **«Norma Técnica del Odontograma»** y lleva el membrete del Colegio Odontológico del
@@ -10,10 +12,11 @@ texto y Anexo II del PDF aportado) y la implementación del frontend.
   1.23 a 1.25), más el Anexo II "Partes del odontograma" (página 12).
 - Lámina oficial de referencia: gráfico del numeral 2 (página 8) y Anexo II (página 12).
 - Complemento: `docs/odontograma-nts188.md`.
-- ⚠️ **Identidad de la fuente por confirmar (Fase 5)**: el resto del proyecto referencia la
-  *NTS N.° 188-MINSA/DGIESP-2022* (numerales 5.x, catálogo 6.1.1–6.1.38), pero **el PDF aportado no
-  muestra ese número en su texto** y su numeración no coincide con la de ese otro documento. Las
-  secciones siguientes citan el PDF aportado, que es lo que se auditaron y se implementó en la Fase 3.
+- **Fuente que aplica — decisión D-10 (2026-10-08)**: el responsable del proyecto confirmó que rige
+  **este PDF** (Norma Técnica del Odontograma, Colegio Odontológico del Perú). La referencia previa a
+  la *NTS N.° 188-MINSA/DGIESP-2022* (numerales 5.4–5.18, catálogo 6.1.1–6.1.38) queda solo como
+  antecedente de la fase inicial: no se usa para validar, y el número de norma no aparece en el texto
+  del PDF aportado. El proyecto conserva el nombre «nts188» en sus ficheros y claves de almacenamiento.
 - Las páginas 2 y 3 del PDF no traen capa de texto: sus numerales se leyeron sobre el render de la
   página (con `pypdfium2`). El 2026-10-07 se rehízo la sección 2 de esta matriz: sus renglones
   1.1.1, 1.1.2, 1.1.3, 1.2, 1.3, 1.4.1 y 1.4.2 **no existen en la norma** y había que corregirlos.
@@ -64,7 +67,7 @@ por eso se eleva a 60000 ms.
 | DG 9 | En especificaciones, aclarar los hallazgos que no se registran gráficamente | ✅ | Campo `specifications` por evaluación y `note` por marca |
 | DG 10 | Varias anomalías en la misma pieza → ítem de especificaciones | ✅ | `findings[]` admite más de una marca por pieza |
 | DG 11 | Consignar los hallazgos radiográficos | ⚠️ | Sin sección propia: se anotan en especificaciones/observaciones |
-| DG 12 | Gráfico único impreso en negro, corona ≥ 1 cm² y raíz proporcional (Anexo II) | ⚠️ | Se dibuja en negro y a proporción; la **impresión** queda para la Fase 4 |
+| DG 12 | Gráfico único impreso en negro, corona ≥ 1 cm² y raíz proporcional (Anexo II) | ✅ | El trazo base ya era negro; la hoja de impresión de la Fase 4 imprime la corona a ≈ 1,02 cm² |
 | DG 13 | Sin enmendaduras ni tachaduras; las modificaciones, firmadas por el profesional | ⚠️ | Cerrada es de solo lectura y guarda profesional + COP, pero no firma cada modificación |
 | DG 14 | Las especialidades **pueden adicionar** nomenclaturas; no, contradecir las de la norma | ✅ | Admitidos como propios: fosas y fisuras, sellante, erupción, posición anormal, prótesis fija, caries cervical y cálculo dental |
 | DG 15 | El odontograma debe llenarse en un máximo de 10 minutos | — | Propiedad del clínico: el software no lo cronometra |
@@ -197,6 +200,7 @@ columna a columna, colores de las siglas y ausencia de texto recortado.
 | D-07 | ¿Corregir `desgaste` y `movilidad` a azul? | Sí, es lo que exige la norma (implica actualizar una prueba) | ✅ **Aprobada** — implementada en la Fase 3 |
 | D-08 | ¿Dar de alta `DIS`, `SI`, `MIGRACIÓN`, caries cervical y cálculo dental? | Sí, al menos los que use la clínica | ✅ **Aprobada** (los 5) — implementada en la Fase 3 |
 | D-09 | ¿Corona temporal como circunferencia en vez de rectángulo? | Sí, es literal del ítem 1.5 | ✅ **Confirmada** — implementada en la Fase 3 |
+| D-10 | ¿Qué norma rige: este PDF o la NTS 188 del MINSA que cita la documentación previa? | Este PDF (el aportado); la referencia MINSA queda como antecedente | ✅ **Cerrada el 2026-10-08** — matriz y changelog reescritos sobre este PDF |
 
 ## Alcance por fase
 
