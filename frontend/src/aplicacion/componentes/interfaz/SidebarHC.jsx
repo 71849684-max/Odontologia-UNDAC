@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BookOpen, ChevronDown, CircleUserRound, ClipboardList, FileClock, Home, LogOut, Settings, Stethoscope, UsersRound } from 'lucide-react';
+import { BookOpen, ChevronDown, CircleUserRound, ClipboardList, FileClock, Home, LogOut, Menu, Settings, Stethoscope, UsersRound } from 'lucide-react';
 
 const ICONOS = {
     inicio: Home,
@@ -27,7 +27,7 @@ function obtenerGrupoActivo(menu, activo) {
     return null;
 }
 
-export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected, onLogout }) {
+export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected, onLogout, onToggle, mostrarToggle = false }) {
     const [gruposCerrados, setGruposCerrados] = useState([]);
 
     useEffect(() => {
@@ -46,7 +46,15 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected,
 
     return (
         <aside className="barra-lateral--hc" aria-label="Navegación principal">
-            <div className="marca-hc"><span className="marca-hc__icon"><Stethoscope size={20} aria-hidden="true" /></span><span className="marca-hc__text">Historia Clínica<small>Odontología UNDAC</small></span></div>
+            <div className="marca-hc">
+                <span className="marca-hc__icon"><Stethoscope size={20} aria-hidden="true" /></span>
+                <span className="marca-hc__text">Historia Clínica<small>Odontología UNDAC</small></span>
+                {mostrarToggle ? (
+                    <button type="button" className="barra-lateral__toggle" aria-label="Ocultar menú de navegación" aria-expanded="true" onClick={onToggle}>
+                        <Menu size={18} aria-hidden="true" />
+                    </button>
+                ) : null}
+            </div>
             <nav>
                 <ul className="menu-principal">
                     {menu.map((item) => {
@@ -87,7 +95,6 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected,
             </nav>
             <div className="barra-footer">
                 <button type="button" className="barra-footer__logout" onClick={onLogout}><LogOut size={17} aria-hidden="true" /><span>Cerrar sesión</span></button>
-                <span>Facultad de Ciencias de la Salud · UNDAC</span>
             </div>
         </aside>
     );

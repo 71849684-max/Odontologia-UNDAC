@@ -16,7 +16,7 @@
   --undac-focus: 0 0 0 3px #14b8a626;
 }
 .barra-lateral--hc { background: #0b1e36; color: #cbd5e1; }
-.barra-lateral--hc .marca-hc { font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+.barra-lateral--hc .marca-hc { font-family: inherit; font-size: 15px; font-weight: 700; letter-spacing: -.02em; color: #fff; }
 .barra-lateral--hc .marca-hc { display: flex; align-items: center; gap: 10px; }
 .marca-hc__icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border: 1px solid #14b8a633; border-radius: 7px; color: #2dd4bf; background: #14b8a60d; }
 .marca-hc__text { display: grid; gap: 3px; }

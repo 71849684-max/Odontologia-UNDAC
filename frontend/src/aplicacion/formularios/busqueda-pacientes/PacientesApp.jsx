@@ -16,7 +16,8 @@ export default function PacientesApp({ onNavigate }) {
     const [estado, setEstado] = useState('');
     const [localPatients, setLocalPatients] = useState(listarPacientesLocales);
     const [historiasRemotas, setHistoriasRemotas] = useState([]);
-    const [usaApi, setUsaApi] = useState(false);
+    // null = comprobando conexión; true = API disponible; false = modo local confirmado
+    const [usaApi, setUsaApi] = useState(null);
     const [formularioAbierto, setFormularioAbierto] = useState(false);
     const [editando, setEditando] = useState(null);
     const [persistenciaError, setPersistenciaError] = useState('');
@@ -27,18 +28,29 @@ export default function PacientesApp({ onNavigate }) {
     useEffect(() => {
         localStorage.removeItem(LEGACY_STORAGE_KEY);
         let vigente = true;
-        Promise.all([listarPacientes(), listarHistoriasRemotas()])
-            .then(([pacientes, historias]) => {
+        Promise.allSettled([listarPacientes(), listarHistoriasRemotas()])
+            .then(([pacientesRes, historiasRes]) => {
                 if (!vigente) return;
+                const fallosRed = [pacientesRes, historiasRes].filter((r) => r.status === 'rejected' && esFalloDeRed(r.reason));
+                const ambosFallaron = pacientesRes.status === 'rejected' && historiasRes.status === 'rejected';
+                if (ambosFallaron && fallosRed.length === 2) {
+                    setUsaApi(false);
+                    return;
+                }
+                // Respuesta del servidor (aunque sea 403/422): no es “sin conexión”.
                 setUsaApi(true);
-                setLocalPatients(pacientes);
-                setHistoriasRemotas(historias);
-            })
-            .catch(() => {});
+                if (pacientesRes.status === 'fulfilled') {
+                    setLocalPatients(pacientesRes.value);
+                    setPersistenciaError('');
+                } else if (!esFalloDeRed(pacientesRes.reason)) {
+                    setPersistenciaError(mensajeError(pacientesRes.reason, 'No se pudieron cargar los pacientes.'));
+                }
+                if (historiasRes.status === 'fulfilled') setHistoriasRemotas(historiasRes.value);
+            });
         return () => { vigente = false; };
     }, []);
     useEffect(() => {
-        if (!usaApi) return undefined;
+        if (usaApi !== true) return undefined;
         let vigente = true;
         const temporizador = setTimeout(() => {
             listarPacientes({ q: query, estado })
@@ -148,7 +160,7 @@ export default function PacientesApp({ onNavigate }) {
 
     return <div className="hc-page space-y-5">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Gestión clínica</p><h1 className="hc-page-title">Pacientes</h1><p className="hc-page-subtitle">Pacientes vinculados a sus historias clínicas. Para registrar uno nuevo use «Nuevo paciente» o busque el DNI exacto al abrir una historia.</p></div><button ref={patientTriggerRef} type="button" className="hc-button hc-button--primary" onClick={() => { setPersistenciaError(''); setEditando(null); setFormularioAbierto(true); }}><UserPlus size={17} /> Nuevo paciente</button></header>
-        {!usaApi ? <p className="hc-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
+        {usaApi === false ? <p className="hc-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
         <section className="hc-compact-stats" aria-label="Resumen de pacientes"><article><strong>{patients.length}</strong><small>Registrados</small></article><article><strong>{patients.filter((item) => item.estado === 'En proceso').length}</strong><small>En atención</small></article><article><strong>{patients.filter((item) => item.estado === 'Pendiente de revisión').length}</strong><small>Por revisar</small></article></section>
         <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar paciente</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nombre, DNI o código..." /></label><div className="hc-filter-actions"><label className="hc-select-filter"><span>Estado</span><select value={estado} onChange={(e) => setEstado(e.target.value)}><option value="">Todos</option>{[...new Set(patients.map((item) => item.estado))].map((item) => <option key={item}>{item}</option>)}</select></label><span>{filtered.length} pacientes</span></div></div>
         {persistenciaError && !formularioAbierto ? <p className="hc-form-error" role="alert">{persistenciaError}</p> : null}

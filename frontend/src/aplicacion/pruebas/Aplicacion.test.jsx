@@ -275,7 +275,7 @@ test('abre una nueva historia con los datos del paciente recién registrado', as
     await usuario.type(screen.getByLabelText('Apellido materno'), 'Vega');
     await usuario.type(screen.getByLabelText('Número documento'), '71234567');
     await usuario.type(screen.getByLabelText('Teléfono'), '999 111 222');
-    await usuario.click(screen.getByRole('button', { name: 'Guardar paciente y crear historia clínica' }));
+    await usuario.click(screen.getByRole('button', { name: 'Crear historia clínica' }));
 
     expect(await screen.findByRole('heading', { name: 'Nueva historia clínica' })).toBeInTheDocument();
     expect(screen.getByLabelText('DNI')).toHaveValue('71234567');

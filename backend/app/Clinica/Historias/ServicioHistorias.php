@@ -47,8 +47,13 @@ class ServicioHistorias
             $consulta->where('e.codigo', $estado);
         }
 
-        $items = $consulta->limit(300)->get()->map(fn ($fila) => $this->serializar($fila))->all();
-        $ids = array_column($items, 'id');
+        $filas = $consulta->limit(300)->get();
+        $ids = $filas->pluck('id_historia_clinica')->map(fn ($id) => (int) $id)->all();
+        $observaciones = $this->observacionesDeHistorias($ids);
+        $items = $filas->map(fn ($fila) => $this->serializar(
+            $fila,
+            $observaciones[(int) $fila->id_historia_clinica] ?? [],
+        ))->all();
         $porHistoria = $ids === [] ? collect() : DB::table('historia_seccion_estado')
             ->whereIn('id_historia_clinica', $ids)
             ->where('estado', 'review')
@@ -192,7 +197,58 @@ class ServicioHistorias
             ]);
     }
 
-    private function serializar(object $fila): array
+    /**
+     * @param  list<int>  $idsHistoria
+     * @return array<int, list<array{id: int, texto: string, fecha: string, docente: string}>>
+     */
+    private function observacionesDeHistorias(array $idsHistoria): array
+    {
+        if ($idsHistoria === []) {
+            return [];
+        }
+
+        $filas = DB::table('historia_clinica_estado_historial')
+            ->whereIn('id_historia_clinica', $idsHistoria)
+            ->whereNotNull('observacion')
+            ->where('observacion', '!=', '')
+            ->orderByDesc('id_historial_estado')
+            ->get(['id_historial_estado', 'id_historia_clinica', 'observacion', 'fecha_estado', 'tipo_usuario', 'id_usuario']);
+
+        $idsUsuarioDocente = $filas
+            ->filter(fn ($fila) => $fila->tipo_usuario === 'DOCENTE' && $fila->id_usuario)
+            ->pluck('id_usuario')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $nombresDocente = $idsUsuarioDocente === [] ? collect() : DB::table('usuario_docente as ud')
+            ->join('docente as d', 'd.id_docente', '=', 'ud.id_docente')
+            ->whereIn('ud.id_usuario_docente', $idsUsuarioDocente)
+            ->get(['ud.id_usuario_docente', 'd.nombres', 'd.apellidos'])
+            ->keyBy('id_usuario_docente')
+            ->map(fn ($fila) => trim($fila->nombres.' '.$fila->apellidos));
+
+        $porHistoria = [];
+        foreach ($filas as $fila) {
+            $idHistoria = (int) $fila->id_historia_clinica;
+            $docente = '';
+            if ($fila->tipo_usuario === 'DOCENTE' && $fila->id_usuario) {
+                $docente = (string) ($nombresDocente->get((int) $fila->id_usuario) ?: 'Docente');
+            }
+            $porHistoria[$idHistoria][] = [
+                'id' => (int) $fila->id_historial_estado,
+                'texto' => (string) $fila->observacion,
+                'fecha' => (string) $fila->fecha_estado,
+                'docente' => $docente,
+            ];
+        }
+
+        return $porHistoria;
+    }
+
+    /** @param  list<array{id: int, texto: string, fecha: string, docente: string}>|null  $observaciones */
+    private function serializar(object $fila, ?array $observaciones = null): array
     {
         $operador = DB::table('historia_alumno as ha')
             ->join('alumno as a', 'a.id_alumno', '=', 'ha.id_alumno')
@@ -213,6 +269,8 @@ class ServicioHistorias
             ->whereIn('estado', ['complete', 'review', 'approved', 'Completo'])
             ->count();
 
+        $listaObservaciones = $observaciones ?? ($this->observacionesDeHistorias([(int) $fila->id_historia_clinica])[(int) $fila->id_historia_clinica] ?? []);
+
         return [
             'id' => (int) $fila->id_historia_clinica,
             'pacienteId' => (int) $fila->id_paciente,
@@ -225,6 +283,8 @@ class ServicioHistorias
             'fecha' => $fila->fecha_apertura,
             'estado' => $fila->nombre_estado,
             'codigoEstado' => $fila->codigo_estado,
+            'observacion' => $listaObservaciones[0]['texto'] ?? null,
+            'observaciones' => $listaObservaciones,
             'progreso' => (int) round(($completas / 18) * 100),
             'pacienteRegistro' => [
                 'id' => (int) $fila->id_paciente,

@@ -3,6 +3,8 @@ import DisenoPanel from './DisenoPanel';
 import SidebarHC from '../componentes/interfaz/SidebarHC';
 import HeaderBar from '../componentes/interfaz/HeaderBar';
 
+const CONSULTA_ESCRITORIO = '(min-width: 1200px)';
+
 function buscarRuta(menu, id) {
     for (const item of menu ?? []) {
         if (item.id === id) return [{ etiqueta: item.etiqueta }];
@@ -26,8 +28,15 @@ function menuTieneRuta(menu, id) {
     return (menu ?? []).some((item) => item.id === id || item.children?.some((child) => child.id === id));
 }
 
+function esVistaEscritorio() {
+    if (typeof window === 'undefined' || !window.matchMedia) return true;
+    return window.matchMedia(CONSULTA_ESCRITORIO).matches;
+}
+
 export default function AppLayout({ menu, usuario, rol, activo: activoControlado, modoClinico = false, onNavigate, onLogout, children }) {
     const [activoInterno, setActivoInterno] = useState(menu?.[0]?.id ?? 'inicio');
+    const [navegacionAbierta, setNavegacionAbierta] = useState(esVistaEscritorio);
+    const [esEscritorio, setEsEscritorio] = useState(esVistaEscritorio);
     const contenidoRef = useRef(null);
     const activo = activoControlado ?? activoInterno;
 
@@ -41,6 +50,18 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
         contenidoRef.current?.scrollIntoView?.({ block: 'start', behavior: 'instant' });
         contenidoRef.current?.focus({ preventScroll: true });
     }, [activo]);
+
+    useEffect(() => {
+        const media = window.matchMedia?.(CONSULTA_ESCRITORIO);
+        const sincronizar = () => {
+            const desktop = Boolean(media?.matches);
+            setEsEscritorio(desktop);
+            setNavegacionAbierta(desktop);
+        };
+        sincronizar();
+        media?.addEventListener('change', sincronizar);
+        return () => media?.removeEventListener('change', sincronizar);
+    }, []);
 
     function handleSelect(id) {
         setActivoInterno(typeof id === 'string' ? id : id.view === 'historia' ? 'historia-clinica' : id.view);
@@ -57,6 +78,8 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
     return (
         <DisenoPanel
             modoClinico={modoClinico}
+            navegacionAbierta={navegacionAbierta}
+            onToggleNavegacion={() => setNavegacionAbierta((actual) => !actual)}
             barraLateral={modoClinico ? null : (
                 <SidebarHC
                     menu={menu}
@@ -67,7 +90,16 @@ export default function AppLayout({ menu, usuario, rol, activo: activoControlado
             )}
         >
             <div className={`hc-main min-h-screen${modoClinico ? ' hc-main--clinical-mode' : ''}`}>
-                {modoClinico ? null : <HeaderBar breadcrumb={buscarRuta(menu, activo)} usuario={usuario} rol={rol} onNavigate={handleSelect} />}
+                {modoClinico ? null : (
+                    <HeaderBar
+                        breadcrumb={buscarRuta(menu, activo)}
+                        usuario={usuario}
+                        rol={rol}
+                        onNavigate={handleSelect}
+                        navegacionAbierta={navegacionAbierta}
+                        onMostrarNavegacion={esEscritorio && !navegacionAbierta ? () => setNavegacionAbierta(true) : undefined}
+                    />
+                )}
                 <Content ref={contenidoRef} className="hc-contenido min-w-0" tabIndex={-1}>
                     {children}
                 </Content>

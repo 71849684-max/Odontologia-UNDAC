@@ -43,12 +43,15 @@ test('el panel y las notificaciones comienzan sin actividad clínica ficticia', 
   render(<DashboardApp rol="administrador" usuario={{ nombre: 'Administrador' }} />);
 
   expect(within(screen.getByLabelText('Indicadores principales')).getAllByText('0')).toHaveLength(4);
-  expect(screen.getByText('No hay actividad clínica registrada.')).toBeInTheDocument();
   expect(screen.getByText('No hay historias clínicas recientes.')).toBeInTheDocument();
+  expect(screen.queryByText('Actividad reciente')).not.toBeInTheDocument();
+  expect(screen.queryByText('Acciones rápidas')).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Pendientes' })).not.toBeInTheDocument();
 
   cleanup();
   render(<NotificationMenu />);
-  expect(screen.getByLabelText('Notificaciones')).toHaveTextContent('0');
+  expect(screen.getByLabelText('Notificaciones')).toBeInTheDocument();
+  expect(screen.queryByText('0')).not.toBeInTheDocument();
 });
 
 test('el repositorio local académico se reinicia vacío en lugar de sembrar cursos, grupos y personas de demostración', () => {

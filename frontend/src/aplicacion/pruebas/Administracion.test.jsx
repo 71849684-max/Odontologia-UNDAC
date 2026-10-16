@@ -196,14 +196,15 @@ test('ver perfil desde permisos muestra la ficha del usuario seleccionado, no la
 
     await usuario.click(await screen.findByRole('button', { name: 'Ver perfil' }));
 
-    const ficha = await screen.findByRole('region', { name: 'Perfil de Carlos Mendoza' });
+    const ficha = await screen.findByRole('dialog', { name: 'Carlos Mendoza' });
     expect(admin.obtenerUsuario).toHaveBeenCalledWith(3);
+    expect(within(ficha).getByRole('heading', { name: 'Carlos Mendoza' })).toBeInTheDocument();
+    expect(within(ficha).queryByText(/Perfil de/)).not.toBeInTheDocument();
     expect(within(ficha).getByText('999 000 111')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Mi perfil' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     await usuario.click(within(ficha).getByRole('button', { name: 'Cerrar perfil' }));
-    expect(screen.queryByRole('region', { name: 'Perfil de Carlos Mendoza' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Carlos Mendoza' })).not.toBeInTheDocument();
 });
 
 test('el administrador restablece la contraseña de un usuario', async () => {

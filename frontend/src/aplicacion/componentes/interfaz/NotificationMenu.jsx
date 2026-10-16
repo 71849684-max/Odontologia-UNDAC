@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, BellOff, CheckCheck } from 'lucide-react';
 import { listarNotificaciones, marcarNotificacionLeida, marcarTodasNotificacionesLeidas, sinRedEnPrueba } from '../../servicios/servicioClinico.js';
 
 export default function NotificationMenu({ onNavigate }) {
@@ -54,26 +54,53 @@ export default function NotificationMenu({ onNavigate }) {
     return (
         <div className="notification-menu">
             <button type="button" aria-label="Notificaciones" aria-expanded={abierto} onClick={() => { setAbierto((v) => !v); if (!abierto) cargar(); }}>
-                <Bell size={18} aria-hidden="true" /> <span className="contador">{noLeidas}</span>
+                <Bell size={18} aria-hidden="true" />
+                {noLeidas > 0 ? <span className="contador">{noLeidas > 99 ? '99+' : noLeidas}</span> : null}
             </button>
             {abierto && (
                 <div className="notification-list" role="region" aria-label="Lista de notificaciones">
                     <header className="notification-list__head">
-                        <h4>Notificaciones</h4>
-                        {noLeidas ? <button type="button" className="hc-link-button" onClick={leerTodas}>Marcar todas</button> : null}
+                        <div className="notification-list__title">
+                            <span className="notification-list__badge" aria-hidden="true"><Bell size={16} /></span>
+                            <div>
+                                <h4>Notificaciones</h4>
+                                <p>{noLeidas ? `${noLeidas} sin leer` : 'Todo al día'}</p>
+                            </div>
+                        </div>
+                        {noLeidas ? (
+                            <button type="button" className="notification-list__mark" onClick={leerTodas}>
+                                <CheckCheck size={15} aria-hidden="true" />
+                                Marcar todas
+                            </button>
+                        ) : null}
                     </header>
-                    {cargando && !items.length ? <p>Cargando…</p> : null}
-                    {items.length ? <ul>
-                        {items.map((n) => (
-                            <li key={n.id} className={n.leida || n.leido ? 'leido' : 'no-leido'}>
-                                <button type="button" className="notification-list__item" onClick={() => abrirItem(n)}>
-                                    <strong>{n.titulo || 'Aviso'}</strong>
-                                    <p>{n.texto || n.mensaje}</p>
-                                    <small>{n.tiempo ? new Date(n.tiempo).toLocaleString('es-PE') : ''}</small>
-                                </button>
-                            </li>
-                        ))}
-                    </ul> : <p>No hay notificaciones pendientes.</p>}
+                    {cargando && !items.length ? (
+                        <div className="notification-list__empty" role="status">
+                            <span className="notification-list__empty-icon" aria-hidden="true"><Bell size={22} /></span>
+                            <strong>Cargando…</strong>
+                            <p>Consultando avisos recientes.</p>
+                        </div>
+                    ) : null}
+                    {items.length ? (
+                        <ul>
+                            {items.map((n) => (
+                                <li key={n.id} className={n.leida || n.leido ? 'leido' : 'no-leido'}>
+                                    <button type="button" className="notification-list__item" onClick={() => abrirItem(n)}>
+                                        <span className="notification-list__dot" aria-hidden="true" />
+                                        <strong>{n.titulo || 'Aviso'}</strong>
+                                        <p>{n.texto || n.mensaje}</p>
+                                        <small>{n.tiempo ? new Date(n.tiempo).toLocaleString('es-PE') : ''}</small>
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    ) : !cargando ? (
+                        <div className="notification-list__empty">
+                            <span className="notification-list__empty-icon" aria-hidden="true"><BellOff size={22} /></span>
+                            <strong>Sin notificaciones</strong>
+                            <p>No hay notificaciones pendientes.</p>
+                        </div>
+                    ) : null}
                 </div>
             )}
         </div>

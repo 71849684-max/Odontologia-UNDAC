@@ -53,9 +53,10 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   const historiaLocal = buscarHistoria(historiaId)
     ?? historiasClinicas.find((item) => String(item.id) === String(historiaId))
     ?? null;
-  const selectedHistory = historiaLocal
-    ?? expediente?.historia
-    ?? { id: historiaId ?? null, codigo: 'Sin historia', estado: '', operador: '', docente: '' };
+  const historiaRemota = expediente?.historia ?? null;
+  const selectedHistory = historiaLocal && historiaRemota
+    ? { ...historiaLocal, ...historiaRemota }
+    : (historiaLocal ?? historiaRemota ?? { id: historiaId ?? null, codigo: 'Sin historia', estado: '', operador: '', docente: '' });
   const selectedPatient = (historiaLocal ? pacienteDeHistoria(historiaLocal) : null)
     ?? expediente?.paciente
     ?? pacientesClinicos.find((item) => String(item.id) === String(selectedHistory.pacienteId ?? selectedHistory.id))

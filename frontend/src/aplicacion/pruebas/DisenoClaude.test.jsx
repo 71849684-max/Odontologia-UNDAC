@@ -69,9 +69,38 @@ test('el sidebar principal contiene el cierre de sesión y conserva el acceso a 
 
   const sidebar = screen.getByRole('complementary', { name: 'Navegación principal' });
   expect(within(sidebar).queryByRole('button', { name: 'Nueva historia clínica' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Nueva historia clínica' })).not.toBeInTheDocument();
   fireEvent.click(within(sidebar).getByRole('button', { name: 'Cerrar sesión' }));
   expect(onLogout).toHaveBeenCalledTimes(1);
+});
 
-  fireEvent.click(screen.getByRole('button', { name: 'Nueva historia clínica' }));
-  expect(onNavigate).toHaveBeenCalledWith('nueva-historia');
+test('el menú lateral de escritorio se oculta y se vuelve a mostrar desde la cabecera', () => {
+  vi.stubGlobal('matchMedia', vi.fn((query) => ({
+    matches: String(query).includes('min-width: 1200px'),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })));
+
+  render(
+    <AppLayout
+      menu={MENU_POR_ROL.alumno}
+      usuario={{ nombre: 'Alumno de prueba' }}
+      rol="alumno"
+      activo="mis-pacientes"
+      onNavigate={vi.fn()}
+      onLogout={vi.fn()}
+    >
+      <p>Contenido</p>
+    </AppLayout>,
+  );
+
+  const sidebar = screen.getByRole('complementary', { name: 'Navegación principal' });
+  fireEvent.click(within(sidebar).getByRole('button', { name: 'Ocultar menú de navegación' }));
+  expect(screen.queryByRole('complementary', { name: 'Navegación principal' })).not.toBeInTheDocument();
+
+  const header = screen.getByRole('banner', { name: 'Cabecera de la aplicación' });
+  fireEvent.click(within(header).getByRole('button', { name: 'Mostrar menú de navegación' }));
+  expect(screen.getByRole('complementary', { name: 'Navegación principal' })).toBeInTheDocument();
+  vi.unstubAllGlobals();
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ClipboardPlus, Filter, Search, X } from 'lucide-react';
+import { Filter, Search, X } from 'lucide-react';
 import { listarHistorias } from '../../servicios/registroHistoriaClinica.js';
 import { cambiarEstadoHistoria, listarHistoriasRemotas, mensajeError } from '../../servicios/servicioClinico.js';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
@@ -17,37 +17,73 @@ const CODIGO_ESTADO = {
 export function accionesDeEstado(historia, rol) {
     const codigo = historia.codigoEstado;
     if (!codigo) return [];
-    const supervisa = rol === 'docente' || rol === 'administrador';
+    const esAlumno = rol === 'alumno';
+    const esDocente = rol === 'docente';
+    const esAdmin = rol === 'administrador';
     const acciones = [];
-    if (['BORRADOR', 'EN_PROCESO', 'OBSERVADA'].includes(codigo)) {
+    if ((esAlumno || esAdmin) && ['BORRADOR', 'EN_PROCESO', 'OBSERVADA'].includes(codigo)) {
         acciones.push({ codigo: 'PENDIENTE_REVISION', etiqueta: 'Enviar a revisión' });
     }
-    if (codigo === 'PENDIENTE_REVISION' && supervisa) {
+    if ((esDocente || esAdmin) && codigo === 'PENDIENTE_REVISION') {
         acciones.push({ codigo: 'VALIDADA', etiqueta: 'Validar' });
         acciones.push({ codigo: 'OBSERVADA', etiqueta: 'Observar', requiereObservacion: true });
     }
-    if (codigo === 'PENDIENTE_REVISION' && !supervisa) {
+    if ((esAlumno || esAdmin) && codigo === 'PENDIENTE_REVISION') {
         acciones.push({ codigo: 'EN_PROCESO', etiqueta: 'Retomar edición' });
     }
     return acciones;
+}
+
+export function puedeVerObservacion(historia, rol) {
+    const rolesPermitidos = ['alumno', 'docente', 'administrador'];
+    if (!rolesPermitidos.includes(rol)) return false;
+    if (historia?.codigoEstado === 'VALIDADA' || historia?.estado === 'Validada') return false;
+    if (Array.isArray(historia?.observaciones) && historia.observaciones.length > 0) return true;
+    return Boolean(String(historia?.observacion ?? '').trim());
+}
+
+export function formatearFechaObservacion(fecha) {
+    if (!fecha) return '—';
+    const valor = String(fecha).includes('T') ? String(fecha) : String(fecha).replace(' ', 'T');
+    const fechaObj = new Date(valor);
+    if (Number.isNaN(fechaObj.getTime())) return String(fecha);
+    return fechaObj.toLocaleString('es-PE', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
+
+export function observacionesDeHistoria(historia) {
+    if (Array.isArray(historia?.observaciones) && historia.observaciones.length > 0) {
+        return historia.observaciones;
+    }
+    const texto = String(historia?.observacion ?? '').trim();
+    return texto ? [{ id: 'unica', texto, fecha: null }] : [];
 }
 
 export default function HistoriasApp({ rol, onNavigate }) {
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState('');
     const [historias, setHistorias] = useState(listarHistorias);
-    const [usaApi, setUsaApi] = useState(false);
+    // null = comprobando conexión; true = API disponible; false = modo local confirmado
+    const [usaApi, setUsaApi] = useState(null);
     const [error, setError] = useState('');
     const [aviso, setAviso] = useState('');
     const [observando, setObservando] = useState(null);
+    const [viendoObservacion, setViendoObservacion] = useState(null);
     const [enviando, setEnviando] = useState(false);
     useEffect(() => {
         let vigente = true;
-        listarHistoriasRemotas().then((lista) => { if (vigente) { setHistorias(lista); setUsaApi(true); } }).catch(() => {});
+        listarHistoriasRemotas()
+            .then((lista) => { if (vigente) { setHistorias(lista); setUsaApi(true); } })
+            .catch(() => { if (vigente) setUsaApi(false); });
         return () => { vigente = false; };
     }, []);
     useEffect(() => {
-        if (!usaApi) return undefined;
+        if (usaApi !== true) return undefined;
         let vigente = true;
         const temporizador = setTimeout(() => {
             listarHistoriasRemotas({ q: query, estado: CODIGO_ESTADO[status] })
@@ -90,18 +126,51 @@ export default function HistoriasApp({ rol, onNavigate }) {
     }
 
     return <div className="hc-page space-y-5">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Gestión clínica</p><h1 className="hc-page-title">Historias clínicas</h1><p className="hc-page-subtitle">Seguimiento de historias para el perfil {rol === 'alumno' ? 'alumno operador' : rol}: borradores, revisión docente, observaciones y validación.</p></div>{rol !== 'docente' && <button type="button" className="hc-button hc-button--primary" onClick={() => go('nueva-historia')}><ClipboardPlus size={17} /> Nueva historia clínica</button>}</header>
+        <header><p className="hc-kicker">Gestión clínica</p><h1 className="hc-page-title">Historias clínicas</h1><p className="hc-page-subtitle">Seguimiento de historias para el perfil {rol === 'alumno' ? 'alumno operador' : rol}: borradores, revisión docente, observaciones y validación.</p></header>
         <section className="hc-compact-stats" aria-label="Resumen de historias">{indicadores.map(([etiqueta, valor]) => <article key={etiqueta}><strong>{valor}</strong><small>{etiqueta}</small></article>)}</section>
         <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, alumno o docente..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
         {aviso && <p className="hc-inline-callout" role="status">{aviso}</p>}
-        {filtered.length ? <div className="hc-table-card"><table className="hc-table"><thead><tr><th>N.º historia</th><th>Paciente</th><th>Operador</th><th>Docente</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>{filtered.map((history) => <tr key={history.id}><td data-label="N.º historia"><strong>{history.codigo}</strong></td><td data-label="Paciente"><div className="hc-person"><span className="hc-avatar">{history.paciente.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span><span><strong>{history.paciente}</strong><small>DNI {history.dni}</small></span></div></td><td data-label="Operador">{history.operador}</td><td data-label="Docente">{history.docente}</td><td data-label="Progreso"><ProgressBar value={history.progreso} /></td><td data-label="Estado"><StatusBadge status={history.estado} /></td><td data-label="Fecha">{history.fecha}</td><td data-label="Acciones"><div className="hc-row-actions"><button className="hc-mini-button" type="button" onClick={() => go({ view: 'historia', historiaId: history.id, section: 'datos-paciente' })}>Abrir</button>{accionesDeEstado(history, rol).map((accion) => <button key={accion.codigo} className="hc-mini-button" type="button" disabled={enviando} aria-label={`${accion.etiqueta} ${history.codigo}`} onClick={() => elegir(history, accion)}>{accion.etiqueta}</button>)}</div></td></tr>)}</tbody></table></div> : <EstadoVacio titulo="No hay historias para mostrar" descripcion="Ajusta la búsqueda o selecciona otro estado." />}
+        {filtered.length ? <div className="hc-table-card"><table className="hc-table">
+            <thead><tr><th>N.º historia</th><th>Paciente</th><th>Operador</th><th>Docente</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+            <tbody>{filtered.map((history) => <tr key={history.id}>
+                <td data-label="N.º historia"><strong>{history.codigo}</strong></td>
+                <td data-label="Paciente"><div className="hc-person"><span className="hc-avatar">{history.paciente.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span><span><strong>{history.paciente}</strong><small>DNI {history.dni}</small></span></div></td>
+                <td data-label="Operador">{history.operador}</td>
+                <td data-label="Docente">{history.docente}</td>
+                <td data-label="Progreso"><ProgressBar value={history.progreso} /></td>
+                <td data-label="Estado"><StatusBadge status={history.estado} /></td>
+                <td data-label="Fecha">{history.fecha}</td>
+                <td data-label="Acciones"><div className="hc-row-actions">
+                    <button className="hc-mini-button" type="button" onClick={() => go({ view: 'historia', historiaId: history.id, section: 'datos-paciente' })}>Abrir</button>
+                    {puedeVerObservacion(history, rol) ? <button className="hc-mini-button" type="button" aria-label={`Ver observación ${history.codigo}`} onClick={() => setViendoObservacion(history)}>Ver observación</button> : null}
+                    {accionesDeEstado(history, rol).map((accion) => <button key={accion.codigo} className="hc-mini-button" type="button" disabled={enviando} aria-label={`${accion.etiqueta} ${history.codigo}`} onClick={() => elegir(history, accion)}>{accion.etiqueta}</button>)}
+                </div></td>
+            </tr>)}</tbody>
+        </table></div> : <EstadoVacio titulo="No hay historias para mostrar" descripcion="Ajusta la búsqueda o selecciona otro estado." />}
         {observando && <div className="admin-dialogo-fondo" role="presentation" onClick={() => !enviando && setObservando(null)}>
             <form className="admin-dialogo" role="dialog" aria-modal="true" aria-labelledby="titulo-observar" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (observando.texto.trim()) ejecutar(observando.historia, observando.accion, observando.texto.trim()); }}>
                 <header className="admin-dialogo__cabecera"><h2 id="titulo-observar">Observar {observando.historia.codigo}</h2><button type="button" className="hc-mini-button" aria-label="Cerrar" disabled={enviando} onClick={() => setObservando(null)}><X size={16} /></button></header>
                 <label className="undac-field"><span>Observación para el alumno</span><textarea required maxLength={500} rows={4} value={observando.texto} onChange={(e) => setObservando((actual) => ({ ...actual, texto: e.target.value }))} /></label>
                 <footer className="admin-dialogo__acciones"><button type="button" className="hc-button hc-button--ghost" disabled={enviando} onClick={() => setObservando(null)}>Cancelar</button><button type="submit" className="hc-button hc-button--primary" disabled={enviando || !observando.texto.trim()}>Registrar observación</button></footer>
             </form>
+        </div>}
+        {viendoObservacion && <div className="admin-dialogo-fondo" role="presentation" onClick={() => setViendoObservacion(null)}>
+            <div className="admin-dialogo" role="dialog" aria-modal="true" aria-labelledby="titulo-ver-observacion" onClick={(e) => e.stopPropagation()}>
+                <header className="admin-dialogo__cabecera"><h2 id="titulo-ver-observacion">Observaciones · {viendoObservacion.codigo}</h2><button type="button" className="hc-mini-button" aria-label="Cerrar" onClick={() => setViendoObservacion(null)}><X size={16} /></button></header>
+                <ul className="hc-obs-dialogo__lista">
+                    {observacionesDeHistoria(viendoObservacion).map((obs) => (
+                        <li key={obs.id} className="hc-obs-dialogo__item">
+                            <div className="hc-obs-dialogo__meta">
+                                {obs.docente ? <span>{obs.docente}</span> : <span />}
+                                <time dateTime={obs.fecha || undefined}>{formatearFechaObservacion(obs.fecha)}</time>
+                            </div>
+                            <p>{obs.texto}</p>
+                        </li>
+                    ))}
+                </ul>
+                <footer className="admin-dialogo__acciones"><button type="button" className="hc-button hc-button--primary" onClick={() => setViendoObservacion(null)}>Entendido</button></footer>
+            </div>
         </div>}
     </div>;
 }

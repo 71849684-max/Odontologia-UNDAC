@@ -72,7 +72,7 @@ test('registra un paciente y continúa con una historia clínica desde el formul
     fireEvent.change(screen.getByLabelText('Apellido materno'), { target: { value: 'Vega' } });
     fireEvent.change(screen.getByLabelText('Número documento'), { target: { value: '71234567' } });
     fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '999 111 222' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar paciente y crear historia clínica' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Crear historia clínica' }));
 
     expect(screen.getByRole('cell', { name: /Lucía Ramos Vega/ })).toBeInTheDocument();
     expect(onNavigate).toHaveBeenCalledWith({

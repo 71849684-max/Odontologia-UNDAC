@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import NuevaHistoriaApp from './NuevaHistoriaApp.jsx';
 
 // Node 25 expone un localStorage incompleto: use un almacén controlado para jsdom.
@@ -41,7 +41,7 @@ test('crea la historia desde los datos mínimos sin pedir contexto académico du
   expect(historias).toEqual([expect.objectContaining({ id: onCreated.mock.calls[0][0].id, pacienteId: expect.any(String) })]);
 });
 
-test('busca un paciente registrado y precarga sus datos al elegirlo', () => {
+test('busca un paciente registrado y precarga sus datos al elegirlo', async () => {
   localStorage.setItem('undac:pacientes:frontend:v2', JSON.stringify([
     { id: 'local-1', nombres: 'Rosa Quispe Lima', dni: '45678901', sexo: 'F', telefono: '988 777 666' },
   ]));
@@ -53,7 +53,9 @@ test('busca un paciente registrado y precarga sus datos al elegirlo', () => {
   expect(screen.getByLabelText('DNI')).toHaveValue('45678901');
   expect(screen.getByLabelText('N.º de celular')).toHaveValue('988 777 666');
   expect(screen.getByText('Paciente registrado seleccionado')).toBeInTheDocument();
-  expect(screen.getByText(/Sin conexión al servidor/i)).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByText(/Sin conexión al servidor/i)).toBeInTheDocument();
+  });
 });
 
 test('precarga los datos del paciente recibido al abrir una nueva historia', () => {

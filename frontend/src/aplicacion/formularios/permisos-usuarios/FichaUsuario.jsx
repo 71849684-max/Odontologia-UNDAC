@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UserRound, X } from 'lucide-react';
 import { obtenerUsuario } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
@@ -26,6 +27,13 @@ export default function FichaUsuario({ id, onClose, onManage }) {
         return () => { vigente = false; };
     }, [id]);
 
+    useEffect(() => {
+        const onKey = (evento) => { if (evento.key === 'Escape') onClose?.(); };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [onClose]);
+
+    const titulo = usuario?.nombre || 'Perfil del usuario';
     const filas = usuario ? [
         ['Usuario', usuario.nombre_usuario],
         ['Documento', [usuario.tipo_documento, usuario.numero_documento].filter(Boolean).join(' ') || '—'],
@@ -36,17 +44,41 @@ export default function FichaUsuario({ id, onClose, onManage }) {
         ['Último acceso', fecha(usuario.ultimo_inicio_sesion)],
     ] : [];
 
-    return <section className="permisos-card permisos-ficha" aria-labelledby="ficha-usuario-titulo">
-        <header className="permisos-ficha__cabecera">
-            <span className="usuario-avatar"><UserRound size={18} /></span>
-            <h3 id="ficha-usuario-titulo">{usuario ? `Perfil de ${usuario.nombre}` : 'Perfil del usuario'}</h3>
-            <button type="button" className="hc-mini-button" aria-label="Cerrar perfil" onClick={onClose}><X size={16} /></button>
-        </header>
-        {error && <p role="alert">{error}</p>}
-        {!usuario && !error && <p role="status">Cargando perfil…</p>}
-        {usuario && <dl className="permisos-ficha__datos">
-            {filas.map(([etiqueta, valor]) => <div key={etiqueta}><dt>{etiqueta}</dt><dd>{valor}</dd></div>)}
-        </dl>}
-        {usuario && onManage && <footer><button type="button" className="btn-secundario" onClick={onManage}>Gestionar en Usuarios</button></footer>}
-    </section>;
+    return createPortal(
+        <div className="admin-dialogo-fondo" role="presentation" onClick={onClose}>
+            <section
+                className="admin-dialogo permisos-ficha permisos-ficha--modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="ficha-usuario-titulo"
+                onClick={(evento) => evento.stopPropagation()}
+            >
+                <header className="permisos-ficha__cabecera">
+                    <span className="usuario-avatar"><UserRound size={18} /></span>
+                    <h3 id="ficha-usuario-titulo">{titulo}</h3>
+                    <button type="button" className="hc-mini-button" aria-label="Cerrar perfil" onClick={onClose}><X size={16} /></button>
+                </header>
+                {error && <p className="hc-form-error" role="alert">{error}</p>}
+                {!usuario && !error && <p role="status">Cargando perfil…</p>}
+                {usuario && (
+                    <dl className="permisos-ficha__datos">
+                        {filas.map(([etiqueta, valor]) => (
+                            <div key={etiqueta}>
+                                <dt>{etiqueta}</dt>
+                                <dd>{valor}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                )}
+                {usuario && onManage ? (
+                    <footer>
+                        <button type="button" className="btn-principal permisos-ficha__accion" onClick={onManage}>
+                            Gestionar en Usuarios
+                        </button>
+                    </footer>
+                ) : null}
+            </section>
+        </div>,
+        document.body,
+    );
 }

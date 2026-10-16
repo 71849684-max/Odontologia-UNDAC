@@ -119,6 +119,10 @@ export default function ClinicalWorkspace({ onExit, rol }) {
               <ul>{validationErrors.map((error) => <li key={`${error.campo}-${error.mensaje}`}>{error.mensaje}</li>)}</ul>
             </div> : null}
             {revisionAviso ? <p className="clinical-revision-aviso" role="status">{revisionAviso}</p> : null}
+            {history.observacion ? <div className="clinical-observacion-docente" role="status">
+              <strong>Observación del docente</strong>
+              <p>{history.observacion}</p>
+            </div> : null}
             {autosaveStatus === 'local' ? <p className="clinical-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
             {soloLectura ? <p className="clinical-readonly-note" role="note">Sección aprobada por el docente: solo lectura. Pida que la reabra si necesita corregirla.</p> : null}
             <fieldset className="clinical-active-section__content" disabled={soloLectura}>

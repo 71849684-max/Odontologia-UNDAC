@@ -82,7 +82,7 @@ export default function PacienteForm({ onCancel, onSave, inicial = null }) {
         <div className="acciones-form">
             <button type="button" onClick={onCancel}>Cancelar</button>
             <button type="submit">{editando ? 'Guardar cambios' : 'Guardar paciente'}</button>
-            {!editando && <button type="button" onClick={() => guardar(true)}>Guardar paciente y crear historia clínica</button>}
+            {!editando && <button type="button" onClick={() => guardar(true)}>Crear historia clínica</button>}
         </div>
     </form>;
 }

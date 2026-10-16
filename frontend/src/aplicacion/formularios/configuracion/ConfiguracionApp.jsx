@@ -10,6 +10,15 @@ const ICONOS = {
     TIPO_DENTICION_POR_DEFECTO: Stethoscope,
 };
 
+const ETIQUETAS = {
+    NOMBRE_INSTITUCION: 'Nombre de la institución',
+    FACULTAD: 'Facultad',
+    ELIMINACION_CLINICA_PERMITIDA: 'Eliminación clínica',
+    TIPO_DENTICION_POR_DEFECTO: 'Dentición por defecto',
+    TAMANO_MAXIMO_ARCHIVO_KB: 'Tamaño máximo de archivo',
+    ZONA_HORARIA: 'Zona horaria',
+};
+
 export default function ConfiguracionApp() {
     const [parametros, setParametros] = useState([]);
     const [valores, setValores] = useState({});
@@ -97,7 +106,7 @@ export default function ConfiguracionApp() {
                                 <div className="hc-settings-card__title">
                                     <span><Icono size={19} /></span>
                                     <div>
-                                        <h2>{item.nombre}</h2>
+                                        <h2>{ETIQUETAS[item.codigo] || item.nombre}</h2>
                                         <p>{item.descripcion || item.codigo}</p>
                                     </div>
                                 </div>
@@ -105,7 +114,7 @@ export default function ConfiguracionApp() {
                                     <div className="hc-toggle-list">
                                         <label>
                                             <span>
-                                                <strong>{item.nombre}</strong>
+                                                <strong>{ETIQUETAS[item.codigo] || item.nombre}</strong>
                                                 <small>{item.descripcion}</small>
                                             </span>
                                             <input

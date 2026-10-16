@@ -21,13 +21,16 @@ const normalizar = (texto) => String(texto ?? '').normalize('NFD').replace(/[\u0
 export default function NuevaHistoriaApp({ onCreated, onNavigate, pacienteInicial }) {
     const [form, setForm] = useState(() => datosIniciales(pacienteInicial));
     const [error, setError] = useState('');
-    const [usaApi, setUsaApi] = useState(false);
+    // null = comprobando conexión; true = API disponible; false = modo local confirmado
+    const [usaApi, setUsaApi] = useState(null);
     const [busqueda, setBusqueda] = useState('');
     const [resultados, setResultados] = useState([]);
     const [seleccionado, setSeleccionado] = useState(pacienteInicial ?? null);
     useEffect(() => {
         let vigente = true;
-        listarHistoriasRemotas().then(() => { if (vigente) setUsaApi(true); }).catch(() => {});
+        listarHistoriasRemotas()
+            .then(() => { if (vigente) setUsaApi(true); })
+            .catch(() => { if (vigente) setUsaApi(false); });
         return () => { vigente = false; };
     }, []);
     useEffect(() => {
@@ -36,7 +39,7 @@ export default function NuevaHistoriaApp({ onCreated, onNavigate, pacienteInicia
             setResultados([]);
             return undefined;
         }
-        if (!usaApi) {
+        if (usaApi !== true) {
             const partes = normalizar(termino).split(/\s+/);
             setResultados(listarPacientesLocales().filter((item) => partes.every((parte) => normalizar(`${item.nombres} ${item.dni}`).includes(parte))).slice(0, 8));
             return undefined;
@@ -91,7 +94,7 @@ export default function NuevaHistoriaApp({ onCreated, onNavigate, pacienteInicia
 
     return <div className="hc-page hc-new-record space-y-5">
         <header><p className="hc-kicker">Nuevo registro</p><h1 className="hc-page-title">Nueva historia clínica</h1><p className="hc-page-subtitle">Busque al paciente o registre únicamente los datos mínimos para abrir su historia clínica.</p></header>
-        {!usaApi ? <p className="hc-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
+        {usaApi === false ? <p className="hc-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
         <SectionCard title="Datos mínimos del paciente" subtitle="Al crear, se abrirá Ingreso y filiación para completar la información clínica restante.">
             <label className="hc-search hc-search--large"><Search size={18} /><span className="sr-only">Buscar paciente registrado</span><input type="search" maxLength={120} value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Nombre de sus pacientes, o DNI exacto de cualquier registrado..." /></label>
             {busqueda.trim().length >= 2 && <div className="hc-personal-search__results" aria-live="polite" aria-label="Pacientes encontrados">
