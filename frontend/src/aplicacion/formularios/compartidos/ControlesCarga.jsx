@@ -1,16 +1,24 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, FileText, ImagePlus, Upload, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, ImagePlus, PenLine, Upload, X } from 'lucide-react';
+import { useArchivosClinicos } from './archivosClinicos.js';
+import PadFirma from './PadFirma.jsx';
 
 /** Ancho de separación entre celdas del carrusel (debe coincidir con el CSS). */
 const HUECO_CARRUSEL = 10;
 
 /**
- * Controles de carga de archivos e imágenes (solo frontend).
- * - Las imágenes se reducen en el navegador y se guardan como vista previa local.
- * - Los documentos solo conservan metadatos (nombre, tipo y tamaño).
- * - Nada se sube a un servidor: la adjuntada real llega en la fase de backend.
+ * Controles de carga de archivos e imágenes.
+ * - Con una historia registrada en el servidor (ArchivosClinicosContext) cada archivo
+ *   se sube al expediente y la vista previa apunta a la descarga autenticada.
+ * - Sin servidor, las imágenes se reducen y se guardan como vista previa local y los
+ *   documentos solo conservan metadatos (nombre, tipo y tamaño).
  */
+
+/** Por encima de este tamaño las imágenes se reescalan antes de subirlas. */
+const MAXIMO_IMAGEN_ORIGINAL = 1.5 * 1024 * 1024;
+const NOTA_SERVIDOR = 'Los archivos se guardan en el expediente del paciente y solo los usuarios autorizados pueden verlos.';
+const NOTA_LOCAL = 'Los archivos se conservan solo en este navegador hasta que la historia se registre en el servidor.';
 
 const ENTORNO_PRUEBA = typeof navigator !== 'undefined' && /jsdom|node/i.test(String(navigator.userAgent || ''));
 
@@ -81,6 +89,9 @@ function escalarImagen(fuente, { maxDimension, calidad }) {
         lienzo.height = Math.max(1, Math.round(alto * escala));
         const contexto = lienzo.getContext('2d');
         if (!contexto) { finalizar(fuente); return; }
+        // JPEG no admite transparencia: sin fondo blanco las firmas PNG quedarían en negro.
+        contexto.fillStyle = '#ffffff';
+        contexto.fillRect(0, 0, lienzo.width, lienzo.height);
         contexto.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
         finalizar(lienzo.toDataURL('image/jpeg', calidad));
       } catch {
@@ -99,9 +110,31 @@ export async function prepararImagen(archivo, { maxDimension = 900, calidad = 0.
   return escalarImagen(fuente, { maxDimension, calidad });
 }
 
+export function dataUrlABlob(url) {
+  const [cabecera, datos = ''] = String(url).split(',');
+  const mime = /data:([^;]+)/.exec(cabecera)?.[1] || 'application/octet-stream';
+  const binario = /;base64/.test(cabecera) ? atob(datos) : decodeURIComponent(datos);
+  const bytes = new Uint8Array(binario.length);
+  for (let indice = 0; indice < binario.length; indice += 1) bytes[indice] = binario.charCodeAt(indice);
+  return new Blob([bytes], { type: mime });
+}
+
+/** Devuelve el contenido que se sube: imágenes grandes se reescalan a JPEG de 1600 px. */
+export async function prepararParaSubir(archivo, esImagen) {
+  if (!esImagen || archivo.size <= MAXIMO_IMAGEN_ORIGINAL) return { contenido: archivo, nombre: archivo.name };
+  const reducida = await prepararImagen(archivo, { maxDimension: 1600, calidad: 0.85 });
+  const nombre = String(archivo.name || 'imagen').replace(/\.[^.]+$/, '') + '.jpg';
+  return { contenido: dataUrlABlob(reducida), nombre };
+}
+
+function mensajeDeSubida(error, respaldo) {
+  const primero = Object.values(error?.errores ?? {})[0];
+  return (Array.isArray(primero) ? primero[0] : primero) || error?.message || respaldo;
+}
+
 function nuevoId(archivo) {
   const aleatorio = Math.random().toString(36).slice(2, 8);
-  return `${archivo.name}-${archivo.size}-${archivo.lastModified}-${aleatorio}`;
+  return `${archivo.name ?? 'imagen'}-${archivo.size}-${archivo.lastModified ?? Date.now()}-${aleatorio}`;
 }
 
 function BotonCarga({ onClick, children, disabled = false }) {
@@ -134,7 +167,9 @@ function ItemArchivo({ adjunto, onQuitar }) {
     <li className="undac-file-item">
       <span className="undac-file-item__icon" aria-hidden="true"><FileText size={16} /></span>
       <span className="undac-file-item__copy">
-        <strong title={adjunto.nombre}>{adjunto.nombre}</strong>
+        {adjunto.url
+          ? <a href={adjunto.url} target="_blank" rel="noopener noreferrer" title={`Descargar ${adjunto.nombre}`}><strong>{adjunto.nombre}</strong></a>
+          : <strong title={adjunto.nombre}>{adjunto.nombre}</strong>}
         <small>{extensionDe(adjunto.nombre)} · {formatoTamano(adjunto.tamano)}</small>
       </span>
       <button type="button" className="undac-file-item__remove" aria-label={`Eliminar ${adjunto.nombre}`} onClick={() => onQuitar(adjunto)}>
@@ -240,12 +275,22 @@ export function BloqueCarga({
   onChange,
   accept,
   multiple = true,
-  nota = 'Los archivos elegidos se guardan localmente en esta demostración; se adjuntarán al servidor cuando se conecte el backend.',
+  campo,
+  nota,
 }) {
+  const servidorContexto = useArchivosClinicos();
+  const servidor = campo ? servidorContexto : null;
+  const notaVisible = nota ?? (servidor ? NOTA_SERVIDOR : NOTA_LOCAL);
   const controlado = typeof onChange === 'function';
   const [interno, setInterno] = React.useState([]);
   const adjuntos = Array.isArray(controlado ? value : interno) ? (controlado ? value : interno) : [];
-  const definir = (siguientes) => (controlado ? onChange(siguientes) : setInterno(siguientes));
+  const adjuntosRef = React.useRef(adjuntos);
+  adjuntosRef.current = adjuntos;
+  const definir = (siguientes) => {
+    adjuntosRef.current = siguientes;
+    if (controlado) onChange(siguientes);
+    else setInterno(siguientes);
+  };
 
   const [procesando, setProcesando] = React.useState(false);
   const [error, setError] = React.useState('');
@@ -336,28 +381,44 @@ export function BloqueCarga({
 
     setProcesando(true);
     try {
-      const preparados = await Promise.all(validos.map(async (archivo) => {
-        const adjunto = { id: nuevoId(archivo), nombre: archivo.name, tamano: archivo.size, tipo: archivo.type || 'application/octet-stream' };
-        if (esImagen) adjunto.vistaPrevia = await prepararImagen(archivo);
-        return adjunto;
-      }));
-
       const espacio = Math.max(0, limite - adjuntos.length);
-      const aceptados = preparados.slice(0, espacio);
-      const sobrantes = preparados.length - aceptados.length;
+      const elegidos = validos.slice(0, espacio);
+      const sobrantes = validos.length - elegidos.length;
       const ignorados = archivos.length - validos.length;
 
-      if (!aceptados.length) {
+      if (!elegidos.length) {
         setError(esImagen
           ? `Este bloque ya tiene sus ${limiteVisible} vista${Number(limite) === 1 ? '' : 's'} completas.`
           : `Este bloque admite hasta ${limiteVisible} archivos.`);
         return;
       }
 
-      definir([...adjuntos, ...aceptados]);
+      let aceptados = [];
+      let fallo = '';
+      if (servidor) {
+        // Se suben en serie para respetar el máximo del bloque en el servidor.
+        for (const archivo of elegidos) {
+          try {
+            const { contenido, nombre } = await prepararParaSubir(archivo, esImagen);
+            aceptados.push(await servidor.subir(campo, contenido, nombre));
+          } catch (errorSubida) {
+            fallo = mensajeDeSubida(errorSubida, `No fue posible subir ${archivo.name}.`);
+          }
+        }
+      } else {
+        aceptados = await Promise.all(elegidos.map(async (archivo) => {
+          const adjunto = { id: nuevoId(archivo), nombre: archivo.name, tamano: archivo.size, tipo: archivo.type || 'application/octet-stream' };
+          if (esImagen) adjunto.vistaPrevia = await prepararImagen(archivo);
+          return adjunto;
+        }));
+      }
 
-      if (sobrantes > 0) {
-        setError(`Solo se adjuntaron ${aceptados.length} de ${preparados.length} porque el bloque admite ${limiteVisible} ${esImagen ? 'vistas' : 'archivos'}.`);
+      if (aceptados.length) definir([...adjuntosRef.current, ...aceptados]);
+
+      if (fallo) {
+        setError(fallo);
+      } else if (sobrantes > 0) {
+        setError(`Solo se adjuntaron ${aceptados.length} de ${validos.length} porque el bloque admite ${limiteVisible} ${esImagen ? 'vistas' : 'archivos'}.`);
       } else if (ignorados > 0) {
         setError(`Se ignoraron ${ignorados} archivo${ignorados === 1 ? '' : 's'} por formato no permitido.`);
       }
@@ -369,9 +430,22 @@ export function BloqueCarga({
     }
   }
 
+  /** Ejecuta la retirada local tras borrar en el servidor; sin servidor es inmediata. */
+  function retirar(adjunto, alRetirar) {
+    if (!servidor || !adjunto?.archivoId) {
+      alRetirar();
+      return;
+    }
+    servidor.eliminar(adjunto)
+      .then(alRetirar)
+      .catch((errorEliminacion) => setError(mensajeDeSubida(errorEliminacion, `No fue posible eliminar ${adjunto.nombre}.`)));
+  }
+
   function quitar(adjunto) {
-    definir(adjuntos.filter((item) => item.id !== adjunto.id));
-    setError('');
+    retirar(adjunto, () => {
+      definir(adjuntosRef.current.filter((item) => item.id !== adjunto.id));
+      setError('');
+    });
   }
 
   function abrirVisor(indice, disparo) {
@@ -387,11 +461,13 @@ export function BloqueCarga({
   }
 
   function quitarDelVisor(adjunto) {
-    const restantes = adjuntos.filter((item) => item.id !== adjunto.id);
-    definir(restantes);
-    setError('');
-    if (!restantes.length) { cerrarVisor(); return; }
-    setVisor((actual) => Math.min(actual ?? 0, restantes.length - 1));
+    retirar(adjunto, () => {
+      const restantes = adjuntosRef.current.filter((item) => item.id !== adjunto.id);
+      definir(restantes);
+      setError('');
+      if (!restantes.length) { cerrarVisor(); return; }
+      setVisor((actual) => Math.min(actual ?? 0, restantes.length - 1));
+    });
   }
 
   function arrastrarSobre(evento) {
@@ -484,7 +560,7 @@ export function BloqueCarga({
         </div>
 
         {error ? <p className="undac-upload-error" role="alert">{error}</p> : null}
-        <p className="undac-upload-note">{nota}</p>
+        <p className="undac-upload-note">{notaVisible}</p>
         {input}
         {visor !== null && adjuntos[visor] ? (
           <VisorImagen
@@ -528,55 +604,100 @@ export function BloqueCarga({
         </ul>
       ) : null}
       {error ? <p className="undac-upload-error" role="alert">{error}</p> : null}
-      <p className="undac-upload-note">{nota}</p>
+      <p className="undac-upload-note">{notaVisible}</p>
       {input}
     </section>
   );
 }
 
 /** Slot individual de constancia (firma, huella) con carga de imagen. */
-export function SlotConstancia({ label, value, onChange, textoPendiente = 'Constancia pendiente', accept = ACEPTAR_IMAGENES }) {
+export function SlotConstancia({ label, value, onChange, campo, textoPendiente = 'Constancia pendiente', accept = ACEPTAR_IMAGENES, permitirDibujo = true }) {
   const inputRef = React.useRef(null);
+  const servidorContexto = useArchivosClinicos();
+  const servidor = campo ? servidorContexto : null;
   const [error, setError] = React.useState('');
+  const [ocupado, setOcupado] = React.useState(false);
+  const [dibujando, setDibujando] = React.useState(false);
   const adjunto = value || null;
+
+  async function incorporar(contenido, nombre) {
+    setError('');
+    setOcupado(true);
+    try {
+      if (servidor) {
+        onChange?.(await servidor.subir(campo, contenido, nombre));
+      } else {
+        onChange?.({ id: nuevoId(contenido), nombre, tamano: contenido.size, tipo: contenido.type, vistaPrevia: await prepararImagen(contenido) });
+      }
+    } catch (errorSubida) {
+      setError(servidor ? mensajeDeSubida(errorSubida, 'No fue posible guardar la imagen.') : 'No fue posible preparar la vista previa de la imagen.');
+    } finally {
+      setOcupado(false);
+    }
+  }
 
   async function cargar(lista) {
     const archivo = Array.from(lista || [])[0];
+    if (inputRef.current) inputRef.current.value = '';
     if (!archivo) return;
     if (!coincideConAceptacion(archivo, accept)) {
       setError('Formato no permitido: adjunte una imagen.');
       return;
     }
-    try {
-      setError('');
-      onChange?.({ id: nuevoId(archivo), nombre: archivo.name, tamano: archivo.size, tipo: archivo.type, vistaPrevia: await prepararImagen(archivo) });
-    } catch {
-      setError('No fue posible preparar la vista previa de la imagen.');
-    } finally {
-      if (inputRef.current) inputRef.current.value = '';
+    const { contenido, nombre } = servidor ? await prepararParaSubir(archivo, true) : { contenido: archivo, nombre: archivo.name };
+    await incorporar(contenido, nombre);
+  }
+
+  async function quitar() {
+    if (servidor && adjunto?.archivoId) {
+      try {
+        await servidor.eliminar(adjunto);
+      } catch (errorEliminacion) {
+        setError(mensajeDeSubida(errorEliminacion, 'No fue posible eliminar la imagen.'));
+        return;
+      }
     }
+    setError('');
+    onChange?.(null);
   }
 
   return (
     <>
       {adjunto ? (
         <div className="undac-signature-slot is-loaded">
-          <img src={adjunto.vistaPrevia} alt={`Vista previa de ${label}`} />
+          <img src={adjunto.vistaPrevia || adjunto.url} alt={`Vista previa de ${label}`} />
           <span>Imagen adjunta</span>
           <strong>{label}</strong>
-          <button type="button" className="undac-signature-slot__remove" aria-label={`Eliminar ${label}`} onClick={() => onChange?.(null)}>
+          <button type="button" className="undac-signature-slot__remove" aria-label={`Eliminar ${label}`} onClick={quitar} disabled={ocupado}>
             <X size={13} aria-hidden="true" />
           </button>
         </div>
       ) : (
-        <button type="button" className="undac-signature-slot undac-signature-slot--carga" onClick={() => inputRef.current?.click()}>
-          <span>{textoPendiente}</span>
-          <strong>{label}</strong>
-          <small>Cargar imagen</small>
-        </button>
+        <div className="undac-signature-slot__grupo">
+          <button type="button" className="undac-signature-slot undac-signature-slot--carga" onClick={() => inputRef.current?.click()} disabled={ocupado}>
+            <span>{ocupado ? 'Guardando…' : textoPendiente}</span>
+            <strong>{label}</strong>
+            <small>Cargar imagen</small>
+          </button>
+          {permitirDibujo ? (
+            <button type="button" className="undac-signature-slot__dibujar" onClick={() => setDibujando(true)} disabled={ocupado} aria-label={`Dibujar ${label}`}>
+              <PenLine size={12} aria-hidden="true" /> Dibujar
+            </button>
+          ) : null}
+        </div>
       )}
       <input ref={inputRef} type="file" className="undac-upload-input" aria-label={`Cargar imagen de ${label}`} accept={accept} hidden onChange={(evento) => cargar(evento.target.files)} />
       {error ? <p className="undac-upload-error" role="alert">{error}</p> : null}
+      {dibujando ? (
+        <PadFirma
+          titulo={label}
+          alCancelar={() => setDibujando(false)}
+          alConfirmar={async (blob) => {
+            setDibujando(false);
+            await incorporar(blob, `${String(label).toLowerCase().replace(/[^a-z0-9áéíóúñ]+/gi, '-')}.png`);
+          }}
+        />
+      ) : null}
     </>
   );
 }

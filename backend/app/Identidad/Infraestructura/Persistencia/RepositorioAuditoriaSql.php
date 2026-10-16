@@ -18,11 +18,12 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
         $consulta = DB::table('auditoria')->orderByDesc('creado_en')->orderByDesc('id_auditoria');
 
         if ($busqueda !== '') {
-            $consulta->where(function ($q) use ($busqueda) {
-                $q->where('nombre_usuario', 'like', "%{$busqueda}%")
-                    ->orWhere('tabla_afectada', 'like', "%{$busqueda}%")
-                    ->orWhere('id_registro', 'like', "%{$busqueda}%")
-                    ->orWhere('direccion_ip', 'like', "%{$busqueda}%");
+            $patron = '%'.addcslashes($busqueda, '%_\\').'%';
+            $consulta->where(function ($q) use ($patron) {
+                $q->where('nombre_usuario', 'like', $patron)
+                    ->orWhere('tabla_afectada', 'like', $patron)
+                    ->orWhere('id_registro', 'like', $patron)
+                    ->orWhere('direccion_ip', 'like', $patron);
             });
         }
 

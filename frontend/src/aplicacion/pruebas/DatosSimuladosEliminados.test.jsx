@@ -27,7 +27,7 @@ afterEach(() => {
 test('las vistas clínicas no muestran registros ficticios ni los conservados en el almacenamiento anterior', () => {
   render(<PacientesApp />);
 
-  expect(screen.getByText('No se encontraron pacientes')).toBeInTheDocument();
+  expect(screen.getByText('No hay pacientes en su listado')).toBeInTheDocument();
   expect(screen.queryByText('Andrea Salazar Huamán')).not.toBeInTheDocument();
   expect(screen.getByText('0 pacientes')).toBeInTheDocument();
   expect(localStorage.getItem('undac:pacientes:frontend:v1')).toBeNull();

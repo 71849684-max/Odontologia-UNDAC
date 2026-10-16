@@ -201,6 +201,34 @@ class RepositorioUsuariosEloquent implements RepositorioUsuarios
         return $this->buscarPorId($actual->clave());
     }
 
+    public function actualizarPerfil(Cuenta $cuenta, array $datos): Cuenta
+    {
+        $actual = $this->comoCuenta($cuenta);
+
+        DB::table($actual->tablaActor())->where($actual->columnaActor(), $actual->idActor())->update([
+            'nombres' => $datos['nombres'],
+            'apellidos' => $datos['apellidos'],
+            'correo' => $datos['correo'] ?? null,
+            'telefono' => $datos['telefono'] ?? null,
+        ]);
+
+        return $this->buscarPorId($actual->clave());
+    }
+
+    public function cambiarContrasena(Cuenta $cuenta, string $nueva): Cuenta
+    {
+        $actual = $this->comoCuenta($cuenta);
+
+        DB::table($actual->tablaCuenta())->where($actual->columnaId(), $actual->id())->update([
+            'contrasena_hash' => Hash::make($nueva),
+            'contrasena_cambiada_en' => now(),
+            'intentos_fallidos' => 0,
+            'bloqueado_hasta' => null,
+        ]);
+
+        return $this->buscarPorId($actual->clave());
+    }
+
     public function registrarInicioExitoso(Cuenta $cuenta): void
     {
         $actual = $this->comoCuenta($cuenta);

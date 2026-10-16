@@ -1,6 +1,8 @@
 <?php
 
+use App\Clinica\Http\Middleware\AsegurarAccesoHistoria;
 use App\Clinica\Http\Middleware\AsegurarSubmodulo;
+use App\Http\Middleware\CabecerasSeguridad;
 use App\Identidad\Http\Middleware\AsegurarRol;
 use App\Identidad\Http\Middleware\AsegurarUsuarioActivo;
 use Illuminate\Auth\AuthenticationException;
@@ -24,10 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [CabecerasSeguridad::class]);
         $middleware->alias([
             'rol' => AsegurarRol::class,
             'usuario.activo' => AsegurarUsuarioActivo::class,
             'acceso' => AsegurarSubmodulo::class,
+            'historia.acceso' => AsegurarAccesoHistoria::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -29,7 +29,7 @@ class GuardarPermisosDeUsuario
 
         $this->auditoria->registrar(
             $contexto,
-            'rol_submodulo',
+            $cuenta->tipoCuenta() === 'ALUMNO' ? 'usuario_alumno_submodulo' : 'usuario_docente_submodulo',
             $cuenta->clave(),
             'EDITAR',
             ['efectivos' => $antes],

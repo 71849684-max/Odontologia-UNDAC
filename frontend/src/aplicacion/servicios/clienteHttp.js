@@ -55,20 +55,22 @@ async function interpretarCuerpo(respuesta) {
 
 async function ejecutar(metodo, ruta, datos, { reintentarCsrf = true } = {}) {
     const encabezados = { Accept: 'application/json' };
+    const esFormulario = typeof FormData !== 'undefined' && datos instanceof FormData;
 
     if (metodo !== 'GET') {
         await asegurarTokenCsrf();
 
         const token = leerCookie('XSRF-TOKEN');
         if (token) encabezados['X-XSRF-TOKEN'] = token;
-        if (datos !== undefined) encabezados['Content-Type'] = 'application/json';
+        // Con FormData el navegador fija el boundary multipart.
+        if (datos !== undefined && !esFormulario) encabezados['Content-Type'] = 'application/json';
     }
 
     const respuesta = await fetch(`${BASE}${ruta}`, {
         method: metodo,
         credentials: 'same-origin',
         headers: encabezados,
-        body: datos === undefined ? undefined : JSON.stringify(datos),
+        body: datos === undefined ? undefined : (esFormulario ? datos : JSON.stringify(datos)),
     });
 
     // Tras cerrar sesion el token cambia; se renueva una sola vez y se reintenta.

@@ -1131,6 +1131,21 @@
     box-shadow: var(--ou-shadow);
 }
 
+.notification-list__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ou-border);
+}
+.notification-list__head h4 {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1rem;
+}
 .notification-list h4 {
     margin: 0;
     padding: 16px 18px;
@@ -1138,6 +1153,18 @@
     font-family: Georgia, 'Times New Roman', serif;
     font-size: 1rem;
 }
+.notification-list__item {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.notification-list__item strong { font-size: 0.8rem; }
 
 .notification-list ul {
     display: grid;

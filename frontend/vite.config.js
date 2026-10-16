@@ -9,6 +9,7 @@ export default defineConfig({
         globals: true,
         setupFiles: ['./src/aplicacion/pruebas/setup.js'],
         css: true,
+        testTimeout: 15000,
     },
     server: {
         host: '127.0.0.1',

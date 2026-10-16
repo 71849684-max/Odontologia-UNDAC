@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, UserPlus, UsersRound, X } from 'lucide-react';
+import { KeyRound, Search, UserPlus, UsersRound, X } from 'lucide-react';
 import { StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 import {
@@ -8,8 +8,10 @@ import {
     crearUsuario,
     listarRoles,
     listarUsuarios,
+    restablecerContrasenaUsuario,
 } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
+import { problemaContrasena } from '../../servicios/servicioCuenta.js';
 
 const FORMULARIO_VACIO = {
     nombre_usuario: '',
@@ -48,6 +50,8 @@ export default function UsuariosApp() {
     const [formulario, setFormulario] = useState(FORMULARIO_VACIO);
     const [erroresFormulario, setErroresFormulario] = useState({});
     const [guardando, setGuardando] = useState(false);
+    const [restablecer, setRestablecer] = useState(null);
+    const [aviso, setAviso] = useState('');
 
     async function cargar(filtros = {}) {
         setCargando(true);
@@ -126,6 +130,32 @@ export default function UsuariosApp() {
         }
     }
 
+    function abrirRestablecer(usuario) {
+        setAviso('');
+        setRestablecer({ usuario, contrasena: '', error: '' });
+    }
+
+    async function confirmarRestablecer(evento) {
+        evento.preventDefault();
+        const problema = problemaContrasena(restablecer.contrasena);
+        if (problema) {
+            setRestablecer((actual) => ({ ...actual, error: problema }));
+            return;
+        }
+        setGuardando(true);
+        try {
+            await restablecerContrasenaUsuario(restablecer.usuario.id, restablecer.contrasena);
+            setAviso(`Contraseña restablecida para ${restablecer.usuario.nombre_usuario}. Comunícala por un canal seguro.`);
+            setRestablecer(null);
+            await cargar({ q: busqueda, rol });
+        } catch (err) {
+            const detalle = err instanceof ErrorHttp ? (Object.values(err.errores ?? {})[0]?.[0] ?? err.message) : 'No se pudo restablecer la contraseña.';
+            setRestablecer((actual) => actual && { ...actual, error: detalle });
+        } finally {
+            setGuardando(false);
+        }
+    }
+
     async function alternarEstado(usuario) {
         setError('');
         try {
@@ -188,6 +218,7 @@ export default function UsuariosApp() {
             </div>
 
             {error && <p className="hc-inline-callout" role="alert">{error}</p>}
+            {aviso && <p className="hc-inline-callout" role="status">{aviso}</p>}
             {cargando && <p role="status">Cargando usuarios…</p>}
 
             {!cargando && usuarios.length === 0 && (
@@ -232,6 +263,14 @@ export default function UsuariosApp() {
                                             <button type="button" className="hc-mini-button" onClick={() => abrirEditar(item)}>Editar</button>
                                             <button type="button" className="hc-mini-button" onClick={() => alternarEstado(item)}>
                                                 {item.estado ? 'Desactivar' : 'Activar'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="hc-mini-button"
+                                                aria-label={`Restablecer contraseña de ${item.nombre_usuario}`}
+                                                onClick={() => abrirRestablecer(item)}
+                                            >
+                                                <KeyRound size={14} aria-hidden="true" /> Contraseña
                                             </button>
                                         </div>
                                     </td>
@@ -306,6 +345,54 @@ export default function UsuariosApp() {
                             <button type="button" className="hc-button hc-button--ghost" onClick={() => setDialogo(null)} disabled={guardando}>Cancelar</button>
                             <button type="submit" className="hc-button hc-button--primary" disabled={guardando}>
                                 {guardando ? 'Guardando…' : 'Guardar'}
+                            </button>
+                        </footer>
+                    </form>
+                </div>
+            )}
+
+            {restablecer && (
+                <div className="admin-dialogo-fondo" role="presentation" onClick={() => !guardando && setRestablecer(null)}>
+                    <form
+                        className="admin-dialogo"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="titulo-restablecer"
+                        onClick={(evento) => evento.stopPropagation()}
+                        onSubmit={confirmarRestablecer}
+                    >
+                        <header className="admin-dialogo__cabecera">
+                            <h2 id="titulo-restablecer">Restablecer contraseña</h2>
+                            <button type="button" className="hc-mini-button" onClick={() => setRestablecer(null)} aria-label="Cerrar" disabled={guardando}>
+                                <X size={16} />
+                            </button>
+                        </header>
+                        <p>
+                            Define una contraseña temporal para <strong>{restablecer.usuario.nombre}</strong> ({restablecer.usuario.nombre_usuario}).
+                            La cuenta se desbloqueará y el usuario podrá cambiarla desde «Mi perfil».
+                        </p>
+                        <div className="admin-dialogo__grid">
+                            <div>
+                                <label>
+                                    <span>Contraseña temporal</span>
+                                    <input
+                                        type="password"
+                                        autoComplete="new-password"
+                                        maxLength={255}
+                                        aria-describedby="ayuda-restablecer"
+                                        value={restablecer.contrasena}
+                                        onChange={(evento) => setRestablecer((actual) => ({ ...actual, contrasena: evento.target.value, error: '' }))}
+                                        required
+                                    />
+                                </label>
+                                <small id="ayuda-restablecer">Mínimo 8 caracteres, con letras y números.</small>
+                            </div>
+                        </div>
+                        {restablecer.error && <p className="admin-error" role="alert">{restablecer.error}</p>}
+                        <footer className="admin-dialogo__acciones">
+                            <button type="button" className="hc-button hc-button--ghost" onClick={() => setRestablecer(null)} disabled={guardando}>Cancelar</button>
+                            <button type="submit" className="hc-button hc-button--primary" disabled={guardando}>
+                                {guardando ? 'Guardando…' : 'Restablecer'}
                             </button>
                         </footer>
                     </form>

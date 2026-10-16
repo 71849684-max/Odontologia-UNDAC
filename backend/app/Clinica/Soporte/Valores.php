@@ -55,7 +55,7 @@ final class Valores
         }
 
         $nacimiento = Carbon::parse($fecha);
-        $edad = $nacimiento->diffInYears(now());
+        $edad = (int) floor($nacimiento->diffInYears(now()));
 
         return $edad >= 0 ? $edad : '';
     }

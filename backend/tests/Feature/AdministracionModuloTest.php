@@ -104,12 +104,25 @@ class AdministracionModuloTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['id' => $idBitacora]);
 
-        $this->assertTrue(
+        $this->assertFalse(
             DB::table('rol_submodulo')
                 ->where('id_rol', $docente->idRol())
                 ->where('id_submodulo', $idBitacora)
-                ->where('estado', 1)
+                ->exists(),
+            'El ajuste individual no debe alterar el rol compartido.'
+        );
+        $this->assertTrue(
+            DB::table('usuario_docente_submodulo')
+                ->where('id_usuario_docente', $docente->id())
+                ->where('id_submodulo', $idBitacora)
+                ->where('permitido', 1)
                 ->exists()
+        );
+
+        $otro = $this->crearUsuario('docente.otro', self::CLAVE, 'DOCENTE');
+        $this->assertNotContains(
+            $idBitacora,
+            $this->actingAs($admin, 'web')->getJson('/api/admin/usuarios/'.$otro->getKey().'/permisos')->json('efectivos')
         );
 
         $this->actingAs($admin, 'web')
@@ -117,11 +130,31 @@ class AdministracionModuloTest extends TestCase
             ->assertOk();
 
         $this->assertFalse(
-            DB::table('rol_submodulo')
-                ->where('id_rol', $docente->idRol())
-                ->where('id_submodulo', $idBitacora)
-                ->exists()
+            DB::table('usuario_docente_submodulo')->where('id_usuario_docente', $docente->id())->exists()
         );
+    }
+
+    public function test_retirar_un_submodulo_a_un_usuario_bloquea_su_acceso(): void
+    {
+        $admin = $this->crearUsuario('admin.retira', self::CLAVE, 'ADMINISTRADOR');
+        $alumno = $this->crearUsuario('alumno.retira', self::CLAVE, 'ALUMNO');
+        $companero = $this->crearUsuario('alumno.companero', self::CLAVE, 'ALUMNO');
+        $idHistorias = (int) DB::table('submodulo')->where('codigo_submodulo', 'HISTORIAS')->value('id_submodulo');
+
+        $efectivos = $this->actingAs($admin, 'web')
+            ->getJson('/api/admin/usuarios/'.$alumno->getKey().'/permisos')
+            ->json('efectivos');
+        $this->assertContains($idHistorias, $efectivos);
+
+        $this->actingAs($admin, 'web')
+            ->putJson('/api/admin/usuarios/'.$alumno->getKey().'/permisos', [
+                'permisos' => array_values(array_diff($efectivos, [$idHistorias])),
+            ])
+            ->assertOk()
+            ->assertJsonPath('retirados', 1);
+
+        $this->actingAs($alumno, 'web')->getJson('/api/historias')->assertForbidden();
+        $this->actingAs($companero, 'web')->getJson('/api/historias')->assertOk();
     }
 
     public function test_el_administrador_lee_auditoria_y_configuracion(): void

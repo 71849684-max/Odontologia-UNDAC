@@ -35,6 +35,16 @@ interface RepositorioUsuarios
 
     public function cambiarEstado(Cuenta $cuenta, bool $estado, int $idOperador): Cuenta;
 
+    /**
+     * Datos personales que el propio usuario puede modificar.
+     *
+     * @param  array{nombres: string, apellidos: string, correo?: ?string, telefono?: ?string}  $datos
+     */
+    public function actualizarPerfil(Cuenta $cuenta, array $datos): Cuenta;
+
+    /** Reemplaza la contraseña y desbloquea la cuenta. */
+    public function cambiarContrasena(Cuenta $cuenta, string $nueva): Cuenta;
+
     public function registrarInicioExitoso(Cuenta $cuenta): void;
 
     public function acumularFallo(Cuenta $cuenta): void;

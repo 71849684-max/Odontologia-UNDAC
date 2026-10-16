@@ -41,6 +41,21 @@ test('crea la historia desde los datos mínimos sin pedir contexto académico du
   expect(historias).toEqual([expect.objectContaining({ id: onCreated.mock.calls[0][0].id, pacienteId: expect.any(String) })]);
 });
 
+test('busca un paciente registrado y precarga sus datos al elegirlo', () => {
+  localStorage.setItem('undac:pacientes:frontend:v2', JSON.stringify([
+    { id: 'local-1', nombres: 'Rosa Quispe Lima', dni: '45678901', sexo: 'F', telefono: '988 777 666' },
+  ]));
+  render(<NuevaHistoriaApp />);
+
+  fireEvent.change(screen.getByLabelText('Buscar paciente registrado'), { target: { value: 'quispe' } });
+  fireEvent.click(screen.getByRole('button', { name: /Rosa Quispe Lima/ }));
+
+  expect(screen.getByLabelText('DNI')).toHaveValue('45678901');
+  expect(screen.getByLabelText('N.º de celular')).toHaveValue('988 777 666');
+  expect(screen.getByText('Paciente registrado seleccionado')).toBeInTheDocument();
+  expect(screen.getByText(/Sin conexión al servidor/i)).toBeInTheDocument();
+});
+
 test('precarga los datos del paciente recibido al abrir una nueva historia', () => {
   render(<NuevaHistoriaApp pacienteInicial={{
     dni: '71234567',

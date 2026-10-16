@@ -20,6 +20,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
     const [mostrarContrasena, establecerMostrarContrasena] = useState(false);
     const [nombreUsuario, establecerNombreUsuario] = useState('');
     const [contrasena, establecerContrasena] = useState('');
+    const [mostrarRecuperacion, establecerMostrarRecuperacion] = useState(false);
 
     function manejarEnvio(evento) {
         evento.preventDefault();
@@ -73,6 +74,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                                 autoComplete="username"
                                 autoCapitalize="none"
                                 spellCheck="false"
+                                maxLength={120}
                                 required
                             />
                         </label>
@@ -86,6 +88,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                                     onChange={(evento) => establecerContrasena(evento.target.value)}
                                     placeholder="Ingresa tu contraseña"
                                     autoComplete="current-password"
+                                    maxLength={255}
                                     required
                                 />
                                 <button
@@ -101,8 +104,26 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                             <p className="mensaje-acceso-error" role="alert">{error}</p>
                         )}
                         <div className="opciones-acceso">
-                            <a href="#recuperar">¿Olvidaste tu contraseña?</a>
+                            <button
+                                type="button"
+                                className="enlace-acceso"
+                                aria-expanded={mostrarRecuperacion}
+                                aria-controls="recuperacion-acceso"
+                                onClick={() => establecerMostrarRecuperacion((actual) => !actual)}
+                            >
+                                ¿Olvidaste tu contraseña?
+                            </button>
                         </div>
+                        {mostrarRecuperacion && (
+                            <div id="recuperacion-acceso" className="recuperacion-acceso" role="status">
+                                <strong>Recuperación de contraseña</strong>
+                                <p>
+                                    Por seguridad, las contraseñas solo las restablece la administración de la clínica.
+                                    Acércate o escribe al administrador del sistema indicando tu usuario institucional;
+                                    recibirás una contraseña temporal que podrás cambiar desde «Mi perfil».
+                                </p>
+                            </div>
+                        )}
                         <button className="boton-ingreso" type="submit" disabled={enviando}>
                             {enviando ? 'Verificando…' : 'Ingresar al sistema'} <span aria-hidden="true">→</span>
                         </button>

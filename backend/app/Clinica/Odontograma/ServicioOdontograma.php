@@ -8,17 +8,30 @@ use Illuminate\Support\Facades\DB;
 
 class ServicioOdontograma
 {
+    private const TAMANO_MAXIMO = 2 * 1024 * 1024;
+
+    /** Estados del frontend cuyo código de catálogo no se obtiene en mayúsculas directas. */
+    private const CODIGOS_CATALOGO = [
+        'ectopico' => 'ECTOPICA',
+        'extruido' => 'EXTRUIDA',
+        'intruido' => 'INTRUIDA',
+        'supernumerario' => 'SUPERNUMERARIA',
+        'posicion' => 'POSICION_ANORMAL',
+    ];
+
     public function leer(int $idHistoria): ?array
     {
         $filas = DB::table('odontograma')
             ->where('id_historia_clinica', $idHistoria)
             ->orderBy('id_odontograma')
-            ->get(['especificaciones']);
+            ->get(['registro_json', 'especificaciones']);
 
         foreach ($filas as $fila) {
-            $registro = json_decode((string) $fila->especificaciones, true);
-            if (is_array($registro) && ($registro['version'] ?? null) === 1) {
-                return $registro;
+            foreach ([$fila->registro_json, $fila->especificaciones] as $contenido) {
+                $registro = json_decode((string) $contenido, true);
+                if (is_array($registro) && ($registro['version'] ?? null) === 1) {
+                    return $registro;
+                }
             }
         }
 
@@ -27,41 +40,72 @@ class ServicioOdontograma
 
     public function guardar(int $idHistoria, array $registro, Cuenta $actor): array
     {
-        if (($registro['version'] ?? null) !== 1 || ! is_array($registro['examinations'] ?? null)) {
+        if (($registro['version'] ?? null) !== 1 || ! is_array($registro['examinations'] ?? null) || $registro['examinations'] === []) {
             throw new OperacionNoPermitida('odontograma', 'El registro del odontograma no tiene el formato esperado.');
         }
 
         $json = json_encode($registro, JSON_UNESCAPED_UNICODE);
-        if ($json === false || strlen($json) > 65000) {
+        if ($json === false || strlen($json) > self::TAMANO_MAXIMO) {
             throw new OperacionNoPermitida('odontograma', 'El odontograma supera el tamaño que se puede conservar en la historia.');
         }
 
-        DB::transaction(function () use ($idHistoria, $registro, $json, $actor) {
+        $this->verificarEvaluacionesCerradas($idHistoria, $registro);
+        $denticionDefecto = $this->denticionPorDefecto();
+
+        DB::transaction(function () use ($idHistoria, $registro, $json, $actor, $denticionDefecto) {
             $this->eliminar($idHistoria);
+            $catalogo = $this->catalogo();
+            $piezasCatalogo = DB::table('pieza_dental')->pluck('id_pieza_dental', 'codigo_fdi')->all();
             $primero = true;
             foreach ($registro['examinations'] as $examen) {
                 if (! is_array($examen)) {
                     continue;
                 }
+                $cerrado = ($examen['status'] ?? '') === 'closed';
                 $idOdontograma = DB::table('odontograma')->insertGetId([
                     'id_historia_clinica' => $idHistoria,
                     'id_docente_responsable' => $actor->tipoCuenta() === 'DOCENTE' ? $actor->idActor() : null,
-                    'tipo_denticion' => 'PERMANENTE',
+                    'tipo_denticion' => $this->denticion($examen, $denticionDefecto),
                     'fecha_evaluacion' => $this->fecha($examen['date'] ?? null),
-                    'motivo_evaluacion' => isset($examen['reason']) ? mb_substr((string) $examen['reason'], 0, 80) : null,
-                    'numero_cop' => isset($examen['cop']) ? mb_substr((string) $examen['cop'], 0, 8) : null,
-                    'especificaciones' => $primero ? $json : null,
-                    'observaciones' => isset($examen['observations']) ? (string) $examen['observations'] : null,
-                    'estado' => ($examen['status'] ?? '') === 'closed' ? 'CERRADO' : 'BORRADOR',
-                    'cerrado_en' => ($examen['status'] ?? '') === 'closed' ? ($examen['closedAt'] ?? now()) : null,
+                    'motivo_evaluacion' => $this->texto($examen['reason'] ?? null, 80),
+                    'numero_cop' => $this->texto($examen['cop'] ?? null, 8),
+                    'especificaciones' => $this->texto($examen['specifications'] ?? null, 65000),
+                    'registro_json' => $primero ? $json : null,
+                    'observaciones' => $this->texto($examen['observations'] ?? null, 65000),
+                    'estado' => $cerrado ? 'CERRADO' : 'BORRADOR',
+                    'cerrado_en' => $cerrado ? $this->fechaHora($examen['closedAt'] ?? null) : null,
                     'creado_en' => now(),
                 ]);
                 $primero = false;
-                $this->normalizarHallazgos($idOdontograma, $examen);
+                $this->normalizarHallazgos($idOdontograma, $examen, $catalogo, $piezasCatalogo);
             }
         });
 
         return $registro;
+    }
+
+    /** Una evaluación cerrada no puede cambiar ni desaparecer del registro. */
+    private function verificarEvaluacionesCerradas(int $idHistoria, array $registro): void
+    {
+        $anterior = $this->leer($idHistoria);
+        if ($anterior === null) {
+            return;
+        }
+        $entrantes = [];
+        foreach ($registro['examinations'] as $examen) {
+            if (is_array($examen) && isset($examen['id'])) {
+                $entrantes[(string) $examen['id']] = $examen;
+            }
+        }
+        foreach ((array) ($anterior['examinations'] ?? []) as $examen) {
+            if (! is_array($examen) || ($examen['status'] ?? '') !== 'closed') {
+                continue;
+            }
+            $nuevo = $entrantes[(string) ($examen['id'] ?? '')] ?? null;
+            if ($nuevo === null || json_encode($nuevo) !== json_encode($examen)) {
+                throw new OperacionNoPermitida('odontograma', 'Una evaluación cerrada no se puede modificar ni eliminar. Cree una nueva evaluación.');
+            }
+        }
     }
 
     private function eliminar(int $idHistoria): void
@@ -83,7 +127,11 @@ class ServicioOdontograma
         DB::table('odontograma')->whereIn('id_odontograma', $odontogramas)->delete();
     }
 
-    private function normalizarHallazgos(int $idOdontograma, array $examen): void
+    /**
+     * @param  array<string, int>  $catalogo  código de catálogo => id
+     * @param  array<string, int>  $piezasCatalogo  código FDI => id
+     */
+    private function normalizarHallazgos(int $idOdontograma, array $examen, array $catalogo, array $piezasCatalogo): void
     {
         $piezas = [];
         $marcas = [];
@@ -92,87 +140,140 @@ class ServicioOdontograma
                 continue;
             }
             foreach ((array) ($diente['findings'] ?? []) as $marca) {
-                $marcas[] = ['codigo' => (string) $codigo, 'superficie' => null, 'marca' => $marca];
+                $marcas[] = ['dientes' => [(string) $codigo], 'superficie' => null, 'marca' => $marca];
             }
             foreach ((array) ($diente['surfaces'] ?? []) as $superficie => $detalle) {
                 foreach ((array) ($detalle['findings'] ?? []) as $marca) {
-                    $marcas[] = ['codigo' => (string) $codigo, 'superficie' => (string) $superficie, 'marca' => $marca];
+                    $marcas[] = ['dientes' => [(string) $codigo], 'superficie' => (string) $superficie, 'marca' => $marca];
                 }
             }
         }
         foreach ((array) ($examen['ranges'] ?? []) as $marca) {
-            $dientes = (array) ($marca['teeth'] ?? []);
-            $marcas[] = ['codigo' => (string) ($dientes[0] ?? ''), 'superficie' => $marca['surface'] ?? null, 'marca' => $marca, 'extra' => $dientes];
+            if (is_array($marca)) {
+                $marcas[] = ['dientes' => array_map('strval', (array) ($marca['teeth'] ?? [])), 'superficie' => $marca['surface'] ?? null, 'marca' => $marca];
+            }
         }
 
+        $pieza = function (string $codigo) use (&$piezas, $piezasCatalogo, $idOdontograma): ?int {
+            if (! isset($piezasCatalogo[$codigo])) {
+                return null;
+            }
+
+            return $piezas[$codigo] ??= (int) DB::table('odontograma_pieza')->insertGetId([
+                'id_odontograma' => $idOdontograma,
+                'id_pieza_dental' => $piezasCatalogo[$codigo],
+                'perdida' => 0,
+            ]);
+        };
+
         foreach ($marcas as $item) {
-            $idPiezaCatalogo = DB::table('pieza_dental')->where('codigo_fdi', $item['codigo'])->value('id_pieza_dental');
-            $codigoHallazgo = (string) ($item['marca']['code'] ?? '');
-            $idHallazgo = DB::table('catalogo_hallazgo_dental')
-                ->where('estado', 1)
-                ->where(function ($q) use ($codigoHallazgo) {
-                    $q->where('simbolo', $codigoHallazgo)->orWhere('codigo', $codigoHallazgo);
-                })
-                ->value('id_hallazgo_dental');
-            if (! $idPiezaCatalogo || ! $idHallazgo || ! is_array($item['marca'])) {
+            $marca = $item['marca'];
+            if (! is_array($marca) || $item['dientes'] === []) {
                 continue;
             }
-            if (! isset($piezas[$item['codigo']])) {
-                $piezas[$item['codigo']] = DB::table('odontograma_pieza')->insertGetId([
-                    'id_odontograma' => $idOdontograma,
-                    'id_pieza_dental' => $idPiezaCatalogo,
-                    'perdida' => 0,
-                ]);
+            $idHallazgo = $catalogo[$this->codigoCatalogo((string) ($marca['state'] ?? ''))] ?? null;
+            $idPrincipal = $pieza($item['dientes'][0]);
+            if (! $idHallazgo || ! $idPrincipal) {
+                continue;
+            }
+            if (($marca['state'] ?? '') === 'ausente') {
+                DB::table('odontograma_pieza')->where('id_odontograma_pieza', $idPrincipal)->update(['perdida' => 1]);
             }
             $idSuperficie = null;
             if (! empty($item['superficie'])) {
-                $idSuperficie = DB::table('odontograma_superficie')->where('id_odontograma_pieza', $piezas[$item['codigo']])->where('superficie', $item['superficie'])->value('id_odontograma_superficie');
-                if (! $idSuperficie) {
-                    $idSuperficie = DB::table('odontograma_superficie')->insertGetId([
-                        'id_odontograma_pieza' => $piezas[$item['codigo']],
-                        'superficie' => mb_substr((string) $item['superficie'], 0, 30),
-                    ]);
-                }
+                $superficie = mb_substr((string) $item['superficie'], 0, 30);
+                $idSuperficie = DB::table('odontograma_superficie')->where('id_odontograma_pieza', $idPrincipal)->where('superficie', $superficie)->value('id_odontograma_superficie')
+                    ?? DB::table('odontograma_superficie')->insertGetId(['id_odontograma_pieza' => $idPrincipal, 'superficie' => $superficie]);
             }
+            $puntos = is_array($marca['points'] ?? null) && $marca['points'] !== [] ? json_encode($marca['points']) : null;
             $idMarca = DB::table('odontograma_hallazgo')->insertGetId([
                 'id_odontograma' => $idOdontograma,
                 'id_hallazgo_dental' => $idHallazgo,
                 'id_odontograma_superficie' => $idSuperficie,
-                'condicion' => ($item['marca']['condition'] ?? '') === 'bad' ? 'MALO' : 'BUENO',
-                'representacion' => ($item['marca']['representation'] ?? '') === 'traced' ? 'TRAZADO' : 'ESQUEMATICA',
-                'trazo' => isset($item['marca']['points']) ? json_encode($item['marca']['points']) : null,
-                'descripcion' => $item['marca']['note'] ?? null,
+                'clasificacion' => $this->texto($marca['code'] ?? null, 20),
+                'condicion' => ($marca['condition'] ?? '') === 'bad' ? 'MALO' : 'BUENO',
+                'representacion' => ($marca['representation'] ?? '') === 'traced' ? 'TRAZADO' : 'ESQUEMATICA',
+                'trazo' => $puntos,
+                'descripcion' => $this->texto($marca['note'] ?? null, 65000),
                 'activo' => 1,
                 'creado_en' => now(),
             ]);
-            $dientes = $item['extra'] ?? [$item['codigo']];
-            $orden = 0;
-            foreach ($dientes as $codigo) {
-                $idCatalogo = DB::table('pieza_dental')->where('codigo_fdi', $codigo)->value('id_pieza_dental');
-                if (! $idCatalogo) {
-                    continue;
-                }
-                if (! isset($piezas[$codigo])) {
-                    $piezas[$codigo] = DB::table('odontograma_pieza')->insertGetId([
-                        'id_odontograma' => $idOdontograma,
-                        'id_pieza_dental' => $idCatalogo,
-                        'perdida' => 0,
+            foreach (array_values($item['dientes']) as $orden => $codigo) {
+                $idPieza = $pieza($codigo);
+                if ($idPieza) {
+                    DB::table('odontograma_hallazgo_pieza')->insert([
+                        'id_odontograma_hallazgo' => $idMarca,
+                        'id_odontograma_pieza' => $idPieza,
+                        'orden' => $orden,
                     ]);
                 }
-                DB::table('odontograma_hallazgo_pieza')->insert([
-                    'id_odontograma_hallazgo' => $idMarca,
-                    'id_odontograma_pieza' => $piezas[$codigo],
-                    'orden' => $orden,
-                ]);
-                $orden++;
             }
         }
+    }
+
+    public function codigoCatalogo(string $estado): string
+    {
+        return self::CODIGOS_CATALOGO[$estado] ?? strtoupper(str_replace('-', '_', $estado));
+    }
+
+    /** @return array<string, int> */
+    private function catalogo(): array
+    {
+        return DB::table('catalogo_hallazgo_dental')->where('estado', 1)->pluck('id_hallazgo_dental', 'codigo')->map(fn ($id) => (int) $id)->all();
+    }
+
+    private function denticion(array $examen, string $defecto): string
+    {
+        $temporal = false;
+        $permanente = false;
+        foreach ((array) ($examen['teeth'] ?? []) as $codigo => $diente) {
+            if (! is_array($diente)) {
+                continue;
+            }
+            $conHallazgos = ! empty($diente['findings']) || array_filter((array) ($diente['surfaces'] ?? []), fn ($s) => ! empty($s['findings'] ?? [])) !== [];
+            if ($conHallazgos) {
+                (int) substr((string) $codigo, 0, 1) >= 5 ? $temporal = true : $permanente = true;
+            }
+        }
+        foreach ((array) ($examen['ranges'] ?? []) as $marca) {
+            foreach ((array) ($marca['teeth'] ?? []) as $codigo) {
+                (int) substr((string) $codigo, 0, 1) >= 5 ? $temporal = true : $permanente = true;
+            }
+        }
+
+        return match (true) {
+            $temporal && $permanente => 'MIXTA',
+            $temporal => 'TEMPORAL',
+            $permanente => 'PERMANENTE',
+            default => $defecto,
+        };
+    }
+
+    private function denticionPorDefecto(): string
+    {
+        $valor = strtoupper((string) DB::table('configuracion_sistema')->where('clave', 'TIPO_DENTICION_POR_DEFECTO')->where('estado', 1)->value('valor'));
+
+        return in_array($valor, ['PERMANENTE', 'TEMPORAL', 'MIXTA'], true) ? $valor : 'PERMANENTE';
+    }
+
+    private function texto(mixed $valor, int $longitud): ?string
+    {
+        $texto = is_scalar($valor) ? trim((string) $valor) : '';
+
+        return $texto === '' ? null : mb_substr($texto, 0, $longitud);
     }
 
     private function fecha(mixed $valor): string
     {
         $texto = (string) ($valor ?? '');
 
-        return preg_match('/^\d{4}-\d{2}-\d{2}$/', $texto) ? $texto : now()->toDateString();
+        return preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $texto, $p) && checkdate((int) $p[2], (int) $p[3], (int) $p[1]) ? $texto : now()->toDateString();
+    }
+
+    private function fechaHora(mixed $valor): string
+    {
+        $marca = is_string($valor) ? strtotime($valor) : false;
+
+        return $marca === false ? now()->toDateTimeString() : date('Y-m-d H:i:s', $marca);
     }
 }

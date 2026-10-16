@@ -20,23 +20,49 @@ class ServicioHistorias
         'VALIDADA' => [],
     ];
 
-    public function __construct(private readonly ServicioPacientes $pacientes) {}
+    public function __construct(
+        private readonly ServicioPacientes $pacientes,
+        private readonly AccesoHistorias $acceso,
+    ) {}
 
-    public function listar(?string $busqueda = null): array
+    public function listar(?string $busqueda = null, ?string $estado = null, ?Cuenta $actor = null): array
     {
         $consulta = $this->consulta()->orderByDesc('h.actualizado_en');
 
+        if ($actor !== null) {
+            $this->acceso->filtrar($consulta, $actor);
+        }
+
         if ($busqueda !== null && trim($busqueda) !== '') {
-            $texto = trim($busqueda);
-            $consulta->where(function ($q) use ($texto) {
-                $q->where('h.numero_historia', 'like', "%{$texto}%")
-                    ->orWhere('p.nombres', 'like', "%{$texto}%")
-                    ->orWhere('p.apellidos', 'like', "%{$texto}%")
-                    ->orWhere('p.numero_documento', 'like', "%{$texto}%");
+            $patron = '%'.addcslashes(trim($busqueda), '%_\\').'%';
+            $consulta->where(function ($q) use ($patron) {
+                $q->where('h.numero_historia', 'like', $patron)
+                    ->orWhere('p.nombres', 'like', $patron)
+                    ->orWhere('p.apellidos', 'like', $patron)
+                    ->orWhere('p.numero_documento', 'like', $patron);
             });
         }
 
-        return $consulta->limit(300)->get()->map(fn ($fila) => $this->serializar($fila))->all();
+        if ($estado !== null && $estado !== '') {
+            $consulta->where('e.codigo', $estado);
+        }
+
+        $items = $consulta->limit(300)->get()->map(fn ($fila) => $this->serializar($fila))->all();
+        $ids = array_column($items, 'id');
+        $porHistoria = $ids === [] ? collect() : DB::table('historia_seccion_estado')
+            ->whereIn('id_historia_clinica', $ids)
+            ->where('estado', 'review')
+            ->get(['id_historia_clinica', 'codigo_seccion'])
+            ->groupBy('id_historia_clinica');
+
+        foreach ($items as &$item) {
+            $item['seccionesRevision'] = ($porHistoria->get($item['id']) ?? collect())
+                ->pluck('codigo_seccion')
+                ->values()
+                ->all();
+        }
+
+        return $items;
     }
 
     public function mostrar(int $id): array

@@ -2,6 +2,8 @@
 
 namespace App\Clinica\Expediente;
 
+use App\Clinica\Archivos\ServicioArchivoClinico;
+use App\Clinica\Historias\AccesoHistorias;
 use App\Clinica\Historias\ServicioHistorias;
 use App\Clinica\Odontograma\ServicioOdontograma;
 use App\Clinica\Pacientes\ServicioPacientes;
@@ -11,10 +13,30 @@ use Illuminate\Support\Facades\DB;
 
 class ServicioExpediente
 {
+    private const ESTADOS_SECCION = ['not-started', 'in-progress', 'complete', 'review', 'approved'];
+
+    /** Clave del frontend => [tipo_examen, nombre_examen] en examen_auxiliar. */
+    private const AUXILIARES = [
+        'hemoglobina' => ['LAB_VALOR', 'Hemoglobina'],
+        'hematocrito' => ['LAB_VALOR', 'Hematocrito'],
+        'tiempoCoagulacion' => ['LAB_VALOR', 'Tiempo de coagulación'],
+        'tiempoSangria' => ['LAB_VALOR', 'Tiempo de sangría'],
+        'grupoSanguineo' => ['LAB_VALOR', 'Grupo sanguíneo'],
+        'factorRh' => ['LAB_VALOR', 'Factor Rh'],
+        'glucosa' => ['LAB_VALOR', 'Glucosa'],
+        'otros' => ['LAB_VALOR', 'Otros'],
+        'diagnosticoLaboratorio' => ['LABORATORIO', 'Laboratorio clínico'],
+        'rxPanoramico' => ['RADIOGRAFIA', 'RX panorámico'],
+        'rxOclusales' => ['RADIOGRAFIA', 'RX oclusales'],
+        'rxPeriapicales' => ['RADIOGRAFIA', 'RX periapicales'],
+    ];
+
     public function __construct(
         private readonly ServicioHistorias $historias,
         private readonly ServicioPacientes $pacientes,
         private readonly ServicioOdontograma $odontograma,
+        private readonly ServicioArchivoClinico $archivos,
+        private readonly AccesoHistorias $acceso,
     ) {}
 
     public function obtener(int $id): array
@@ -59,14 +81,16 @@ class ServicioExpediente
             'seguimiento' => $this->leerSeguimiento($id),
         ];
 
+        foreach ($this->archivos->porSeccion($id) as $seccion => $campos) {
+            $form[$seccion] = $campos + ($form[$seccion] ?? []);
+        }
+
         $registro = $this->odontograma->leer($id);
         if ($registro !== null) {
             $form['odontograma'] = ['registro' => $registro];
         }
 
-        $estados = DB::table('historia_seccion_estado')
-            ->where('id_historia_clinica', $id)
-            ->pluck('estado', 'codigo_seccion');
+        $estados = $this->estadosSeccion($id);
 
         return [
             'historia' => $historia,
@@ -76,12 +100,24 @@ class ServicioExpediente
         ];
     }
 
+    /** @return array<string, string> */
+    public function estadosSeccion(int $id): array
+    {
+        return DB::table('historia_seccion_estado')
+            ->where('id_historia_clinica', $id)
+            ->pluck('estado', 'codigo_seccion')
+            ->all();
+    }
+
     public function guardar(int $id, array $formulario, array $estados, Cuenta $actor): array
     {
         $this->historias->fila($id);
         $pacienteId = (int) DB::table('historia_clinica')->where('id_historia_clinica', $id)->value('id_paciente');
+        // El autoguardado envía todo el expediente: lo aprobado se omite en silencio en vez de rechazar el guardado entero.
+        $aprobadas = $this->acceso->seccionesBloqueadas($actor, $id);
+        $formulario = array_diff_key($formulario, array_flip($aprobadas));
 
-        DB::transaction(function () use ($id, $pacienteId, $formulario, $estados, $actor) {
+        DB::transaction(function () use ($id, $pacienteId, $formulario, $estados, $actor, $aprobadas) {
             if (isset($formulario['datos-paciente']) && is_array($formulario['datos-paciente'])) {
                 $this->pacientes->sincronizarFicha($pacienteId, $formulario['datos-paciente'], $actor);
             }
@@ -134,8 +170,13 @@ class ServicioExpediente
                 $this->odontograma->guardar($id, $formulario['odontograma']['registro'], $actor);
             }
 
+            $puedeAprobar = ! $this->acceso->restringido($actor);
+
             foreach ($estados as $codigo => $estado) {
-                if (! is_string($codigo) || ! is_string($estado)) {
+                if (! is_string($codigo) || ! in_array($estado, self::ESTADOS_SECCION, true)) {
+                    continue;
+                }
+                if (! $puedeAprobar && ($estado === 'approved' || in_array($codigo, $aprobadas, true))) {
                     continue;
                 }
                 DB::table('historia_seccion_estado')->updateOrInsert(
@@ -176,28 +217,10 @@ class ServicioExpediente
 
         $apellidos = preg_split('/\s+/', (string) $paciente->apellidos) ?: [];
 
-        return array_filter([
-            'dni' => $paciente->numero_documento,
-            'nombres' => $paciente->nombres,
-            'apellidos' => $paciente->apellidos,
+        return array_filter($this->pacientes->ficha((int) $paciente->id_paciente) + [
             'apellidoPaterno' => $apellidos[0] ?? '',
             'apellidoMaterno' => implode(' ', array_slice($apellidos, 1)),
-            'sexo' => $paciente->sexo ?? '',
-            'fechaNacimiento' => $paciente->fecha_nacimiento,
-            'edad' => Valores::edad($paciente->fecha_nacimiento),
-            'celular' => $paciente->telefono ?? '',
-            'correo' => $paciente->correo ?? '',
-            'domicilio' => $paciente->direccion ?? '',
-            'ocupacion' => $paciente->ocupacion ?? '',
-            'gradoInstruccion' => $paciente->grado_instruccion ?? '',
-            'estadoCivil' => $paciente->estado_civil ?? '',
-            'departamento' => $paciente->departamento ?? '',
-            'provincia' => $paciente->provincia ?? '',
-            'distrito' => $paciente->distrito ?? '',
-            'modalidadAsistencia' => $paciente->modalidad_asistencia ?: 'acompanado',
-            'acompanante' => $contacto->nombre ?? '',
-            'tutorParentesco' => $contacto->parentesco ?? '',
-            'confiabilidad' => $contacto->confiabilidad ?? '',
+            'fechaPaciente' => $historia['fecha'] ?? '',
             'operador' => $historia['operador'] ?? '',
         ], fn ($valor) => $valor !== null && $valor !== '');
     }
@@ -242,7 +265,11 @@ class ServicioExpediente
             return [];
         }
         $historia = DB::table('historia_clinica')->where('id_historia_clinica', $id)->first();
-        $estados = DB::table('anamnesis_estado_psicologico')->where('id_anamnesis', $fila->id_anamnesis)->pluck('estado')->all();
+        $estados = DB::table('anamnesis_estado_psicologico')
+            ->where('id_anamnesis', $fila->id_anamnesis)
+            ->orderBy('id_anamnesis_estado')
+            ->pluck('estado')
+            ->all();
 
         return array_filter([
             'motivoConsulta' => $fila->motivo_consulta ?? '',
@@ -547,18 +574,21 @@ class ServicioExpediente
         $this->upsertUno('examen_oclusion', 'id_examen_oclusion', $id, [
             'clasificacion_posterior' => Valores::texto($datos['oclusionPosterior'] ?? null),
             'clasificacion_anterior' => Valores::texto($datos['oclusionAnterior'] ?? null),
-            'mordida' => Valores::texto(implode(', ', (array) ($datos['motivosPerdida'] ?? [])) ?: null),
+            'motivos_perdida' => $this->lista($datos['motivosPerdida'] ?? [], 255),
+            'motivos_perdida_otros' => $this->corto($datos['motivosPerdidaOtros'] ?? null, 255),
+            'ultima_exodoncia' => Valores::texto($datos['ultimaExodoncia'] ?? null),
             'diagnostico_presuntivo' => Valores::texto($datos['diagnosticoPresuntivoOclusion'] ?? null),
-            'observaciones' => Valores::texto($datos['ultimaExodoncia'] ?? null),
         ]);
         DB::table('protesis')->where('id_historia_clinica', $id)->delete();
+        $profesional = $this->corto($datos['protesisProfesional'] ?? null, 80);
         foreach ((array) ($datos['protesisTipos'] ?? []) as $tipo) {
-            $texto = Valores::texto($tipo);
+            $texto = Valores::texto(is_scalar($tipo) ? $tipo : null);
             if ($texto) {
                 DB::table('protesis')->insert([
                     'id_historia_clinica' => $id,
                     'tipo_protesis' => mb_substr($texto, 0, 60),
-                    'confeccionada_por' => Valores::texto($datos['protesisProfesional'] ?? null),
+                    'confeccionada_por' => $profesional,
+                    'observaciones' => $texto === 'Otros' ? Valores::texto($datos['protesisOtros'] ?? null) : null,
                     'creado_en' => now(),
                 ]);
             }
@@ -568,31 +598,43 @@ class ServicioExpediente
     private function leerOclusion(int $id): array
     {
         $fila = DB::table('examen_oclusion')->where('id_historia_clinica', $id)->first();
-        $tipos = DB::table('protesis')->where('id_historia_clinica', $id)->pluck('tipo_protesis')->all();
-        $profesional = DB::table('protesis')->where('id_historia_clinica', $id)->value('confeccionada_por');
+        $protesis = DB::table('protesis')->where('id_historia_clinica', $id)->orderBy('id_protesis')->get();
 
         return array_filter([
             'oclusionPosterior' => $fila->clasificacion_posterior ?? '',
             'oclusionAnterior' => $fila->clasificacion_anterior ?? '',
-            'ultimaExodoncia' => $fila->observaciones ?? '',
-            'motivosPerdida' => $fila && $fila->mordida ? array_map('trim', explode(',', $fila->mordida)) : [],
+            'ultimaExodoncia' => $fila->ultima_exodoncia ?? '',
+            'motivosPerdida' => $fila && $fila->motivos_perdida ? array_map('trim', explode(',', $fila->motivos_perdida)) : [],
+            'motivosPerdidaOtros' => $fila->motivos_perdida_otros ?? '',
             'diagnosticoPresuntivoOclusion' => $fila->diagnostico_presuntivo ?? '',
-            'protesisTipos' => $tipos,
-            'protesisProfesional' => $profesional ?? '',
-        ], fn ($valor) => $valor !== '' && $valor !== []);
+            'protesisTipos' => $protesis->pluck('tipo_protesis')->all(),
+            'protesisOtros' => $protesis->firstWhere('tipo_protesis', 'Otros')->observaciones ?? '',
+            'protesisProfesional' => $protesis->first()->confeccionada_por ?? '',
+        ], fn ($valor) => $valor !== '' && $valor !== [] && $valor !== null);
+    }
+
+    private function lista(mixed $valores, int $longitud): ?string
+    {
+        $textos = array_filter(array_map(
+            fn ($valor) => is_scalar($valor) ? Valores::texto(str_replace(',', ' ', (string) $valor)) : null,
+            (array) $valores,
+        ));
+
+        return $textos === [] ? null : mb_substr(implode(', ', $textos), 0, $longitud);
+    }
+
+    private function corto(mixed $valor, int $longitud): ?string
+    {
+        $texto = Valores::texto(is_scalar($valor) ? $valor : null);
+
+        return $texto === null ? null : mb_substr($texto, 0, $longitud);
     }
 
     private function guardarAuxiliares(int $id, array $datos): void
     {
-        DB::table('examen_auxiliar')->where('id_historia_clinica', $id)->delete();
-        $mapa = [
-            'diagnosticoLaboratorio' => ['LABORATORIO', 'Laboratorio clínico'],
-            'rxPanoramico' => ['RADIOGRAFIA', 'RX panorámico'],
-            'rxOclusales' => ['RADIOGRAFIA', 'RX oclusales'],
-            'rxPeriapicales' => ['RADIOGRAFIA', 'RX periapicales'],
-        ];
-        foreach ($mapa as $clave => [$tipo, $nombre]) {
-            $texto = Valores::texto($datos[$clave] ?? null);
+        DB::table('examen_auxiliar')->where('id_historia_clinica', $id)->whereNull('id_archivo')->delete();
+        foreach (self::AUXILIARES as $clave => [$tipo, $nombre]) {
+            $texto = Valores::texto(is_scalar($datos[$clave] ?? null) ? $datos[$clave] : null);
             if ($texto) {
                 DB::table('examen_auxiliar')->insert([
                     'id_historia_clinica' => $id,
@@ -607,15 +649,13 @@ class ServicioExpediente
 
     private function leerAuxiliares(int $id): array
     {
-        $inverso = [
-            'Laboratorio clínico' => 'diagnosticoLaboratorio',
-            'RX panorámico' => 'rxPanoramico',
-            'RX oclusales' => 'rxOclusales',
-            'RX periapicales' => 'rxPeriapicales',
-        ];
+        $inverso = [];
+        foreach (self::AUXILIARES as $clave => [$tipo, $nombre]) {
+            $inverso[$tipo.'|'.$nombre] = $clave;
+        }
         $datos = [];
-        foreach (DB::table('examen_auxiliar')->where('id_historia_clinica', $id)->get() as $fila) {
-            $clave = $inverso[$fila->nombre_examen] ?? null;
+        foreach (DB::table('examen_auxiliar')->where('id_historia_clinica', $id)->whereNull('id_archivo')->get() as $fila) {
+            $clave = $inverso[$fila->tipo_examen.'|'.$fila->nombre_examen] ?? null;
             if ($clave) {
                 $datos[$clave] = $fila->resultado;
             }
@@ -666,11 +706,14 @@ class ServicioExpediente
                 $version++;
             }
         }
-        $pronostico = Valores::texto($datos['pronosticoEstructurado'] ?? $datos['pronostico'] ?? null);
-        if ($pronostico) {
+        $estructurado = $this->corto($datos['pronosticoEstructurado'] ?? null, 20);
+        $libre = Valores::texto(is_scalar($datos['pronostico'] ?? null) ? $datos['pronostico'] : null);
+        $justificacion = Valores::texto(is_scalar($datos['pronosticoJustificacion'] ?? null) ? $datos['pronosticoJustificacion'] : null);
+        if ($estructurado || $libre || $justificacion) {
             $this->upsertUno('pronostico_clinico', 'id_pronostico_clinico', $id, [
-                'pronostico' => mb_substr($pronostico, 0, 20),
-                'justificacion' => Valores::texto($datos['pronosticoJustificacion'] ?? $datos['pronostico'] ?? null),
+                'pronostico' => $estructurado ?? '',
+                'justificacion' => $justificacion,
+                'pronostico_libre' => $libre,
             ]);
         }
     }
@@ -682,6 +725,7 @@ class ServicioExpediente
         foreach (DB::table('diagnostico')->where('id_historia_clinica', $id)->where('es_actual', 1)->orderBy('numero_version')->get() as $fila) {
             if (in_array($fila->tipo_diagnostico, ['CLINICO_RADIOGRAFICO', 'PRESUNTIVO', 'DEFINITIVO'], true) && $fila->codigo === null && $fila->pieza_region === null) {
                 $libres[$fila->tipo_diagnostico] = $fila->descripcion;
+
                 continue;
             }
             $items[] = [
@@ -702,7 +746,8 @@ class ServicioExpediente
             'dxDefinitivo' => $libres['DEFINITIVO'] ?? '',
             'pronosticoEstructurado' => $pronostico->pronostico ?? '',
             'pronosticoJustificacion' => $pronostico->justificacion ?? '',
-        ], fn ($valor) => $valor !== '' && $valor !== []);
+            'pronostico' => $pronostico->pronostico_libre ?? '',
+        ], fn ($valor) => $valor !== '' && $valor !== [] && $valor !== null);
     }
 
     private function guardarModelos(int $id, array $datos): void
@@ -710,7 +755,7 @@ class ServicioExpediente
         $this->upsertUno('estudio_modelo', 'id_estudio_modelo', $id, [
             'informe_maxilar' => Valores::texto($datos['informeMaxilar'] ?? null),
             'informe_mandibula' => Valores::texto($datos['informeMandibula'] ?? null),
-            'planificacion' => Valores::texto($datos['planificacion'] ?? $datos['observaciones'] ?? null),
+            'planificacion' => Valores::texto($datos['planificacionModelos'] ?? $datos['planificacion'] ?? null),
         ]);
     }
 
@@ -721,7 +766,7 @@ class ServicioExpediente
         return $fila ? array_filter([
             'informeMaxilar' => $fila->informe_maxilar ?? '',
             'informeMandibula' => $fila->informe_mandibula ?? '',
-            'planificacion' => $fila->planificacion ?? '',
+            'planificacionModelos' => $fila->planificacion ?? '',
         ], fn ($valor) => $valor !== '') : [];
     }
 
@@ -803,11 +848,16 @@ class ServicioExpediente
 
     private function guardarConsentimiento(int $id, array $datos): void
     {
-        $fecha = Valores::texto($datos['fecha'] ?? null) ?? now()->toDateString();
+        $fecha = $this->fecha($datos['fecha'] ?? null) ?? now()->toDateString();
         $existente = DB::table('consentimiento_informado')->where('id_historia_clinica', $id)->orderByDesc('version_documento')->first();
         $fila = [
             'fecha_consentimiento' => $fecha,
-            'intervencion_autorizada' => Valores::texto($datos['intervencionAutorizada'] ?? null),
+            'intervencion_autorizada' => Valores::texto(is_scalar($datos['intervencionAutorizada'] ?? null) ? $datos['intervencionAutorizada'] : null),
+            'domicilio_acto' => $this->corto($datos['domicilio'] ?? null, 250),
+            'doctor_informante' => $this->corto($datos['doctor'] ?? null, 180),
+            'firma_dia' => $this->corto($datos['firmaDia'] ?? null, 2),
+            'firma_mes' => $this->corto($datos['firmaMes'] ?? null, 20),
+            'firma_anio' => $this->corto($datos['firmaAnio'] ?? null, 4),
             'estado' => 'BORRADOR',
         ];
         if ($existente) {
@@ -821,15 +871,119 @@ class ServicioExpediente
                 'creado_en' => now(),
             ]);
         }
+        $textos = is_array($datos['textosClausulas'] ?? null) ? $datos['textosClausulas'] : [];
         foreach ($datos as $clave => $valor) {
-            if (preg_match('/^consent(\d+)$/', (string) $clave, $coincidencia)) {
+            if (preg_match('/^consent(\d{1,3})$/', (string) $clave, $coincidencia)) {
+                $numero = (int) $coincidencia[1];
+                $texto = $textos[$numero] ?? $textos[(string) $numero] ?? null;
                 DB::table('consentimiento_clausula')->insert([
                     'id_consentimiento' => $idConsentimiento,
-                    'numero' => (int) $coincidencia[1],
-                    'texto' => 'Cláusula '.$coincidencia[1],
+                    'numero' => $numero,
+                    'texto' => $this->corto($texto, 5000) ?? 'Cláusula '.$numero,
                     'aceptada' => $valor ? 1 : 0,
                 ]);
             }
+        }
+
+        $this->guardarFirmanteAcompanante($idConsentimiento, $datos);
+        $this->vincularFirmasConsentimiento($id, $idConsentimiento, $datos);
+        $this->guardarProgramacion($id, $datos);
+    }
+
+    private function vincularFirmasConsentimiento(int $idHistoria, int $idConsentimiento, array $datos): void
+    {
+        $paciente = DB::table('historia_clinica as h')
+            ->join('paciente as p', 'p.id_paciente', '=', 'h.id_paciente')
+            ->where('h.id_historia_clinica', $idHistoria)
+            ->first(['p.nombres', 'p.apellidos', 'p.numero_documento']);
+        $nombrePaciente = trim(($paciente->nombres ?? '').' '.($paciente->apellidos ?? ''));
+        $firmantes = [
+            'PACIENTE' => ['firmaPaciente', $nombrePaciente, $paciente->numero_documento ?? null],
+            'HUELLA_PACIENTE' => ['huellaDactilar', $nombrePaciente, $paciente->numero_documento ?? null],
+            'DOCENTE' => ['firmaDocente', $this->corto($datos['doctor'] ?? null, 180) ?? '', null],
+        ];
+        foreach ($firmantes as $tipo => [$campo, $nombre, $documento]) {
+            $idArchivo = $this->archivos->vigente($idHistoria, $campo);
+            $consulta = DB::table('firma_consentimiento')->where('id_consentimiento', $idConsentimiento)->where('tipo_firmante', $tipo);
+            if ($idArchivo === null) {
+                $consulta->delete();
+
+                continue;
+            }
+            $fila = ['nombre_firmante' => mb_substr($nombre, 0, 180), 'documento_firmante' => $documento, 'id_archivo' => $idArchivo];
+            $existente = (clone $consulta)->first(['id_firma_consentimiento', 'id_archivo']);
+            if ($existente) {
+                $cambios = (int) $existente->id_archivo === $idArchivo ? $fila : $fila + ['fecha_firma' => now()];
+                DB::table('firma_consentimiento')->where('id_firma_consentimiento', $existente->id_firma_consentimiento)->update($cambios);
+            } else {
+                DB::table('firma_consentimiento')->insert($fila + [
+                    'id_consentimiento' => $idConsentimiento,
+                    'tipo_firmante' => $tipo,
+                    'fecha_firma' => now(),
+                ]);
+            }
+        }
+
+        $idAcompanante = $this->archivos->vigente($idHistoria, 'firmaAcompanante');
+        $acompanante = DB::table('firma_consentimiento')->where('id_consentimiento', $idConsentimiento)->where('tipo_firmante', 'ACOMPANANTE');
+        if ((clone $acompanante)->exists()) {
+            $acompanante->update(['id_archivo' => $idAcompanante, 'fecha_firma' => $idAcompanante ? now() : null]);
+        } elseif ($idAcompanante !== null) {
+            DB::table('firma_consentimiento')->insert([
+                'id_consentimiento' => $idConsentimiento,
+                'tipo_firmante' => 'ACOMPANANTE',
+                'nombre_firmante' => '',
+                'id_archivo' => $idAcompanante,
+                'fecha_firma' => now(),
+            ]);
+        }
+    }
+
+    private function guardarFirmanteAcompanante(int $idConsentimiento, array $datos): void
+    {
+        $fila = [
+            'nombre_firmante' => $this->corto($datos['acompananteNombres'] ?? null, 180),
+            'direccion_firmante' => $this->corto($datos['acompananteDireccion'] ?? null, 250),
+            'parentesco_firmante' => $this->corto($datos['acompananteParentesco'] ?? null, 80),
+            'documento_firmante' => $this->corto($datos['acompananteDni'] ?? null, 20),
+        ];
+        $existente = DB::table('firma_consentimiento')
+            ->where('id_consentimiento', $idConsentimiento)
+            ->where('tipo_firmante', 'ACOMPANANTE')
+            ->value('id_firma_consentimiento');
+        $vacio = array_filter($fila) === [];
+        if ($existente) {
+            DB::table('firma_consentimiento')->where('id_firma_consentimiento', $existente)->update(['nombre_firmante' => $fila['nombre_firmante'] ?? ''] + $fila);
+        } elseif (! $vacio) {
+            DB::table('firma_consentimiento')->insert(['nombre_firmante' => $fila['nombre_firmante'] ?? ''] + $fila + [
+                'id_consentimiento' => $idConsentimiento,
+                'tipo_firmante' => 'ACOMPANANTE',
+            ]);
+        }
+    }
+
+    private function guardarProgramacion(int $idHistoria, array $datos): void
+    {
+        $fecha = $this->fecha($datos['programacionFecha'] ?? null);
+        $plan = DB::table('plan_quirurgico')->where('id_historia_clinica', $idHistoria)->orderByDesc('id_plan_quirurgico')->value('id_plan_quirurgico');
+        if ($fecha === null) {
+            if ($plan) {
+                DB::table('programacion_cirugia')->where('id_plan_quirurgico', $plan)->where('estado', 'PROGRAMADA')->delete();
+            }
+
+            return;
+        }
+        $idPlan = $plan ? (int) $plan : $this->planQuirurgico($idHistoria, 'Cirugía programada');
+        $fila = [
+            'fecha' => $fecha,
+            'hora' => $this->hora($datos['programacionHora'] ?? null),
+            'observaciones' => Valores::texto(is_scalar($datos['programacionObservaciones'] ?? null) ? $datos['programacionObservaciones'] : null),
+        ];
+        $existente = DB::table('programacion_cirugia')->where('id_plan_quirurgico', $idPlan)->where('estado', 'PROGRAMADA')->orderByDesc('id_programacion_cirugia')->value('id_programacion_cirugia');
+        if ($existente) {
+            DB::table('programacion_cirugia')->where('id_programacion_cirugia', $existente)->update($fila);
+        } else {
+            DB::table('programacion_cirugia')->insert($fila + ['id_plan_quirurgico' => $idPlan, 'estado' => 'PROGRAMADA', 'creado_en' => now()]);
         }
     }
 
@@ -842,12 +996,54 @@ class ServicioExpediente
         $datos = [
             'fecha' => $fila->fecha_consentimiento,
             'intervencionAutorizada' => $fila->intervencion_autorizada ?? '',
+            'domicilio' => $fila->domicilio_acto ?? '',
+            'doctor' => $fila->doctor_informante ?? '',
+            'firmaDia' => $fila->firma_dia ?? '',
+            'firmaMes' => $fila->firma_mes ?? '',
+            'firmaAnio' => $fila->firma_anio ?? '',
         ];
-        foreach (DB::table('consentimiento_clausula')->where('id_consentimiento', $fila->id_consentimiento)->get() as $clausula) {
+        foreach (DB::table('consentimiento_clausula')->where('id_consentimiento', $fila->id_consentimiento)->orderBy('numero')->get() as $clausula) {
             $datos['consent'.$clausula->numero] = (bool) $clausula->aceptada;
         }
+        $acompanante = DB::table('firma_consentimiento')
+            ->where('id_consentimiento', $fila->id_consentimiento)
+            ->where('tipo_firmante', 'ACOMPANANTE')
+            ->first();
+        $datos += [
+            'acompananteNombres' => $acompanante->nombre_firmante ?? '',
+            'acompananteDireccion' => $acompanante->direccion_firmante ?? '',
+            'acompananteParentesco' => $acompanante->parentesco_firmante ?? '',
+            'acompananteDni' => $acompanante->documento_firmante ?? '',
+        ];
+        $plan = DB::table('plan_quirurgico')->where('id_historia_clinica', $id)->orderByDesc('id_plan_quirurgico')->value('id_plan_quirurgico');
+        $programacion = $plan ? DB::table('programacion_cirugia')->where('id_plan_quirurgico', $plan)->where('estado', 'PROGRAMADA')->orderByDesc('id_programacion_cirugia')->first() : null;
+        $datos += [
+            'programacionFecha' => $programacion->fecha ?? '',
+            'programacionHora' => $programacion && $programacion->hora ? substr((string) $programacion->hora, 0, 5) : '',
+            'programacionObservaciones' => $programacion->observaciones ?? '',
+        ];
 
-        return $datos;
+        return array_filter($datos, fn ($valor) => $valor !== '' && $valor !== null);
+    }
+
+    private function fecha(mixed $valor): ?string
+    {
+        $texto = Valores::texto(is_scalar($valor) ? $valor : null);
+        if ($texto === null || ! preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $texto, $partes)) {
+            return null;
+        }
+
+        return checkdate((int) $partes[2], (int) $partes[3], (int) $partes[1]) ? "{$partes[1]}-{$partes[2]}-{$partes[3]}" : null;
+    }
+
+    private function hora(mixed $valor): ?string
+    {
+        $texto = Valores::texto(is_scalar($valor) ? $valor : null);
+        if ($texto === null || ! preg_match('/^([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/', $texto, $partes)) {
+            return null;
+        }
+
+        return "{$partes[1]}:{$partes[2]}:".($partes[3] ?? '00');
     }
 
     private function guardarCirugia(int $id, array $datos): void
@@ -895,15 +1091,18 @@ class ServicioExpediente
     {
         $idPlan = $this->planQuirurgico($id, Valores::texto($datos['tipoTratamiento'] ?? null) ?? 'Reporte operatorio');
         $fila = [
-            'fecha' => Valores::texto($datos['fecha'] ?? null) ?? now()->toDateString(),
-            'asistente' => Valores::texto($datos['asistente'] ?? null),
-            'lugar' => Valores::texto($datos['lugar'] ?? null),
-            'caso_clinico' => Valores::texto($datos['casoClinico'] ?? null),
-            'tipo_anestesia' => Valores::texto($datos['tipoAnestesia'] ?? null),
-            'tecnica_anestesia' => Valores::texto($datos['tecnicaAnestesia'] ?? null),
+            'fecha' => $this->fecha($datos['fecha'] ?? null) ?? now()->toDateString(),
+            'asistente' => $this->corto($datos['asistente'] ?? null, 180),
+            'lugar' => $this->corto($datos['lugar'] ?? null, 150),
+            'caso_clinico' => $this->corto($datos['casoClinico'] ?? null, 180),
+            'tipo_anestesia' => $this->corto($datos['tipoAnestesia'] ?? null, 100),
+            'tecnica_anestesia' => $this->corto($datos['tecnicaAnestesia'] ?? null, 150),
             'procedimiento_realizado' => Valores::texto($datos['tipoTratamiento'] ?? null),
-            'hora_inicio' => Valores::texto($datos['horaInicio'] ?? null),
-            'hora_termino' => Valores::texto($datos['horaTermino'] ?? null),
+            'pronostico' => Valores::texto(is_scalar($datos['pronostico'] ?? null) ? $datos['pronostico'] : null),
+            'hora_inicio' => $this->hora($datos['horaInicio'] ?? null),
+            'hora_termino' => $this->hora($datos['horaTermino'] ?? null),
+            'id_archivo_firma_docente' => $this->archivos->vigente($id, 'firmaDocenteReporte'),
+            'id_archivo_firma_alumno' => $this->archivos->vigente($id, 'firmaAlumnoReporte'),
             'estado' => 'BORRADOR',
         ];
         $idReporte = DB::table('reporte_operatorio')->where('id_plan_quirurgico', $idPlan)->value('id_reporte_operatorio');
@@ -942,11 +1141,13 @@ class ServicioExpediente
             ]);
         }
         DB::table('epicrisis')->where('id_reporte_operatorio', $idReporte)->delete();
-        if (Valores::texto($datos['epicrisis'] ?? null)) {
+        $epicrisis = Valores::texto($datos['epicrisis'] ?? null);
+        $diagnostico = Valores::texto(is_scalar($datos['diagnosticoDefinitivo'] ?? null) ? $datos['diagnosticoDefinitivo'] : null);
+        if ($epicrisis || $diagnostico) {
             DB::table('epicrisis')->insert([
                 'id_reporte_operatorio' => $idReporte,
-                'resumen_clinico' => Valores::texto($datos['epicrisis'] ?? null),
-                'diagnostico' => Valores::texto($datos['diagnosticoDefinitivo'] ?? null),
+                'resumen_clinico' => $epicrisis,
+                'diagnostico' => $diagnostico,
                 'creado_en' => now(),
             ]);
         }
@@ -963,6 +1164,8 @@ class ServicioExpediente
             return [];
         }
         $datos = [
+            'fecha' => $reporte->fecha ?? '',
+            'pronostico' => $reporte->pronostico ?? '',
             'asistente' => $reporte->asistente ?? '',
             'lugar' => $reporte->lugar ?? '',
             'casoClinico' => $reporte->caso_clinico ?? '',
@@ -986,7 +1189,9 @@ class ServicioExpediente
         }
         $datos['prescripcionPost'] = DB::table('prescripcion')->where('id_reporte_operatorio', $reporte->id_reporte_operatorio)->value('resumen') ?? '';
         $datos['alta'] = DB::table('alta_clinica')->where('id_reporte_operatorio', $reporte->id_reporte_operatorio)->value('indicaciones') ?? '';
-        $datos['epicrisis'] = DB::table('epicrisis')->where('id_reporte_operatorio', $reporte->id_reporte_operatorio)->value('resumen_clinico') ?? '';
+        $epicrisis = DB::table('epicrisis')->where('id_reporte_operatorio', $reporte->id_reporte_operatorio)->first();
+        $datos['epicrisis'] = $epicrisis->resumen_clinico ?? '';
+        $datos['diagnosticoDefinitivo'] = $epicrisis->diagnostico ?? '';
 
         return array_filter($datos, fn ($valor) => $valor !== '' && $valor !== null);
     }
@@ -994,15 +1199,19 @@ class ServicioExpediente
     private function guardarSeguimiento(int $id, array $datos): void
     {
         $this->upsertUno('evolucion_clinica', 'id_evolucion_clinica', $id, [
-            'fecha_referencia' => Valores::texto($datos['fecha'] ?? null),
-            'evolucion' => Valores::texto($datos['evolucion'] ?? null),
+            'fecha_referencia' => $this->fecha($datos['fecha'] ?? null),
+            'evolucion' => Valores::texto(is_scalar($datos['evolucion'] ?? null) ? $datos['evolucion'] : null),
         ]);
         $filas = array_values(array_filter((array) ($datos['procedimientos'] ?? []), 'is_array'));
-        if ($filas === []) {
+        $plan = DB::table('plan_quirurgico')->where('id_historia_clinica', $id)->orderByDesc('id_plan_quirurgico')->value('id_plan_quirurgico');
+        if ($filas === [] && ! $plan) {
             return;
         }
-        $idPlan = $this->planQuirurgico($id, 'Seguimiento clínico');
+        $idPlan = $plan ? (int) $plan : $this->planQuirurgico($id, 'Seguimiento clínico');
         $idReporte = DB::table('reporte_operatorio')->where('id_plan_quirurgico', $idPlan)->value('id_reporte_operatorio');
+        if (! $idReporte && $filas === []) {
+            return;
+        }
         if (! $idReporte) {
             $idReporte = DB::table('reporte_operatorio')->insertGetId([
                 'id_plan_quirurgico' => $idPlan,
@@ -1012,16 +1221,31 @@ class ServicioExpediente
                 'creado_en' => now(),
             ]);
         }
-        DB::table('seguimiento_quirurgico')->where('id_reporte_operatorio', $idReporte)->delete();
-        foreach ($filas as $indice => $fila) {
-            DB::table('seguimiento_quirurgico')->insert([
+        $anteriores = DB::table('seguimiento_quirurgico')->where('id_reporte_operatorio', $idReporte)->pluck('id_seguimiento_quirurgico');
+        if ($anteriores->isNotEmpty()) {
+            DB::table('firma_seguimiento')->whereIn('id_seguimiento_quirurgico', $anteriores)->delete();
+            DB::table('seguimiento_quirurgico')->whereIn('id_seguimiento_quirurgico', $anteriores)->delete();
+        }
+        foreach (array_slice($filas, 0, 200) as $indice => $fila) {
+            $idSeguimiento = DB::table('seguimiento_quirurgico')->insertGetId([
                 'id_reporte_operatorio' => $idReporte,
                 'numero_control' => $indice + 1,
-                'fecha' => Valores::texto($fila['fecha'] ?? null) ?? now()->toDateString(),
-                'procedimiento' => Valores::texto($fila['procedimiento'] ?? null),
-                'evolucion' => Valores::texto($fila['evolucion'] ?? null),
+                'fecha' => $this->fecha($fila['fecha'] ?? null) ?? now()->toDateString(),
+                'procedimiento' => $this->corto($fila['procedimiento'] ?? null, 255),
+                'evolucion' => Valores::texto(is_scalar($fila['evolucion'] ?? null) ? $fila['evolucion'] : null),
                 'creado_en' => now(),
             ]);
+            foreach (['OPERADOR' => 'firmaOperador', 'SUPERVISOR' => 'firmaSupervisor'] as $tipo => $clave) {
+                $nombre = $this->corto($fila[$clave] ?? null, 180);
+                if ($nombre !== null) {
+                    DB::table('firma_seguimiento')->insert([
+                        'id_seguimiento_quirurgico' => $idSeguimiento,
+                        'tipo_firmante' => $tipo,
+                        'nombre_firmante' => $nombre,
+                        'fecha_firma' => now(),
+                    ]);
+                }
+            }
         }
     }
 
@@ -1033,12 +1257,22 @@ class ServicioExpediente
         if ($plan) {
             $idReporte = DB::table('reporte_operatorio')->where('id_plan_quirurgico', $plan->id_plan_quirurgico)->value('id_reporte_operatorio');
             if ($idReporte) {
-                $procedimientos = DB::table('seguimiento_quirurgico')->where('id_reporte_operatorio', $idReporte)->orderBy('numero_control')->get()
-                    ->map(fn ($fila) => [
+                $controles = DB::table('seguimiento_quirurgico')->where('id_reporte_operatorio', $idReporte)->orderBy('numero_control')->get();
+                $firmas = DB::table('firma_seguimiento')
+                    ->whereIn('id_seguimiento_quirurgico', $controles->pluck('id_seguimiento_quirurgico'))
+                    ->get()
+                    ->groupBy('id_seguimiento_quirurgico');
+                $procedimientos = $controles->map(function ($fila) use ($firmas) {
+                    $propias = $firmas->get($fila->id_seguimiento_quirurgico, collect());
+
+                    return [
                         'fecha' => $fila->fecha,
                         'procedimiento' => $fila->procedimiento ?? '',
                         'evolucion' => $fila->evolucion ?? '',
-                    ])->all();
+                        'firmaOperador' => $propias->firstWhere('tipo_firmante', 'OPERADOR')->nombre_firmante ?? '',
+                        'firmaSupervisor' => $propias->firstWhere('tipo_firmante', 'SUPERVISOR')->nombre_firmante ?? '',
+                    ];
+                })->all();
             }
         }
 

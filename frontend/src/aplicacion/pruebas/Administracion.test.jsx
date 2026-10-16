@@ -17,6 +17,8 @@ vi.mock('../servicios/servicioAdministracion', () => ({
     crearUsuario: vi.fn(),
     actualizarUsuario: vi.fn(),
     cambiarEstadoUsuario: vi.fn(),
+    obtenerUsuario: vi.fn(),
+    restablecerContrasenaUsuario: vi.fn(),
     obtenerPermisosUsuario: vi.fn(),
     guardarPermisosUsuario: vi.fn(),
     restaurarPermisosUsuario: vi.fn(),
@@ -178,17 +180,14 @@ test('permite elegir un usuario y guardar sus permisos desde módulos con progre
     await waitFor(() => expect(admin.guardarPermisosUsuario).toHaveBeenCalledWith(4, [2]));
 });
 
-test('abre el perfil como página desde permisos sin superponer un diálogo', async () => {
+test('ver perfil desde permisos muestra la ficha del usuario seleccionado, no la propia', async () => {
     const usuario = userEvent.setup();
     iniciarSesion.mockResolvedValue(SESIONES.administrador);
-    Object.defineProperty(globalThis, 'localStorage', {
-        configurable: true,
-        value: {
-            getItem: vi.fn(() => null),
-            setItem: vi.fn(),
-            removeItem: vi.fn(),
-            clear: vi.fn(),
-        },
+    admin.obtenerUsuario.mockResolvedValue({
+        ...USUARIO_DEMO,
+        nombre: 'Carlos Mendoza',
+        telefono: '999 000 111',
+        ultimo_inicio_sesion: null,
     });
 
     await renderizarAplicacion();
@@ -197,8 +196,36 @@ test('abre el perfil como página desde permisos sin superponer un diálogo', as
 
     await usuario.click(await screen.findByRole('button', { name: 'Ver perfil' }));
 
-    expect(await screen.findByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
+    const ficha = await screen.findByRole('region', { name: 'Perfil de Carlos Mendoza' });
+    expect(admin.obtenerUsuario).toHaveBeenCalledWith(3);
+    expect(within(ficha).getByText('999 000 111')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Mi perfil' })).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Datos personales' })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Asignaciones académicas' })).toBeInTheDocument();
+
+    await usuario.click(within(ficha).getByRole('button', { name: 'Cerrar perfil' }));
+    expect(screen.queryByRole('region', { name: 'Perfil de Carlos Mendoza' })).not.toBeInTheDocument();
+});
+
+test('el administrador restablece la contraseña de un usuario', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    admin.restablecerContrasenaUsuario.mockResolvedValue(USUARIO_DEMO);
+
+    await renderizarAplicacion();
+    await ingresar(usuario);
+    await usuario.click(await screen.findByRole('button', { name: 'Usuarios' }));
+    await usuario.click(await screen.findByRole('button', { name: 'Restablecer contraseña de admin' }));
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Restablecer contraseña' });
+    await usuario.type(within(dialogo).getByLabelText('Contraseña temporal'), 'corta');
+    await usuario.click(within(dialogo).getByRole('button', { name: 'Restablecer' }));
+    expect(within(dialogo).getByRole('alert')).toHaveTextContent('al menos 8 caracteres');
+    expect(admin.restablecerContrasenaUsuario).not.toHaveBeenCalled();
+
+    await usuario.clear(within(dialogo).getByLabelText('Contraseña temporal'));
+    await usuario.type(within(dialogo).getByLabelText('Contraseña temporal'), 'Temporal2026');
+    await usuario.click(within(dialogo).getByRole('button', { name: 'Restablecer' }));
+
+    await waitFor(() => expect(admin.restablecerContrasenaUsuario).toHaveBeenCalledWith(3, 'Temporal2026'));
+    expect(await screen.findByText(/Contraseña restablecida para admin/)).toBeInTheDocument();
 });

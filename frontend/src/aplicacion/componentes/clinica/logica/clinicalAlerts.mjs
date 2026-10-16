@@ -11,9 +11,12 @@ export function buildClinicalAlerts(formData = {}) {
   const antecedentes = formData.antecedentes ?? {};
   const alerts = new Map();
 
-  if (health.q13Answer === 'Sí' || antecedentes.alergiaMedicamento === 'Sí') {
-    const detail = clean(antecedentes.alergiaMedicamentoDetalle) || clean(health.q13Detail) || 'Penicilina';
-    addAlert(alerts, { id: 'allergy-penicillin', level: 'critical', label: `Alergia: ${detail}`, source: 'Antecedentes' });
+  if (health.q13Answer === 'Sí') {
+    addAlert(alerts, { id: 'allergy-penicillin', level: 'critical', label: `Alergia a penicilina${health.q13Detail ? `: ${clean(health.q13Detail)}` : ''}`, source: 'Cuestionario de salud' });
+  }
+  if (antecedentes.alergiaMedicamento === 'Sí') {
+    const detail = clean(antecedentes.alergiaMedicamentoDetalle) || 'detalle pendiente';
+    addAlert(alerts, { id: 'allergy-medication', level: 'critical', label: `Alergia medicamentosa: ${detail}`, source: 'Antecedentes terapéuticos' });
   }
   if (health.q14Answer === 'Sí') {
     const detail = clean(health.q14Detail) || 'Otro medicamento';

@@ -135,9 +135,17 @@ export function CheckboxGroup({ label, values = [], onChange, options = [], clas
  * tipo="imagen" abre el selector de imágenes al hacer clic y muestra las vistas ya cargadas.
  * tipo="archivo" abre el selector de documentos al hacer clic y lista los adjuntos.
  */
-export function PhotoPlaceholder({ title, description, count = 1, tipo = 'imagen', value, onChange, accept, maximoArchivos, multiple, nota }) {
+/** Estado del bloque de fotografías según las vistas adjuntas frente a las previstas. */
+export function estadoFotos(adjuntos, previstas) {
+  const total = Array.isArray(adjuntos) ? adjuntos.length : 0;
+  if (!total) return 'pending';
+  return total >= previstas ? 'complete' : 'progress';
+}
+
+export function PhotoPlaceholder({ title, description, count = 1, tipo = 'imagen', value, onChange, accept, maximoArchivos, multiple, nota, campo }) {
   return (
     <BloqueCarga
+      campo={campo}
       title={title}
       description={description}
       count={count}
@@ -149,18 +157,5 @@ export function PhotoPlaceholder({ title, description, count = 1, tipo = 'imagen
       multiple={multiple}
       nota={nota}
     />
-  );
-}
-
-export function SaveBar({ sectionLabel, onSave, onPrevious, onNext, isFirst, isLast }) {
-  return (
-    <div className="undac-savebar">
-      <div><strong>{sectionLabel}</strong><span>Los cambios se conservan localmente hasta su sincronización con la base de datos.</span></div>
-      <div className="undac-savebar__actions">
-        {!isFirst ? <button type="button" className="undac-btn undac-btn--ghost" onClick={onPrevious}>Anterior</button> : null}
-        <button type="button" className="undac-btn undac-btn--secondary" onClick={onSave}>Guardar borrador</button>
-        {!isLast ? <button type="button" className="undac-btn undac-btn--primary" onClick={onNext}>Guardar y continuar</button> : null}
-      </div>
-    </div>
   );
 }

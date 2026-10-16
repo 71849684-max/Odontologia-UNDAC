@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import ListaUsuariosPermisos from './ListaUsuariosPermisos.jsx';
 import EditorPermisosUsuario from './EditorPermisosUsuario.jsx';
+import FichaUsuario from './FichaUsuario.jsx';
 import {
     guardarPermisosUsuario,
     listarUsuarios,
@@ -23,6 +24,7 @@ export default function PermisosUsuariosApp({ onNavigate }) {
     const [mensaje, setMensaje] = useState('');
     const [error, setError] = useState('');
     const [usuarioActual, setUsuarioActual] = useState(null);
+    const [fichaAbierta, setFichaAbierta] = useState(false);
 
     const roles = useMemo(() => [...new Set(usuarios.map((item) => item.rol).filter(Boolean))], [usuarios]);
 
@@ -116,7 +118,7 @@ export default function PermisosUsuariosApp({ onNavigate }) {
             const respuesta = await guardarPermisosUsuario(usuarioId, [...efectivos]);
             setDelRol(new Set(respuesta.del_rol ?? []));
             setEfectivos(new Set(respuesta.efectivos ?? []));
-            setMensaje('Permisos guardados correctamente.');
+            setMensaje('Permisos guardados para este usuario. El rol base no cambia.');
         } catch (err) {
             setError(err instanceof ErrorHttp ? err.message : 'No se pudieron guardar los permisos.');
         } finally {
@@ -137,8 +139,11 @@ export default function PermisosUsuariosApp({ onNavigate }) {
 
             <div className="permisos-layout">
                 <ListaUsuariosPermisos usuarios={filtrados} roles={roles} seleccionadoId={usuarioId} busqueda={busqueda} rol={filtroRol} onBusquedaChange={setBusqueda} onRolChange={setFiltroRol} onSelect={seleccionarUsuario} />
-                {cargando && <section className="permisos-card" aria-label="Editor de permisos"><p role="status" style={{ padding: 24 }}>Cargando permisos…</p></section>}
-                {!cargando && usuarioActual && <EditorPermisosUsuario usuario={usuarioActual} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onRestore={restaurarRol} onSave={guardar} onViewProfile={() => onNavigate?.('perfil')} />}
+                <div className="permisos-columna">
+                    {cargando && <section className="permisos-card" aria-label="Editor de permisos"><p role="status" style={{ padding: 24 }}>Cargando permisos…</p></section>}
+                    {!cargando && usuarioActual && <EditorPermisosUsuario usuario={usuarioActual} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onRestore={restaurarRol} onSave={guardar} onViewProfile={() => setFichaAbierta(true)} />}
+                    {fichaAbierta && usuarioId && <FichaUsuario id={usuarioId} onClose={() => setFichaAbierta(false)} onManage={onNavigate ? () => onNavigate('usuarios') : undefined} />}
+                </div>
             </div>
 
         </section>

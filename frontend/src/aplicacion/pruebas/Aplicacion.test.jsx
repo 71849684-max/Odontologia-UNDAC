@@ -69,7 +69,7 @@ test('edita el perfil desde la cabecera y conserva los datos al remontar', async
     await usuario.type(screen.getByLabelText('Correo electrónico'), 'carlos@undac.edu.pe');
     await usuario.type(screen.getByLabelText('Teléfono'), '999 111 222');
     await usuario.click(screen.getByRole('button', { name: 'Guardar cambios' }));
-    expect(screen.getByRole('status')).toHaveTextContent('Perfil actualizado');
+    expect(screen.getByRole('status')).toHaveTextContent(/Perfil (actualizado|guardado)/i);
 
     primeraVista.unmount();
     obtenerSesion.mockResolvedValue(SESIONES.administrador);

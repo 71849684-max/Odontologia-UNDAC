@@ -2,8 +2,11 @@ import '@testing-library/jest-dom/vitest';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import React from 'react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import HistoriaClinica from '../componentes/clinica/HistoriaClinica.jsx';
+import { BloqueCarga, SlotConstancia } from '../formularios/compartidos/ControlesCarga.jsx';
+import { ArchivosClinicosContext } from '../formularios/compartidos/archivosClinicos.js';
 
 let almacen;
 
@@ -160,6 +163,86 @@ test('al pulsar una miniatura se abre un visor modal con la imagen ampliada', as
   fireEvent.keyDown(window, { key: 'Escape' });
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(document.activeElement).toBe(disparo);
+});
+
+function servidorSimulado() {
+  let siguiente = 1;
+  return {
+    subir: vi.fn(async (campo, contenido, nombre) => {
+      const archivoId = siguiente++;
+      return { id: `srv-${archivoId}`, archivoId, nombre, tamano: contenido.size, tipo: contenido.type, url: `/api/historias/7/archivos/${archivoId}`, vistaPrevia: `/api/historias/7/archivos/${archivoId}` };
+    }),
+    eliminar: vi.fn(async () => undefined),
+  };
+}
+
+function BloqueControlado({ campo, ...props }) {
+  const [valor, setValor] = React.useState([]);
+  return <BloqueCarga campo={campo} value={valor} onChange={setValor} {...props} />;
+}
+
+function SlotControlado(props) {
+  const [valor, setValor] = React.useState(null);
+  return <SlotConstancia value={valor} onChange={setValor} {...props} />;
+}
+
+test('con historia en el servidor las imágenes se suben con la clave del campo y se borran en el servidor', async () => {
+  const servidor = servidorSimulado();
+  render(<ArchivosClinicosContext.Provider value={servidor}><BloqueControlado campo="fotosModelos" title="Fotografías de modelos" count={4} /></ArchivosClinicosContext.Provider>);
+
+  expect(screen.getByText(/se guardan en el expediente del paciente/i)).toBeInTheDocument();
+  const selector = document.querySelector('input[aria-label="Cargar imágenes en Fotografías de modelos"]');
+  fireEvent.change(selector, { target: { files: [archivo('modelo-1.png', 'image/png')] } });
+
+  const vista = await screen.findByAltText('Vista previa de modelo-1.png');
+  expect(vista).toHaveAttribute('src', '/api/historias/7/archivos/1');
+  expect(servidor.subir).toHaveBeenCalledWith('fotosModelos', expect.any(File), 'modelo-1.png');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar modelo-1.png' }));
+  await waitFor(() => expect(screen.queryByAltText('Vista previa de modelo-1.png')).not.toBeInTheDocument());
+  expect(servidor.eliminar).toHaveBeenCalledWith(expect.objectContaining({ archivoId: 1 }));
+});
+
+test('si el servidor rechaza el archivo se muestra su mensaje y no se agrega', async () => {
+  const servidor = servidorSimulado();
+  servidor.subir.mockRejectedValueOnce({ errores: { archivo: ['El archivo supera el tamaño máximo de 2048 KB.'] } });
+  render(<ArchivosClinicosContext.Provider value={servidor}><BloqueControlado campo="resultadosLaboratorio" title="Resultados" tipo="archivo" /></ArchivosClinicosContext.Provider>);
+
+  const selector = document.querySelector('input[aria-label="Cargar archivos en Resultados"]');
+  fireEvent.change(selector, { target: { files: [archivo('informe.pdf', 'application/pdf')] } });
+
+  expect(await screen.findByRole('alert')).toHaveTextContent('supera el tamaño máximo');
+  expect(screen.queryByText('informe.pdf')).not.toBeInTheDocument();
+});
+
+test('la constancia se sube al servidor y queda la imagen del expediente', async () => {
+  const servidor = servidorSimulado();
+  render(<ArchivosClinicosContext.Provider value={servidor}><SlotControlado campo="firmaPaciente" label="Firma del paciente" /></ArchivosClinicosContext.Provider>);
+
+  const selector = document.querySelector('input[aria-label="Cargar imagen de Firma del paciente"]');
+  fireEvent.change(selector, { target: { files: [archivo('firma.png', 'image/png')] } });
+
+  expect(await screen.findByAltText('Vista previa de Firma del paciente')).toHaveAttribute('src', '/api/historias/7/archivos/1');
+  expect(servidor.subir).toHaveBeenCalledWith('firmaPaciente', expect.any(File), 'firma.png');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Eliminar Firma del paciente' }));
+  await waitFor(() => expect(screen.getByText('Constancia pendiente')).toBeInTheDocument());
+  expect(servidor.eliminar).toHaveBeenCalledTimes(1);
+});
+
+test('la firma se puede dibujar en el pad y la huella solo admite imagen', () => {
+  render(<>
+    <SlotControlado campo="firmaDocente" label="Firma del docente" />
+    <SlotControlado campo="huellaDactilar" label="Huella dactilar" permitirDibujo={false} />
+  </>);
+
+  expect(screen.queryByRole('button', { name: 'Dibujar Huella dactilar' })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Dibujar Firma del docente' }));
+
+  const pad = screen.getByRole('dialog', { name: 'Dibujar Firma del docente' });
+  expect(within(pad).getByRole('button', { name: 'Usar firma' })).toBeDisabled();
+  fireEvent.click(within(pad).getByRole('button', { name: 'Cancelar' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 test('el visor usa un contenedor de 1000 x 700 px y el carrusel es responsivo', async () => {

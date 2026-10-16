@@ -18,6 +18,7 @@ export default function OclusionSection({ values, onChange }) {
     <CollapsibleSection title="Antecedentes protésicos" subtitle="Tipo de prótesis y responsable de su confección" status={protesis.length ? 'progress' : 'pending'}>
       <div className="undac-form-grid">
         <CheckboxGroup label="¿Fue portador de algún tipo de prótesis bucal?" values={protesis} onChange={set('protesisTipos')} options={['Total','Parcial','Fija','Otros']} className="undac-col-2" />
+        {protesis.includes('Otros') ? <Field label="Tipo de prótesis — otros" value={get('protesisOtros')} onChange={set('protesisOtros')} className="undac-col-2" /> : null}
         {protesis.length ? <ChoiceGroup label="La prótesis fue confeccionada e instalada por" value={get('protesisProfesional')} onChange={set('protesisProfesional')} options={['Odontólogo','Técnico dental']} className="undac-col-2" /> : null}
         <TextAreaField label="Diagnóstico presuntivo" value={get('diagnosticoPresuntivoOclusion')} onChange={set('diagnosticoPresuntivoOclusion')} className="undac-col-2" rows={4} />
       </div>

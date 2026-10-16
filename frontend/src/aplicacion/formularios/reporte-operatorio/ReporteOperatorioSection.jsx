@@ -41,8 +41,8 @@ export default function ReporteOperatorioSection({ values, onChange, patient, hi
         <Field label="Fecha" type="date" value={get('fecha')} onChange={set('fecha')} />
       </div>
       <div className="undac-signature-grid undac-signature-grid--2">
-        <SlotConstancia label="Firma del docente" textoPendiente="Área reservada" value={get('firmaDocenteReporte')} onChange={set('firmaDocenteReporte')} />
-        <SlotConstancia label="Firma del alumno" textoPendiente="Área reservada" value={get('firmaAlumnoReporte')} onChange={set('firmaAlumnoReporte')} />
+        <SlotConstancia campo="firmaDocenteReporte" label="Firma del docente" textoPendiente="Área reservada" value={get('firmaDocenteReporte')} onChange={set('firmaDocenteReporte')} />
+        <SlotConstancia campo="firmaAlumnoReporte" label="Firma del alumno" textoPendiente="Área reservada" value={get('firmaAlumnoReporte')} onChange={set('firmaAlumnoReporte')} />
       </div>
     </SectionCard>
   </div>;

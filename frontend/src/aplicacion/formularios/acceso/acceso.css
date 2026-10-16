@@ -265,8 +265,13 @@
 .pagina-acceso .campo-contrasena button { width: 44px; height: 44px; right: 2px; color: #64748b; }
 .pagina-acceso .campo-contrasena button:hover { background: #f0fdfa; color: #0f766e; }
 .pagina-acceso .opciones-acceso { display: flex; justify-content: flex-end; font-size: 13px; }
-.pagina-acceso .opciones-acceso a { color: #0d9488; text-decoration: none; }
-.pagina-acceso .opciones-acceso a:hover { color: #0f766e; text-decoration: underline; }
+.pagina-acceso .opciones-acceso a,
+.pagina-acceso .enlace-acceso { border: 0; background: none; padding: 0; color: #0d9488; cursor: pointer; font: inherit; text-decoration: none; }
+.pagina-acceso .opciones-acceso a:hover,
+.pagina-acceso .enlace-acceso:hover { color: #0f766e; text-decoration: underline; }
+.pagina-acceso .enlace-acceso:focus-visible { outline: 2px solid #0d9488; outline-offset: 2px; border-radius: 4px; }
+.pagina-acceso .recuperacion-acceso { border: 1px solid #99f6e4; border-radius: 10px; background: #f0fdfa; padding: 12px 14px; color: #134e4a; font-size: 13px; line-height: 1.5; }
+.pagina-acceso .recuperacion-acceso p { margin: 4px 0 0; }
 .pagina-acceso .boton-ingreso {
     display: flex;
     height: 50px;
@@ -301,7 +306,8 @@
     .pagina-acceso .acceso-formulario { padding: 36px 24px; }
     .pagina-acceso .acceso-formulario__marca { margin-bottom: 28px; }
     .pagina-acceso .campo-formulario input { font-size: 16px; }
-    .pagina-acceso .opciones-acceso a { display: inline-flex; align-items: center; min-height: 44px; }
+    .pagina-acceso .opciones-acceso a,
+    .pagina-acceso .enlace-acceso { display: inline-flex; align-items: center; min-height: 44px; }
 }
 
 @media (max-width: 560px) {

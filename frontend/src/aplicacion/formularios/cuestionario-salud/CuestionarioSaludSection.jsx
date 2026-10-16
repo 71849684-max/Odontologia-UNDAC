@@ -3,6 +3,7 @@ import { CollapsibleSection, Field, ChoiceGroup } from '../compartidos/Controles
 import { healthQuestions } from './cuestionario-salud.config.mjs';
 import { yesNo } from '../compartidos/opcionesClinicas.js';
 import useSection from '../compartidos/useSection.js';
+import { preguntaVisible } from '../../componentes/clinica/logica/reglasClinicas.mjs';
 
 const GROUPS = [
   { id: 'general', title: 'Atención médica y hospitalización', numbers: [1, 15, 16] },
@@ -22,7 +23,10 @@ export default function CuestionarioSaludSection({ values, onChange }) {
 
   return <div className="undac-section-stack clinical-health-questionnaire">
     {GROUPS.map((group, groupIndex) => {
-      const questions = group.numbers.map((number) => healthQuestions.find((question) => question.number === number)).filter(Boolean);
+      const questions = group.numbers
+        .filter((number) => preguntaVisible(number, values))
+        .map((number) => healthQuestions.find((question) => question.number === number))
+        .filter(Boolean);
       const groupAnswered = questions.filter((question) => yesNo.includes(answerFor(get, question.number))).length;
       const groupPositive = questions.filter((question) => answerFor(get, question.number) === 'Sí').length;
       return <CollapsibleSection

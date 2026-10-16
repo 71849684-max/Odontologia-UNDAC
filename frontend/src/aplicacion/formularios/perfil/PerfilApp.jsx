@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Save, UserRound } from 'lucide-react';
+import { KeyRound, Save, UserRound } from 'lucide-react';
 import { actualizarPerfil, obtenerEstadoAcademico, sincronizarAcademico } from '../../servicios/servicioAcademico.js';
 import { mensajeError } from '../../servicios/servicioClinico.js';
+import { cambiarMiContrasena, guardarMiPerfil, obtenerMiPerfil, problemaContrasena } from '../../servicios/servicioCuenta.js';
 
 function nombreSesion(usuario) {
   const partes = String(usuario?.nombre || '').replace(/^(Dr|Dra)\.\s*/i, '').trim().split(/\s+/).filter(Boolean);
@@ -64,15 +65,88 @@ function detalleAsignaciones(estado, perfil) {
     .filter((item, indice, items) => items.findIndex((otro) => otro.id === item.id) === indice);
 }
 
+function desdeServidor(perfil, previo) {
+  return {
+    ...previo,
+    nombres: perfil.nombres ?? previo.nombres,
+    apellidos: perfil.apellidos ?? previo.apellidos,
+    documento: perfil.numero_documento ?? previo.documento,
+    correo: perfil.correo ?? '',
+    telefono: perfil.telefono ?? '',
+    roles: perfil.codigo_rol ? [perfil.codigo_rol] : previo.roles,
+  };
+}
+
+const CLAVE_VACIA = { actual: '', nueva: '', confirmacion: '' };
+
+function CambioContrasena() {
+  const [claves, setClaves] = useState(CLAVE_VACIA);
+  const [estado, setEstado] = useState({ tipo: '', texto: '' });
+  const [enviando, setEnviando] = useState(false);
+
+  function change(campo, valor) {
+    setEstado({ tipo: '', texto: '' });
+    setClaves((actual) => ({ ...actual, [campo]: valor }));
+  }
+
+  async function enviar(event) {
+    event.preventDefault();
+    const problema = problemaContrasena(claves.nueva)
+      || (claves.nueva !== claves.confirmacion ? 'La confirmación no coincide con la nueva contraseña.' : '');
+    if (problema) {
+      setEstado({ tipo: 'error', texto: problema });
+      return;
+    }
+    setEnviando(true);
+    try {
+      await cambiarMiContrasena(claves);
+      setClaves(CLAVE_VACIA);
+      setEstado({ tipo: 'ok', texto: 'Contraseña actualizada' });
+    } catch (error) {
+      setEstado({ tipo: 'error', texto: mensajeError(error, 'No se pudo cambiar la contraseña.') });
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return <section className="hc-panel-card hc-profile-card" aria-labelledby="perfil-clave">
+    <div className="hc-profile-card__identity">
+      <span><KeyRound size={24} aria-hidden="true" /></span>
+      <div><strong>Seguridad</strong><small>Mínimo 8 caracteres, con letras y números.</small></div>
+    </div>
+    <div className="hc-profile-card__content">
+      <header><h2 id="perfil-clave">Cambiar contraseña</h2></header>
+      <form className="hc-profile-form" onSubmit={enviar}>
+        <label>Contraseña actual<input type="password" autoComplete="current-password" maxLength={255} value={claves.actual} onChange={(event) => change('actual', event.target.value)} required /></label>
+        <label>Nueva contraseña<input type="password" autoComplete="new-password" maxLength={255} value={claves.nueva} onChange={(event) => change('nueva', event.target.value)} required /></label>
+        <label>Confirmar nueva contraseña<input type="password" autoComplete="new-password" maxLength={255} value={claves.confirmacion} onChange={(event) => change('confirmacion', event.target.value)} required /></label>
+        <div className="hc-profile-form__actions">
+          {estado.texto && <span role={estado.tipo === 'error' ? 'alert' : 'status'}>{estado.texto}</span>}
+          <button type="submit" className="hc-button hc-button--primary" disabled={enviando}><KeyRound size={16} /> {enviando ? 'Actualizando…' : 'Cambiar contraseña'}</button>
+        </div>
+      </form>
+    </div>
+  </section>;
+}
+
 export default function PerfilApp({ usuario, rol }) {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
   const [formulario, setFormulario] = useState(() => prepararPerfil(estado, usuario, rol));
+  const [enServidor, setEnServidor] = useState(false);
   useEffect(() => {
     let vigente = true;
     sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch(() => {});
+    obtenerMiPerfil()
+      .then((perfil) => {
+        if (!vigente || !perfil) return;
+        setEnServidor(true);
+        setFormulario((actual) => desdeServidor(perfil, actual));
+      })
+      .catch(() => {});
     return () => { vigente = false; };
   }, []);
   const [mensaje, setMensaje] = useState('');
+  const [guardando, setGuardando] = useState(false);
   const asignaciones = useMemo(() => detalleAsignaciones(estado, formulario), [estado, formulario]);
 
   function change(campo, valor) {
@@ -80,14 +154,26 @@ export default function PerfilApp({ usuario, rol }) {
     setFormulario((actual) => ({ ...actual, [campo]: valor }));
   }
 
-  function guardar(event) {
+  async function guardar(event) {
     event.preventDefault();
+    setGuardando(true);
     try {
-      actualizarPerfil(formulario);
-      setEstado(obtenerEstadoAcademico());
-      setMensaje('Perfil actualizado');
+      if (enServidor) {
+        const perfil = await guardarMiPerfil(formulario);
+        setFormulario((actual) => desdeServidor(perfil, actual));
+        // Caché local de presentación; no sustituye el guardado institucional.
+        actualizarPerfil({ ...formulario, ...perfil, usuarioId: formulario.usuarioId });
+        setEstado(obtenerEstadoAcademico());
+        setMensaje('Perfil actualizado');
+      } else {
+        actualizarPerfil(formulario);
+        setEstado(obtenerEstadoAcademico());
+        setMensaje('Perfil guardado solo en este equipo');
+      }
     } catch (error) {
       setMensaje(mensajeError(error, 'No se pudo guardar el perfil.'));
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -113,18 +199,20 @@ export default function PerfilApp({ usuario, rol }) {
           <p>Información de contacto asociada a su cuenta.</p>
         </header>
         <form className="hc-profile-form" onSubmit={guardar}>
-          <label>Nombres<input value={formulario.nombres ?? ''} onChange={(event) => change('nombres', event.target.value)} required /></label>
-          <label>Apellidos<input value={formulario.apellidos ?? ''} onChange={(event) => change('apellidos', event.target.value)} required /></label>
+          <label>Nombres<input value={formulario.nombres ?? ''} maxLength={100} onChange={(event) => change('nombres', event.target.value)} required /></label>
+          <label>Apellidos<input value={formulario.apellidos ?? ''} maxLength={120} onChange={(event) => change('apellidos', event.target.value)} required /></label>
           <label>Documento<input value={formulario.documento || 'No registrado'} readOnly /></label>
-          <label>Correo electrónico<input type="email" value={formulario.correo ?? ''} onChange={(event) => change('correo', event.target.value)} /></label>
-          <label>Teléfono<input type="tel" value={formulario.telefono ?? ''} onChange={(event) => change('telefono', event.target.value)} /></label>
+          <label>Correo electrónico<input type="email" maxLength={150} value={formulario.correo ?? ''} onChange={(event) => change('correo', event.target.value)} /></label>
+          <label>Teléfono<input type="tel" maxLength={30} pattern="[0-9+()\s\-]*" value={formulario.telefono ?? ''} onChange={(event) => change('telefono', event.target.value)} /></label>
           <div className="hc-profile-form__actions">
             {mensaje && <span role="status">{mensaje}</span>}
-            <button type="submit" className="hc-button hc-button--primary"><Save size={16} /> Guardar cambios</button>
+            <button type="submit" className="hc-button hc-button--primary" disabled={guardando}><Save size={16} /> Guardar cambios</button>
           </div>
         </form>
       </div>
     </section>
+
+    {enServidor && <CambioContrasena />}
 
     <section className="hc-panel-card hc-profile-assignments" aria-labelledby="perfil-asignaciones">
       <header><h2 id="perfil-asignaciones">Asignaciones académicas</h2></header>

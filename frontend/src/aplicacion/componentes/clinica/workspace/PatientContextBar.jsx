@@ -1,14 +1,18 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { ArrowLeft, Menu, ShieldCheck, UserRound } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Menu, ShieldCheck, UserRound } from 'lucide-react';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
 import OperatorAssignmentDialog from './OperatorAssignmentDialog.jsx';
+import { asignarPersonal, idHistoria, mensajeError } from '../../../servicios/servicioClinico.js';
+
+const MAX_ALERTAS = 4;
 
 export default function PatientContextBar({ onExit, navigationOpen = false, onToggleNavigation, navigationId, navigationTriggerRef, desktopNavigation = true, showNavigationToggle = true }) {
-  const { patient, history, formData, meta, updateSection } = useHistoriaClinica();
+  const { patient, history, formData, meta, updateSection, alerts = [] } = useHistoriaClinica();
   const [asignacionAbierta, setAsignacionAbierta] = useState(false);
   const [personalBorrador, setPersonalBorrador] = useState(null);
+  const [errorAsignacion, setErrorAsignacion] = useState('');
   const assignmentTriggerRef = useRef(null);
-  const cerrarAsignacion = useCallback(() => setAsignacionAbierta(false), []);
+  const cerrarAsignacion = useCallback(() => { setAsignacionAbierta(false); setErrorAsignacion(''); }, []);
   const datosPaciente = formData['datos-paciente'] || {};
   const operadorNombre = (datosPaciente.personal?.nombre || datosPaciente.operador || history.operador || 'Sin asignar').replace(/^Dr\.\s*/i, '');
   const initials = String(patient.nombres ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
@@ -47,6 +51,13 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
           <button ref={assignmentTriggerRef} type="button" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={abrirAsignacion}>Cambiar asignación</button>
         </section>
       </div>
+      {alerts.length ? <ul className="clinical-patient-bar__alert-strip" aria-label="Alertas clínicas">
+        {alerts.slice(0, MAX_ALERTAS).map((alerta) => <li key={alerta.id} className={`clinical-alert-chip is-${alerta.level}`} title={`${alerta.label} · ${alerta.source}`}>
+          {alerta.level === 'critical' ? <AlertTriangle size={13} aria-hidden="true" /> : null}
+          <span>{alerta.level === 'critical' ? <span className="solo-lectores">Alerta crítica: </span> : null}{alerta.label}</span>
+        </li>)}
+        {alerts.length > MAX_ALERTAS ? <li className="clinical-alert-more">+{alerts.length - MAX_ALERTAS} más</li> : null}
+      </ul> : null}
     </header>
     <OperatorAssignmentDialog
       open={asignacionAbierta}
@@ -55,13 +66,24 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
       fecha={datosPaciente.fechaPaciente}
       triggerRef={assignmentTriggerRef}
       onClose={cerrarAsignacion}
-      onSelect={(persona) => {
+      onSelect={async (persona) => {
         setPersonalBorrador(persona);
+        setErrorAsignacion('');
         if (!persona) return;
+        const servidor = idHistoria(history.id);
+        if (servidor && persona.id) {
+          try {
+            await asignarPersonal(servidor, persona.id);
+          } catch (error) {
+            setErrorAsignacion(mensajeError(error, 'No se pudo guardar la asignación.'));
+            return;
+          }
+        }
         updateSection('datos-paciente', 'personal', persona);
         updateSection('datos-paciente', 'operador', persona.nombre || '');
         cerrarAsignacion();
       }}
+      error={errorAsignacion}
     />
   </>;
 }

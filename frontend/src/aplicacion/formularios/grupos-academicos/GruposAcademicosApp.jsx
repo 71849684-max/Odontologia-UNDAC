@@ -226,6 +226,44 @@ function RotationsBlock({ estado, grupo, onRefresh }) {
   </>;
 }
 
+function etiquetaRotacion(estado, rotacion) {
+  const curso = estado.cursos.find((item) => item.id === rotacion.cursoId)?.nombre || 'Curso';
+  const periodo = estado.periodos.find((item) => item.id === rotacion.periodoId)?.codigo || 'Periodo';
+  return `${curso} · ${periodo}`;
+}
+
+function GroupTeachersTab({ estado, grupo, onManage }) {
+  const rotaciones = estado.rotaciones.filter((item) => item.grupoId === grupo.id);
+  const filas = estado.docentesRotacion
+    .filter((asignacion) => rotaciones.some((rotacion) => rotacion.id === asignacion.rotacionId))
+    .map((asignacion) => ({
+      ...asignacion,
+      nombre: estado.personas.find((persona) => persona.id === asignacion.personaId)?.nombre || 'Docente',
+      rotacion: rotaciones.find((rotacion) => rotacion.id === asignacion.rotacionId),
+    }));
+  return <section className="hc-academic-block" aria-labelledby="grupo-docentes-titulo">
+    <header><div><h3 id="grupo-docentes-titulo">Docentes</h3><p>{new Set(filas.map((item) => item.personaId)).size} docentes en {rotaciones.length} rotaciones</p></div><button type="button" className="hc-button hc-button--ghost" onClick={onManage}>Gestionar en rotaciones</button></header>
+    {filas.length ? <div className="hc-table-card"><table className="hc-table" aria-label="Docentes del grupo"><thead><tr><th>Docente</th><th>Rotación</th><th>Vigencia</th><th>Función</th></tr></thead><tbody>
+      {filas.map((item) => <tr key={item.id}><td data-label="Docente">{item.nombre}</td><td data-label="Rotación">{etiquetaRotacion(estado, item.rotacion)}</td><td data-label="Vigencia">{item.rotacion.fechaInicio} — {item.rotacion.fechaFin}</td><td data-label="Función">{item.funcion === 'colaborador' ? 'Colaborador' : 'Responsable'}</td></tr>)}
+    </tbody></table></div> : <p>Aún no hay docentes asignados. Asígnelos desde cada rotación registrada.</p>}
+  </section>;
+}
+
+function GroupHistoryTab({ estado, grupo }) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const membresias = estado.membresias
+    .filter((item) => item.grupoId === grupo.id && (item.estado === 'finalizada' || (item.fechaFin && item.fechaFin < hoy)))
+    .map((item) => ({ ...item, nombre: estado.personas.find((persona) => persona.id === item.personaId)?.nombre || 'Estudiante' }));
+  const rotaciones = estado.rotaciones.filter((item) => item.grupoId === grupo.id && (item.estado === 'finalizada' || (item.fechaFin && item.fechaFin < hoy)));
+  return <section className="hc-academic-block" aria-labelledby="grupo-historial-titulo">
+    <header><div><h3 id="grupo-historial-titulo">Historial</h3><p>Membresías y rotaciones finalizadas que se conservan en el grupo.</p></div></header>
+    <h4>Membresías finalizadas</h4>
+    {membresias.length ? <ul className="hc-chip-list" aria-label="Membresías finalizadas">{membresias.map((item) => <li key={item.id}><span>{item.nombre} · {item.fechaInicio || '—'} — {item.fechaFin || '—'}</span></li>)}</ul> : <p>No hay membresías finalizadas.</p>}
+    <h4>Rotaciones concluidas</h4>
+    {rotaciones.length ? <ul className="hc-chip-list" aria-label="Rotaciones concluidas">{rotaciones.map((item) => <li key={item.id}><span>{etiquetaRotacion(estado, item)} · {item.fechaInicio} — {item.fechaFin}</span></li>)}</ul> : <p>No hay rotaciones concluidas.</p>}
+  </section>;
+}
+
 export default function GruposAcademicosApp() {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
   useEffect(() => {
@@ -265,8 +303,8 @@ export default function GruposAcademicosApp() {
         {pestana === 'resumen' && <section className="hc-group-summary"><div><strong>{estado.membresias.filter((item) => item.grupoId === grupo.id && item.estado !== 'finalizada').length}</strong><span>Integrantes activos</span></div><div><strong>{estado.rotaciones.filter((item) => item.grupoId === grupo.id).length}</strong><span>Rotaciones</span></div><div><strong>{new Set(estado.docentesRotacion.filter((asignacion) => estado.rotaciones.some((rotacion) => rotacion.id === asignacion.rotacionId && rotacion.grupoId === grupo.id)).map((item) => item.personaId)).size}</strong><span>Docentes</span></div></section>}
         {pestana === 'integrantes' && <MembersBlock key={`members-${grupo.id}`} estado={estado} grupo={grupo} onRefresh={refrescar} />}
         {pestana === 'rotaciones' && <RotationsBlock key={`rotations-${grupo.id}`} estado={estado} grupo={grupo} onRefresh={refrescar} />}
-        {pestana === 'docentes' && <section className="hc-academic-block"><h3>Docentes</h3><p>Gestione los responsables desde cada rotación registrada.</p></section>}
-        {pestana === 'historial' && <section className="hc-academic-block"><h3>Historial</h3><p>Las membresías y rotaciones finalizadas se conservan en este grupo.</p></section>}
+        {pestana === 'docentes' && <GroupTeachersTab estado={estado} grupo={grupo} onManage={() => setPestana('rotaciones')} />}
+        {pestana === 'historial' && <GroupHistoryTab estado={estado} grupo={grupo} />}
       </article> : <section className="hc-panel-card hc-group-empty"><p>Seleccione un grupo para gestionar su estructura académica.</p></section>}
     </div>
     <GroupDialog open={dialogo} triggerRef={triggerRef} grupo={grupoEditar} onClose={cerrar} onSaved={(guardado) => { refrescar(); setGrupoId(guardado.id); cerrar(); }} />

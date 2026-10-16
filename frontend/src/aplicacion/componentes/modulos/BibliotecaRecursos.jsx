@@ -1,5 +1,6 @@
 import { BookOpenCheck, Download, FileText } from 'lucide-react';
 
+/** @deprecated Demo huérfano: no montado en menú; se conserva para tests de módulos. */
 export default function BibliotecaRecursos({ recursos = [] }) {
     return (
         <section className="biblioteca-recursos" aria-labelledby="titulo-biblioteca">

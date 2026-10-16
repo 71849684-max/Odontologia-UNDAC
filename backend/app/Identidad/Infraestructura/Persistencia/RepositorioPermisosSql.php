@@ -6,19 +6,13 @@ use App\Identidad\Dominio\Contratos\RepositorioPermisos;
 use App\Identidad\Dominio\Cuenta;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Los permisos del rol viven en rol_submodulo y son compartidos. Los ajustes
+ * de una persona se guardan como excepciones en usuario_*_submodulo:
+ * permitido=1 concede un submódulo extra y permitido=0 retira uno del rol.
+ */
 class RepositorioPermisosSql implements RepositorioPermisos
 {
-    /**
-     * Accesos sembrados por rol. Restaurar vuelve a este conjunto.
-     *
-     * @var array<string, list<int>>
-     */
-    private const DEFECTO_POR_ROL = [
-        'ADMINISTRADOR' => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
-        'DOCENTE' => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 18],
-        'ALUMNO' => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-    ];
-
     public function catalogo(): array
     {
         return DB::table('submodulo as s')
@@ -50,11 +44,6 @@ class RepositorioPermisosSql implements RepositorioPermisos
 
     public function idsDelRol(Cuenta $cuenta): array
     {
-        return $this->idsEfectivos($cuenta);
-    }
-
-    public function idsEfectivos(Cuenta $cuenta): array
-    {
         if ($cuenta->idRol() === 0) {
             return [];
         }
@@ -64,37 +53,90 @@ class RepositorioPermisosSql implements RepositorioPermisos
             ->where('estado', 1)
             ->pluck('id_submodulo')
             ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values()
             ->all();
+    }
+
+    public function idsEfectivos(Cuenta $cuenta): array
+    {
+        if ($cuenta->idRol() === 0) {
+            return [];
+        }
+
+        $ids = array_fill_keys($this->idsDelRol($cuenta), true);
+
+        foreach ($this->excepciones($cuenta) as $idSubmodulo => $permitido) {
+            if ($permitido) {
+                $ids[$idSubmodulo] = true;
+            } else {
+                unset($ids[$idSubmodulo]);
+            }
+        }
+
+        $resultado = array_map('intval', array_keys($ids));
+        sort($resultado);
+
+        return $resultado;
     }
 
     public function sincronizar(Cuenta $cuenta, array $deseados, int $idOperador): void
     {
-        $this->reemplazar($cuenta->idRol(), array_values(array_unique(array_map('intval', $deseados))));
-    }
+        $validos = DB::table('submodulo')->where('estado', 1)->pluck('id_submodulo')->map(fn ($id) => (int) $id)->all();
+        $deseados = array_values(array_intersect(array_unique(array_map('intval', $deseados)), $validos));
+        $delRol = $this->idsDelRol($cuenta);
 
-    public function restaurarRol(Cuenta $cuenta): void
-    {
-        $codigo = DB::table('rol')->where('id_rol', $cuenta->idRol())->value('codigo_rol');
-        $defecto = self::DEFECTO_POR_ROL[(string) $codigo] ?? [];
-        $this->reemplazar($cuenta->idRol(), $defecto);
-    }
+        $filas = [];
+        foreach (array_diff($deseados, $delRol) as $id) {
+            $filas[$id] = 1;
+        }
+        foreach (array_diff($delRol, $deseados) as $id) {
+            $filas[$id] = 0;
+        }
 
-    /**
-     * @param  list<int>  $ids
-     */
-    private function reemplazar(int $idRol, array $ids): void
-    {
-        DB::transaction(function () use ($idRol, $ids) {
-            DB::table('rol_submodulo')->where('id_rol', $idRol)->delete();
+        [$tabla, $columna] = $this->tabla($cuenta);
 
-            foreach ($ids as $idSubmodulo) {
-                DB::table('rol_submodulo')->insert([
-                    'id_rol' => $idRol,
+        DB::transaction(function () use ($cuenta, $filas, $tabla, $columna) {
+            DB::table($tabla)->where($columna, $cuenta->id())->delete();
+
+            foreach ($filas as $idSubmodulo => $permitido) {
+                DB::table($tabla)->insert([
+                    $columna => $cuenta->id(),
                     'id_submodulo' => $idSubmodulo,
-                    'estado' => 1,
+                    'permitido' => $permitido,
                     'creado_en' => now(),
                 ]);
             }
         });
+    }
+
+    public function restaurarRol(Cuenta $cuenta): void
+    {
+        [$tabla, $columna] = $this->tabla($cuenta);
+        DB::table($tabla)->where($columna, $cuenta->id())->delete();
+    }
+
+    /**
+     * @return array<int, bool>
+     */
+    private function excepciones(Cuenta $cuenta): array
+    {
+        [$tabla, $columna] = $this->tabla($cuenta);
+
+        return DB::table($tabla)
+            ->where($columna, $cuenta->id())
+            ->pluck('permitido', 'id_submodulo')
+            ->mapWithKeys(fn ($permitido, $id) => [(int) $id => (bool) $permitido])
+            ->all();
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function tabla(Cuenta $cuenta): array
+    {
+        return $cuenta->tipoCuenta() === 'ALUMNO'
+            ? ['usuario_alumno_submodulo', 'id_usuario_alumno']
+            : ['usuario_docente_submodulo', 'id_usuario_docente'];
     }
 }

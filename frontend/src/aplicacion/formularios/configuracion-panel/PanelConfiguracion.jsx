@@ -1,3 +1,4 @@
+/** @deprecated Demo huérfano: no montado en menú; se conserva para tests de módulos. */
 export default function PanelConfiguracion({ grupos = [] }) {
     return (
         <div className="cuadricula-configuracion">

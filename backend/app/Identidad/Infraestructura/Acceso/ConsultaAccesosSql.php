@@ -51,6 +51,21 @@ class ConsultaAccesosSql implements ConsultaAccesos
             return false;
         }
 
+        [$tabla, $columna] = $cuenta->tipoCuenta() === 'ALUMNO'
+            ? ['usuario_alumno_submodulo', 'id_usuario_alumno']
+            : ['usuario_docente_submodulo', 'id_usuario_docente'];
+
+        $excepcion = DB::table($tabla.' as us')
+            ->join('submodulo as s', 's.id_submodulo', '=', 'us.id_submodulo')
+            ->where('us.'.$columna, $cuenta->id())
+            ->where('s.estado', 1)
+            ->where('s.codigo_submodulo', $codigoPermiso)
+            ->value('us.permitido');
+
+        if ($excepcion !== null) {
+            return (bool) $excepcion;
+        }
+
         return DB::table('rol_submodulo as rs')
             ->join('rol as r', 'r.id_rol', '=', 'rs.id_rol')
             ->join('submodulo as s', 's.id_submodulo', '=', 'rs.id_submodulo')

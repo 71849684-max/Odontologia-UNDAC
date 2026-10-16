@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import BusquedaPersonal from '../../../formularios/datos-paciente/BusquedaPersonal.jsx';
 import useModalDialog from '../../interfaz/useModalDialog.js';
 
-export default function OperatorAssignmentDialog({ open, value, meta, fecha, triggerRef, onSelect, onClose }) {
+export default function OperatorAssignmentDialog({ open, value, meta, fecha, triggerRef, onSelect, onClose, error = '' }) {
   const dialogRef = useModalDialog(open, onClose, triggerRef);
 
   if (!open || typeof document === 'undefined') return null;
@@ -26,6 +26,7 @@ export default function OperatorAssignmentDialog({ open, value, meta, fecha, tri
           </div>
           <button type="button" className="hc-mini-button" onClick={onClose} aria-label="Cerrar"><X size={16} /></button>
         </header>
+        {error ? <p className="hc-form-error" role="alert">{error}</p> : null}
         <BusquedaPersonal value={value} meta={meta} fecha={fecha} onChange={onSelect} />
       </section>
     </div>,

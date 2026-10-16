@@ -1,5 +1,5 @@
 import React from 'react';
-import { CollapsibleSection, Field, ChoiceGroup, PhotoPlaceholder } from '../compartidos/ControlesClinicos.jsx';
+import { CollapsibleSection, Field, ChoiceGroup, PhotoPlaceholder, estadoFotos } from '../compartidos/ControlesClinicos.jsx';
 import { intraoralTissues } from './examen-intraoral.config.mjs';
 import { normalAltered } from '../compartidos/opcionesClinicas.js';
 import useSection from '../compartidos/useSection.js';
@@ -18,8 +18,8 @@ export default function ExamenIntraoralSection({ values, onChange }) {
         })}
       </div>
     </CollapsibleSection>
-    <CollapsibleSection title="Fotografías intraorales" subtitle="Registro visual de apoyo" summary="6 vistas previstas" status="pending">
-      <PhotoPlaceholder title="Fotografías intraorales" count={6} value={get('fotosIntraorales', [])} onChange={set('fotosIntraorales')} />
+    <CollapsibleSection title="Fotografías intraorales" subtitle="Registro visual de apoyo" summary="6 vistas previstas" status={estadoFotos(get('fotosIntraorales', []), 6)}>
+      <PhotoPlaceholder campo="fotosIntraorales" title="Fotografías intraorales" count={6} value={get('fotosIntraorales', [])} onChange={set('fotosIntraorales')} />
     </CollapsibleSection>
   </div>;
 }

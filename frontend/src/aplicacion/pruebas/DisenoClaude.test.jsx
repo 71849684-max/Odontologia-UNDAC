@@ -47,7 +47,7 @@ test('la cabecera conserva la identidad y deja las acciones globales fuera del e
   const header = screen.getByRole('banner', { name: 'Cabecera de la aplicación' });
   expect(within(header).getByText('Usuario de prueba')).toBeInTheDocument();
   expect(within(header).queryByRole('searchbox')).not.toBeInTheDocument();
-  expect(within(header).queryByRole('button', { name: 'Notificaciones' })).not.toBeInTheDocument();
+  expect(within(header).getByRole('button', { name: 'Notificaciones' })).toBeInTheDocument();
   expect(within(header).queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument();
 });
 

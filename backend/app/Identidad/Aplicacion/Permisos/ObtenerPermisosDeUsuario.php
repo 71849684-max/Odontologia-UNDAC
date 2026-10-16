@@ -35,6 +35,7 @@ class ObtenerPermisosDeUsuario
             'del_rol' => $delRol,
             'efectivos' => $efectivos,
             'adicionales' => count(array_diff($efectivos, $delRol)),
+            'retirados' => count(array_diff($delRol, $efectivos)),
         ];
     }
 }

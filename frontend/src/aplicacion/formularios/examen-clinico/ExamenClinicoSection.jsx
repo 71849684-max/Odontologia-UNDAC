@@ -3,9 +3,11 @@ import { CollapsibleSection, Field, SelectField, ChoiceGroup } from '../comparti
 import { yesNo } from '../compartidos/opcionesClinicas.js';
 import useSection from '../compartidos/useSection.js';
 import Subheading from '../compartidos/Subheading.jsx';
+import { calcularImc } from '../../componentes/clinica/logica/reglasClinicas.mjs';
 
 export default function ExamenClinicoSection({ values, onChange }) {
   const { get, set } = useSection(values, onChange);
+  const imc = calcularImc(get('peso'), get('talla'));
   return <div className="undac-section-stack clinical-exam-flow">
     <CollapsibleSection title="Examen clínico general" subtitle="Evaluación general y signos vitales" defaultOpen status={Object.keys(values ?? {}).length ? 'progress' : 'pending'}>
       <div className="undac-form-grid">
@@ -13,7 +15,8 @@ export default function ExamenClinicoSection({ values, onChange }) {
         <ChoiceGroup label="Marcha o caminata" value={get('marcha')} onChange={set('marcha')} options={['Normal','Con dificultad']} />
         <ChoiceGroup label="¿Presenta fatiga o cansancio al sentarse o caminar?" value={get('fatiga')} onChange={set('fatiga')} options={yesNo} />
         <SelectField label="Raza" value={get('raza')} onChange={set('raza')} options={['Mestiza','Blanca','Negra','Caucásico','Otros']} />{get('raza') === 'Otros' ? <Field label="Raza — otros" value={get('razaOtros')} onChange={set('razaOtros')} /> : null}
-        <Field label="Peso" value={get('peso')} onChange={set('peso')} /><Field label="Talla" value={get('talla')} onChange={set('talla')} />
+        <Field label="Peso (kg)" inputMode="decimal" value={get('peso')} onChange={set('peso')} /><Field label="Talla (m o cm)" inputMode="decimal" value={get('talla')} onChange={set('talla')} />
+        <div className="clinical-imc"><span id="imc-etiqueta">Índice de masa corporal (IMC)</span><output aria-labelledby="imc-etiqueta">{imc ? `${imc.valor} · ${imc.categoria}` : 'Ingrese peso y talla'}</output></div>
       </div>
       <Subheading>Signos vitales</Subheading>
       <div className="undac-vitals-grid clinical-vitals-grid">

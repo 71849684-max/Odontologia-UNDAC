@@ -1,5 +1,5 @@
 import React from 'react';
-import { CollapsibleSection, Field, TextAreaField, ChoiceGroup, PhotoPlaceholder } from '../compartidos/ControlesClinicos.jsx';
+import { CollapsibleSection, Field, TextAreaField, ChoiceGroup, PhotoPlaceholder, estadoFotos } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 
 export default function ExamenExtraoralSection({ values, onChange }) {
@@ -19,8 +19,8 @@ export default function ExamenExtraoralSection({ values, onChange }) {
         <TextAreaField label="Motivo de la visita al dentista" value={get('motivoVisitaDentista')} onChange={set('motivoVisitaDentista')} className="undac-col-2" rows={3} />
       </div>
     </CollapsibleSection>
-    <CollapsibleSection title="Fotografías extraorales" subtitle="Registro visual de apoyo" summary="5 vistas previstas" status="pending">
-      <PhotoPlaceholder title="Fotografías extraorales" count={5} value={get('fotosExtraorales', [])} onChange={set('fotosExtraorales')} />
+    <CollapsibleSection title="Fotografías extraorales" subtitle="Registro visual de apoyo" summary="5 vistas previstas" status={estadoFotos(get('fotosExtraorales', []), 5)}>
+      <PhotoPlaceholder campo="fotosExtraorales" title="Fotografías extraorales" count={5} value={get('fotosExtraorales', [])} onChange={set('fotosExtraorales')} />
     </CollapsibleSection>
   </div>;
 }

@@ -124,7 +124,17 @@ if errorlevel 1 (
     echo [ERROR] PHP !PHP_VER! no tiene extensiones necesarias ^(pdo_mysql, openssl, mbstring^).
     exit /b 1
 )
-echo [OK] PHP !PHP_VER!
+rem Subidas clinicas: imagenes/firmas pueden superar 2M; se exige 10M/12M.
+for /f "tokens=*" %%I in ('php -r "echo php_ini_loaded_file();"') do set "PHP_INI=%%I"
+php -r "exit((int)ini_get('upload_max_filesize')>=10 && (int)ini_get('post_max_size')>=12 ? 0 : 1);"
+if errorlevel 1 (
+    echo [ERROR] PHP debe permitir archivos de al menos 10M ^(upload_max_filesize^) y POST de 12M ^(post_max_size^).
+    echo         Edita: !PHP_INI!
+    echo         Valores recomendados: upload_max_filesize=10M  post_max_size=12M
+    echo         Luego reinicia Apache / php-fpm / el servicio PHP que use el sitio.
+    exit /b 1
+)
+echo [OK] PHP !PHP_VER! ^(upload 10M+, post 12M+^)
 exit /b 0
 
 rem ------------------------------------------------
@@ -277,7 +287,7 @@ echo [OK] Laravel conectado a MySQL
 
 rem El dump siembra los roles pero ningun usuario: sin esto nadie puede entrar.
 echo [..] Comprobando el usuario administrador...
-for /f "tokens=*" %%U in ('mysql -u root -h 127.0.0.1 -P 3306 -N -s -e "SELECT COUNT(*) FROM bd_clinica_undac.usuario;"') do set "TOTAL_USUARIOS=%%U"
+for /f "tokens=*" %%U in ('mysql -u root -h 127.0.0.1 -P 3306 -N -s -e "SELECT (SELECT COUNT(*) FROM bd_clinica_undac.usuario_docente) + (SELECT COUNT(*) FROM bd_clinica_undac.usuario_alumno);"') do set "TOTAL_USUARIOS=%%U"
 if "!TOTAL_USUARIOS!"=="0" (
     php artisan db:seed --class=SeederAdministrador --force --no-interaction
     if errorlevel 1 (

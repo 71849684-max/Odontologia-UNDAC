@@ -1,16 +1,33 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Search, UserRound } from 'lucide-react';
 import { Field } from '../compartidos/ControlesClinicos.jsx';
-import { personalClinico } from '../../configuracion/datosClinicos.mjs';
+import { listarPersonal } from '../../servicios/servicioClinico.js';
 
-const personal = personalClinico;
-const normalizar = (texto) => texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const normalizar = (texto) => String(texto ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const mostrarFecha = (fecha) => fecha ? fecha.split('-').reverse().join('/') : '—';
 
 export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
   const [busqueda, setBusqueda] = useState('');
+  const [personal, setPersonal] = useState([]);
+  const [buscando, setBuscando] = useState(false);
   const contenedor = useRef(null);
   const terminos = normalizar(busqueda).split(/\s+/).filter(Boolean);
+  useEffect(() => {
+    const texto = busqueda.trim();
+    if (texto.length < 2) {
+      setPersonal([]);
+      return undefined;
+    }
+    let vigente = true;
+    setBuscando(true);
+    const temporizador = setTimeout(() => {
+      listarPersonal(texto.split(/\s+/)[0])
+        .then((lista) => { if (vigente) setPersonal(lista); })
+        .catch(() => { if (vigente) setPersonal([]); })
+        .finally(() => { if (vigente) setBuscando(false); });
+    }, 250);
+    return () => { vigente = false; clearTimeout(temporizador); };
+  }, [busqueda]);
   const resultados = terminos.length ? personal.filter((persona) => terminos.every((termino) => normalizar(`${persona.dni} ${persona.nombre}`).includes(termino))) : [];
 
   return <div className="hc-personal-search" ref={contenedor}>
@@ -22,7 +39,7 @@ export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
     {terminos.length > 0 && <div className="hc-personal-search__results" aria-live="polite">
       {resultados.length ? resultados.map((persona) => <button type="button" key={persona.id} onClick={() => { onChange(persona); setBusqueda(''); }}>
         <strong>{persona.nombre}</strong><span>DNI {persona.dni} · {persona.rol}</span>
-      </button>) : <p>No se encontró personal con esos datos.</p>}
+      </button>) : <p>{buscando || busqueda.trim().length < 2 ? 'Escriba al menos 2 caracteres…' : 'No se encontró personal con esos datos.'}</p>}
     </div>}
     {value ? <div className="hc-operator-summary" role="status" aria-label="Personal seleccionado">
       <div className="hc-operator-identity"><span className="hc-operator-avatar"><UserRound size={24} aria-hidden="true" /></span><div><strong>{value.nombre}</strong><span className="hc-operator-role">{value.rol}</span><small>Responsable de la historia clínica</small></div></div>

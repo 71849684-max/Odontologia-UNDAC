@@ -91,6 +91,32 @@
 .clinical-alert-chip.is-info { color: #075985; border-color: #bae6fd; background: #f0f9ff; }
 .clinical-alert-chip.is-neutral { color: #0f766e; border-color: #99f6e4; background: #f0fdfa; }
 .clinical-alert-more { color: #64748b; font-size: 10px; font-weight: 800; }
+.clinical-patient-bar__alert-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 0; padding: 0 clamp(16px, 2.4vw, 38px) 10px; list-style: none; }
+.clinical-patient-bar__alert-strip .clinical-alert-chip > span { overflow: hidden; text-overflow: ellipsis; }
+.clinical-autosave.is-local { color: #b45309; }
+.clinical-validation-summary { margin: 0 0 12px; padding: 12px 14px; border: 1px solid #fecaca; border-radius: 9px; color: #7f1d1d; background: #fff1f2; }
+.clinical-validation-summary strong { display: block; margin-bottom: 6px; font-size: 13px; }
+.clinical-validation-summary ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.6; }
+fieldset.clinical-active-section__content { min-width: 0; margin: 0; border: 0; }
+.clinical-readonly-note { margin: 0 0 12px; padding: 10px 14px; border: 1px solid #bbf7d0; border-radius: 9px; color: #166534; background: #f0fdf4; font-size: 12px; font-weight: 600; }
+.clinical-active-section__meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.clinical-active-section__state.is-review { color: #b45309; background: #fff7ed; }
+.clinical-active-section__state.is-approved { color: #166534; background: #ecfdf5; }
+.clinical-workspace-actions__save .clinical-autosave { min-width: 0; justify-content: flex-start; }
+.clinical-imc { display: grid; gap: 4px; align-content: start; }
+.clinical-imc span { color: #526b7a; font-size: 12px; font-weight: 600; }
+.clinical-imc output { min-height: 38px; display: flex; align-items: center; padding: 0 12px; border: 1px dashed #cbd8e1; border-radius: 8px; color: #16324f; background: #f8fafc; font-weight: 700; }
+
+@media print {
+  .clinical-workspace-shell { height: auto !important; overflow: visible !important; display: block !important; }
+  .clinical-workspace-layout { display: block !important; overflow: visible !important; }
+  .clinical-moment-sidebar, .clinical-moment-overlay, .clinical-section-tabs, .clinical-workspace-actions,
+  .clinical-patient-bar__controls, .clinical-care-summary button, .clinical-print-hide { display: none !important; }
+  .clinical-workspace__main { height: auto !important; overflow: visible !important; padding: 0 !important; }
+  .clinical-patient-bar { position: static !important; box-shadow: none !important; border-bottom: 1px solid #000; }
+  .clinical-collapsible__body, [hidden].clinical-collapsible__body { display: block !important; }
+  .clinical-active-section { border: 0 !important; box-shadow: none !important; }
+}
 .clinical-autosave { min-width: 170px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; color: #0f766e; }
 .clinical-autosave > span { display: grid; gap: 2px; }
 .clinical-autosave strong { font-size: 10px; }
@@ -387,6 +413,25 @@
 @media (prefers-reduced-motion: reduce) {
   .clinical-autosave.is-saving svg { animation: none; }
   .clinical-moment-nav, .clinical-collapsible__chevron { transition: none; }
+}
+
+.clinical-revision-aviso,
+.clinical-local-banner {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.clinical-revision-aviso {
+  color: #0f4c5c;
+  border: 1px solid #b7dce6;
+  background: #eef8fb;
+}
+.clinical-local-banner {
+  color: #7c2d12;
+  border: 1px solid #fdba74;
+  background: #fff7ed;
 }
 
 .clinical-antecedentes-summary h3 { margin: 0 0 6px; font-size: 16px; color: #23485b; }

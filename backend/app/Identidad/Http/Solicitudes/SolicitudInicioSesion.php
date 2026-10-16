@@ -17,7 +17,7 @@ class SolicitudInicioSesion extends FormRequest
     public function rules(): array
     {
         return [
-            'nombre_usuario' => ['required', 'string', 'max:80'],
+            'nombre_usuario' => ['required', 'string', 'max:120'],
             'contrasena' => ['required', 'string', 'max:255'],
         ];
     }

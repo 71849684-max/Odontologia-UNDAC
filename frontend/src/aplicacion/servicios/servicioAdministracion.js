@@ -34,6 +34,10 @@ export function cambiarEstadoUsuario(id, estado) {
     return clienteHttp.parchear(`/admin/usuarios/${id}/estado`, { estado });
 }
 
+export function restablecerContrasenaUsuario(id, contrasena) {
+    return clienteHttp.parchear(`/admin/usuarios/${id}/clave`, { contrasena });
+}
+
 export function obtenerPermisosUsuario(id) {
     return clienteHttp.obtener(`/admin/usuarios/${id}/permisos`);
 }
