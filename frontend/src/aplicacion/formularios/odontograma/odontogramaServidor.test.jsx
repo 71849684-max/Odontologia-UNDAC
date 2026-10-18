@@ -52,3 +52,14 @@ test('si el registro local es más reciente se conserva y se sincroniza con el s
   await waitFor(() => expect(servicio.guardarOdontograma).toHaveBeenCalledWith(8, expect.objectContaining({ savedAt: local.savedAt })));
   expect(screen.getByText(/Registro de hallazgos \(1\)/)).toBeInTheDocument();
 });
+
+test('si el local está corrupto muestra el aviso y no sobrescribe el JSON original', async () => {
+  almacen.set('undac:odontograma:nts188:v1:HC-0009', '{');
+  servicio.obtenerOdontograma.mockResolvedValue({ ...registroConCaries('OTRO', '2026-10-15T10:00:00.000Z') });
+
+  render(<Odontograma patientId="HC-0009" historyId="9" />);
+
+  await waitFor(() => expect(screen.getByText(/Registro de hallazgos \(1\)/)).toBeInTheDocument());
+  expect(screen.getByRole('alert')).toHaveTextContent('No se pudo leer el odontograma guardado');
+  expect(almacen.get('undac:odontograma:nts188:v1:HC-0009')).toBe('{');
+});

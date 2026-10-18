@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ClipboardCheck, FileText, ShieldCheck, Users } from 'lucide-react';
 import { listarHistorias, listarPacientesLocales } from '../servicios/registroHistoriaClinica.js';
 import { listarHistoriasRemotas, listarPacientes } from '../servicios/servicioClinico.js';
+import { formatearFecha } from '../utilidades/fechas.mjs';
 
 const PERFIL = {
     administrador: {
@@ -71,7 +72,7 @@ export default function DashboardApp({ rol = 'alumno', usuario, onNavigate }) {
 
         <section className="hc-panel-card">
             <div className="hc-panel-card__header"><div><h2>Historias recientes</h2><p>Últimas historias clínicas modificadas.</p></div><button type="button" onClick={() => go(onNavigate, rol === 'alumno' ? 'mis-historias' : 'historias')}>Ver todas →</button></div>
-            {historias.length ? <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Operador</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{historias.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Operador">{item.operador || '—'}</td><td data-label="Estado">{item.estado}</td><td data-label="Actualización">{item.fecha}</td><td data-label="Progreso">{item.progreso ?? 0}%</td><td data-label="Acción"><button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button></td></tr>)}</tbody></table></div> : <p className="hc-panel-card__empty">No hay historias clínicas recientes.</p>}
+            {historias.length ? <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Operador</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{historias.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Operador">{item.operador || '—'}</td><td data-label="Estado">{item.estado}</td><td data-label="Actualización">{formatearFecha(item.fecha) || '—'}</td><td data-label="Progreso">{item.progreso ?? 0}%</td><td data-label="Acción"><button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button></td></tr>)}</tbody></table></div> : <p className="hc-panel-card__empty">No hay historias clínicas recientes.</p>}
         </section>
     </div>;
 }

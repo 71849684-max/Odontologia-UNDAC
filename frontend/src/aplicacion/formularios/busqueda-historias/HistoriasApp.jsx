@@ -4,6 +4,7 @@ import { listarHistorias } from '../../servicios/registroHistoriaClinica.js';
 import { cambiarEstadoHistoria, listarHistoriasRemotas, mensajeError } from '../../servicios/servicioClinico.js';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
+import { formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 const CODIGO_ESTADO = {
     Borrador: 'BORRADOR',
@@ -44,16 +45,7 @@ export function puedeVerObservacion(historia, rol) {
 
 export function formatearFechaObservacion(fecha) {
     if (!fecha) return '—';
-    const valor = String(fecha).includes('T') ? String(fecha) : String(fecha).replace(' ', 'T');
-    const fechaObj = new Date(valor);
-    if (Number.isNaN(fechaObj.getTime())) return String(fecha);
-    return fechaObj.toLocaleString('es-PE', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return formatearFechaHora(fecha) || '—';
 }
 
 export function observacionesDeHistoria(historia) {
@@ -140,7 +132,7 @@ export default function HistoriasApp({ rol, onNavigate }) {
                 <td data-label="Docente">{history.docente}</td>
                 <td data-label="Progreso"><ProgressBar value={history.progreso} /></td>
                 <td data-label="Estado"><StatusBadge status={history.estado} /></td>
-                <td data-label="Fecha">{history.fecha}</td>
+                <td data-label="Fecha">{formatearFecha(history.fecha) || '—'}</td>
                 <td data-label="Acciones"><div className="hc-row-actions">
                     <button className="hc-mini-button" type="button" onClick={() => go({ view: 'historia', historiaId: history.id, section: 'datos-paciente' })}>Abrir</button>
                     {puedeVerObservacion(history, rol) ? <button className="hc-mini-button" type="button" aria-label={`Ver observación ${history.codigo}`} onClick={() => setViendoObservacion(history)}>Ver observación</button> : null}

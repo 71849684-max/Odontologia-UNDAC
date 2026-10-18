@@ -45,7 +45,7 @@ export default function CuestionarioSaludSection({ values, onChange }) {
               <div className="undac-clinical-question__number">{String(question.number).padStart(2, '0')}</div>
               <div className="undac-clinical-question__content">
                 <strong>{question.text}</strong>
-                <ChoiceGroup label={`Respuesta de la pregunta ${question.number}`} value={answer} onChange={set(answerKey)} options={yesNo} />
+                <ChoiceGroup label={question.text} hideLabel value={answer} onChange={set(answerKey)} options={yesNo} />
                 {answer === 'Sí' ? <div className="undac-question-detail">
                   <Field label={question.detailLabel || 'Detalle'} value={get(`q${question.number}Detail`)} onChange={set(`q${question.number}Detail`)} required />
                   {question.extraLabel ? <Field label={question.extraLabel} value={get(`q${question.number}Extra`)} onChange={set(`q${question.number}Extra`)} /> : null}

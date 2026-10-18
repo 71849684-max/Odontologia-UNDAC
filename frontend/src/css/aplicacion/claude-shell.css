@@ -195,7 +195,8 @@
   .clinical-active-section__content .undac-field input, .clinical-active-section__content .undac-field select, .clinical-active-section__content .undac-field textarea { min-height: 44px; font-size: 16px; }
   .clinical-active-section__content .undac-choice__options span { min-height: 44px; padding: 10px 12px; font-size: 14px; }
   .clinical-active-section__content .undac-check-grid label { min-height: 44px; font-size: 14px; }
-  .clinical-workspace-shell :is(.undac-form-grid, .hc-patient-grid, .hc-patient-grid--four, .hc-patient-grid--two, .hc-patient-grid--birth, .hc-patient-grid--residence, .undac-signature-grid, .undac-photo-grid, .clinical-diagnosis-card__fields) { grid-template-columns: minmax(0, 1fr); }
+  .clinical-workspace-shell :is(.undac-form-grid, .hc-patient-grid, .hc-patient-grid--four, .hc-patient-grid--two, .hc-patient-grid--identity, .hc-patient-grid--birth, .hc-patient-grid--residence, .undac-signature-grid, .undac-photo-grid, .clinical-diagnosis-card__fields) { grid-template-columns: minmax(0, 1fr); }
+  .clinical-workspace-shell .hc-field--datetime { max-width: none; }
   .clinical-workspace-shell .clinical-active-section__content :is(.undac-col-2, .undac-col-3, .hc-span-two, .hc-span-full) { grid-column: 1 / -1; }
   .undac-clinical-question { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 12px; }
   .undac-clinical-question__content > strong { font-size: 14px; }

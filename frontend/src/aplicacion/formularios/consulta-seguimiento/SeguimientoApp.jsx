@@ -8,10 +8,11 @@ import {
     listarSeguimientos,
     mensajeError,
 } from '../../servicios/servicioClinico.js';
-import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
+import { InputFecha, ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
+import { formatearFecha } from '../../utilidades/fechas.mjs';
 
-const fechaLegible = (iso) => (iso ? iso.split('-').reverse().join('/') : '—');
+const fechaLegible = (iso) => (iso ? formatearFecha(iso) || '—' : '—');
 
 export default function SeguimientoApp({ tipo = 'seguimiento', rol = 'alumno', onNavigate }) {
     const esPendientes = tipo === 'pendientes';
@@ -204,7 +205,7 @@ export default function SeguimientoApp({ tipo = 'seguimiento', rol = 'alumno', o
                         {historias.map((h) => <option key={h.id} value={h.id}>{h.codigo} · {h.paciente}</option>)}
                     </select>
                 </label> : null}
-                <label className="undac-field"><span>Fecha</span><input type="date" required value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} /></label>
+                <label className="undac-field"><span>Fecha</span><InputFecha required value={form.fecha} onChange={(fecha) => setForm((f) => ({ ...f, fecha }))} /></label>
                 <label className="undac-field"><span>Hora</span><input type="time" value={form.hora} onChange={(e) => setForm((f) => ({ ...f, hora: e.target.value }))} /></label>
                 <label className="undac-field"><span>Detalle</span><input value={form.detalle} maxLength={255} onChange={(e) => setForm((f) => ({ ...f, detalle: e.target.value }))} /></label>
                 <label className="undac-field"><span>Estado</span>

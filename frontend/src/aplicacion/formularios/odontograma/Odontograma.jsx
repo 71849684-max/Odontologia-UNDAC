@@ -4,16 +4,23 @@ import React, { useRef, useState } from 'react';
 import { Maximize2, X } from 'lucide-react';
 import './odontograma.css';
 import { arches, temporaryArches, toothSurfaces, stateFor, clinicalColor, markCode } from './odontograma.config.mjs';
-import { readRecord, updateExamination, closeExamination, addExamination, addFinding, removeFinding, toothFindings, examinationReasons, localDate } from './odontogramaRegistro.mjs';
+import { ERROR_LECTURA_ODONTOGRAMA, readRecord, updateExamination, closeExamination, addExamination, addFinding, removeFinding, toothFindings, examinationReasons, localDate } from './odontogramaRegistro.mjs';
 import { guardarOdontograma, idHistoria, mensajeError, obtenerOdontograma } from '../../servicios/servicioClinico.js';
 import { OdontogramRow } from './GraficoOdontograma.jsx';
 import GuiaSuperficies, { LeyendaSuperficies } from './GuiaSuperficies.jsx';
-import { SectionCard } from '../compartidos/ControlesClinicos.jsx';
+import { InputFecha, SectionCard } from '../compartidos/ControlesClinicos.jsx';
+import { formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 
 function load(patientId, key) {
-  try { const raw = localStorage.getItem(key); return { record: readRecord(raw, patientId), raw, error: '' }; }
-  catch (error) { return { record: null, raw: null, error: error.message || 'El almacenamiento local no está disponible.' }; }
+  let raw = null;
+  try {
+    raw = localStorage.getItem(key);
+    return { record: readRecord(raw, patientId), raw, error: '' };
+  } catch (error) {
+    // Conserva el JSON original para no sobrescribirlo con un odontograma vacío.
+    return { record: null, raw, error: error.message || 'El almacenamiento local no está disponible.' };
+  }
 }
 
 
@@ -21,6 +28,7 @@ function load(patientId, key) {
 export default function Odontograma({ patientId = 'sin-historia', patientName = '', historyCode = '', historyId = null }) {
   const storageKey = `undac:odontograma:nts188:v1:${patientId}`;
   const [initial] = useState(() => load(patientId, storageKey));
+  const localCorrupto = Boolean(initial.raw && !initial.record);
   const [record, setRecord] = useState(initial.record);
   const expectedRaw = useRef(initial.raw);
   const [error, setError] = useState(initial.error);
@@ -68,20 +76,26 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
       try {
         const adoptado = readRecord(JSON.stringify({ ...remoto, patientId: String(patientId) }), patientId);
         const raw = JSON.stringify(adoptado);
-        localStorage.setItem(storageKey, raw);
-        expectedRaw.current = raw;
+        // Si el local está corrupto, no lo sobrescribe: conserva el original y mantiene el aviso.
+        if (!localCorrupto) {
+          localStorage.setItem(storageKey, raw);
+          expectedRaw.current = raw;
+        }
         setRecord(adoptado);
         setExamId(adoptado.examinations.at(-1).id);
-        setError('');
+        setError(localCorrupto ? ERROR_LECTURA_ODONTOGRAMA : '');
       } catch (errorLectura) {
-        setError(errorLectura.message);
+        setError(errorLectura.message || ERROR_LECTURA_ODONTOGRAMA);
       }
-    }).catch(() => {});
+    }).catch((errorRed) => {
+      if (!vigente) return;
+      setError(mensajeError(errorRed, 'No se pudo obtener el odontograma del servidor.'));
+    });
     return () => { vigente = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [servidor]);
 
-  if (!record) return <SectionCard title="Odontograma"><p role="alert">{error}</p><p>Recupere el almacenamiento del navegador antes de continuar. El registro existente no se ha reemplazado.</p></SectionCard>;
+  if (!record) return <SectionCard title="Odontograma"><p className="nts-error" role="alert">{error || ERROR_LECTURA_ODONTOGRAMA}</p><p>Recupere el almacenamiento del navegador antes de continuar. El registro existente no se ha reemplazado.</p></SectionCard>;
   const exam = record.examinations.find((e) => e.id === examId) || record.examinations.at(-1);
   const locked = exam.status === 'closed', state = stateFor(stateId);
   const selectedMarks = [...toothFindings(exam.teeth[selectedTooth]), ...exam.ranges.filter((m) => m.teeth.includes(selectedTooth))];
@@ -90,6 +104,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
 
   const persist = (cambio, guardado = 'Guardado en la historia clínica.') => {
     try {
+      if (localCorrupto) throw new Error(ERROR_LECTURA_ODONTOGRAMA);
       if (localStorage.getItem(storageKey) !== expectedRaw.current) throw new Error('El registro cambió en otra pestaña. Recargue la página para leer la versión más reciente antes de editar.');
       const next = { ...cambio, savedAt: new Date().toISOString() };
       const raw = JSON.stringify(next);
@@ -150,18 +165,18 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
       <div className="nts-mobile-modal__window" role={mobileOpen ? 'dialog' : undefined} aria-modal={mobileOpen || undefined} aria-label={mobileOpen ? 'Odontograma' : undefined}>{mobileOpen ? <header className="nts-mobile-modal__header"><div><strong>Odontograma</strong><small>Toque una superficie para ver sus acciones.</small></div><button type="button" className="hc-mini-button" onClick={() => { setActionTarget(null); setMobileOpen(false); }} aria-label="Cerrar odontograma"><X size={18} /></button></header> : null}
     <SectionCard title="Odontograma" subtitle="Seleccione una superficie para abrir sus acciones y registrar el hallazgo.">
       <div className="nts-notice">{patientName || 'Paciente sin datos'} · {historyCode || 'Sin historia'}. {servidor ? 'Los cambios se guardan en la historia clínica; una evaluación cerrada ya no se puede modificar. El cierre no constituye firma digital.' : 'Los cambios se conservan únicamente en este navegador; el cierre local no constituye firma digital.'}</div>
+      {error ? <p className="nts-error" role="alert">{error}</p> : null}
       <details className="nts-evaluation-details nts-no-print"><summary>Datos de la evaluación</summary>
       <div className="nts-record-toolbar">
         <label className="undac-field"><span>Evaluación</span><select value={exam.id} onChange={(e) => { setExamId(e.target.value); resetEditor(); }}>{record.examinations.map((e, i) => <option key={e.id} value={e.id}>{i + 1}. {e.reason} · {e.date} · {e.status === 'closed' ? 'Cerrada' : 'Borrador'}</option>)}</select></label>
         {!record.examinations.some((e) => e.status === 'draft') && <><label className="undac-field"><span>Motivo de nueva evaluación</span><select value={reason} onChange={(e) => setReason(e.target.value)}>{examinationReasons.filter((r) => r !== 'Inicial').map((r) => <option key={r}>{r}</option>)}</select></label><button type="button" className="undac-btn undac-btn--secondary" onClick={() => run(() => { const next = addExamination(record, reason); if (persist(next)) { setExamId(next.examinations.at(-1).id); resetEditor(); } })}>Nueva evaluación</button></>}
       </div>
       <div className="nts-metadata">
-        <label className="undac-field"><span>Fecha de evaluación</span><input type="date" max={localDate()} value={exam.date} disabled={locked} onChange={(e) => change({ date: e.target.value })} /></label>
+        <label className="undac-field"><span>Fecha de evaluación</span><InputFecha max={localDate()} value={exam.date} disabled={locked} onChange={(date) => change({ date })} /></label>
         <label className="undac-field"><span>Cirujano dentista responsable</span><input value={exam.professional} disabled={locked} onChange={(e) => change({ professional: e.target.value })} /></label>
         <label className="undac-field"><span>N.° COP</span><input value={exam.cop} inputMode="numeric" maxLength={8} disabled={locked} onChange={(e) => change({ cop: e.target.value })} /></label>
       </div>
       </details>
-      {error && <p className="nts-error" role="alert">{error}</p>}
       {message && <p className="nts-save-status" role="status">{message}</p>}
       <div className="nts-dentition" role="group" aria-label="Dentición visible">
         {[['permanent', 'Permanente'], ['temporary', 'Temporal'], ['mixed', 'Mixta']].map(([value, label]) => <button key={value} type="button" aria-pressed={dentition === value} onClick={() => {
@@ -189,7 +204,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
         <label className="undac-field"><span>Observaciones</span><textarea rows="3" disabled={locked} value={exam.observations} onChange={(e) => change({ observations: e.target.value })} placeholder="Hallazgos clínicos no contemplados en la nomenclatura…" /></label>
       </div>
       {allMarks.length > 0 && <details className="nts-register"><summary>Registro de hallazgos ({allMarks.length})</summary><table><thead><tr><th>Pieza(s)</th><th>Hallazgo / sigla</th><th>Superficie</th><th>Especificación</th></tr></thead><tbody>{allMarks.map((m) => <tr key={m.id}><td>{m.teeth.join(', ')}</td><td style={{ color: clinicalColor(m) }}>{stateFor(m.state).label} {markCode(m)}{stateFor(m.state).condition ? ` · ${m.condition === 'bad' ? 'Mal estado' : 'Buen estado'}` : ''}</td><td>{m.surface ? toothSurfaces.find((s) => s.id === m.surface)?.label : 'Pieza / conjunto'}</td><td>{m.note || '—'}</td></tr>)}</tbody></table></details>}
-      {!locked ? <div className="nts-close nts-no-print"><label><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> He revisado el registro de esta evaluación.</label><button type="button" className="undac-btn undac-btn--primary" disabled={!reviewed} onClick={() => run(() => { if (persist(closeExamination(record, exam.id), servidor ? 'Evaluación cerrada y guardada en la historia clínica.' : 'Evaluación cerrada y conservada en este navegador.')) setReviewed(false); })}>Cerrar evaluación</button></div> : <p>Cerrada el {new Date(exam.closedAt).toLocaleString('es-PE')} · Responsable: {exam.professional} · COP {exam.cop}</p>}
+      {!locked ? <div className="nts-close nts-no-print"><label><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> He revisado el registro de esta evaluación.</label><button type="button" className="undac-btn undac-btn--primary" disabled={!reviewed} onClick={() => run(() => { if (persist(closeExamination(record, exam.id), servidor ? 'Evaluación cerrada y guardada en la historia clínica.' : 'Evaluación cerrada y conservada en este navegador.')) setReviewed(false); })}>Cerrar evaluación</button></div> : <p>Cerrada el {formatearFechaHora(exam.closedAt)} · Responsable: {exam.professional} · COP {exam.cop}</p>}
     </SectionCard>
       {actionTarget && (
         <div className="nts-action-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setActionTarget(null); }}>

@@ -24,7 +24,7 @@ test('el cuestionario comienza en las preguntas y conserva el detalle al cambiar
 
   expect(screen.queryByText('Cuestionario de salud · 24 preguntas institucionales')).not.toBeInTheDocument();
   expect(screen.queryByRole('list', { name: 'Estado de las 24 preguntas' })).not.toBeInTheDocument();
-  const answer = screen.getByRole('group', { name: 'Respuesta de la pregunta 1' });
+  const answer = screen.getByRole('group', { name: '¿Fue atendido por un médico últimamente?' });
   fireEvent.click(within(answer).getByRole('radio', { name: 'Sí', exact: true }));
   expect(answer.closest('.undac-clinical-question')).toHaveClass('is-positive');
   fireEvent.change(screen.getByLabelText(/¿Hace qué tiempo/), { target: { value: 'Dos semanas' } });
@@ -252,10 +252,10 @@ test('no marca la sección completa mientras falten datos obligatorios', () => {
 test('la pregunta 21 solo aparece cuando el paciente refiere diabetes', () => {
   render(<HistoriaClinica historiaId="1" initialSection="cuestionario-salud" />);
   fireEvent.click(screen.getByRole('button', { name: /Neurológico, endocrino/ }));
-  expect(screen.queryByRole('group', { name: 'Respuesta de la pregunta 21' })).not.toBeInTheDocument();
-  const q20 = screen.getByRole('group', { name: 'Respuesta de la pregunta 20' });
+  expect(screen.queryByRole('group', { name: 'Si tiene Ud. diabetes, ¿está compensado?' })).not.toBeInTheDocument();
+  const q20 = screen.getByRole('group', { name: '¿Ud. sufre o tiene diabetes?' });
   fireEvent.click(within(q20).getByRole('radio', { name: 'Sí', exact: true }));
-  expect(screen.getByRole('group', { name: 'Respuesta de la pregunta 21' })).toBeInTheDocument();
+  expect(screen.getByRole('group', { name: 'Si tiene Ud. diabetes, ¿está compensado?' })).toBeInTheDocument();
   expect(within(screen.getByRole('list', { name: 'Alertas clínicas' })).getByText('Diabetes')).toBeInTheDocument();
 });
 

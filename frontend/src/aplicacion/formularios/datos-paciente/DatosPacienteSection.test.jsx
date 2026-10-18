@@ -10,16 +10,16 @@ function Formulario({ initial = {} }) {
   return <><DatosPacienteSection values={values} onChange={(key, value) => setValues((current) => ({ ...current, [key]: value }))} /><output data-testid="values">{JSON.stringify(values)}</output></>;
 }
 
-test('inicializa la fecha local del registro y conserva una fecha existente', () => {
+test('inicializa la fecha y hora local del registro y conserva una fecha existente', () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 8, 12, 23, 30));
   render(<Formulario />);
-  expect(screen.getByLabelText('Fecha de registro')).toHaveValue('2026-09-12');
-  expect(screen.getByLabelText('Fecha de registro')).toHaveAttribute('readonly');
-  expect(JSON.parse(screen.getByTestId('values').textContent).fechaPaciente).toBe('2026-09-12');
+  expect(screen.getByLabelText('Fecha y hora de registro')).toHaveValue('12/09/2026 23:30');
+  expect(screen.getByLabelText('Fecha y hora de registro')).toHaveAttribute('readonly');
+  expect(JSON.parse(screen.getByTestId('values').textContent).fechaPaciente).toBe('2026-09-12T23:30');
   cleanup();
   render(<Formulario initial={{ fechaPaciente: '2026-09-01' }} />);
-  expect(screen.getByLabelText('Fecha de registro')).toHaveValue('2026-09-01');
+  expect(screen.getByLabelText('Fecha y hora de registro')).toHaveValue('01/09/2026 00:00');
 });
 
 test('la cascada filtra ubicaciones y limpia selecciones dependientes', () => {
@@ -43,9 +43,12 @@ test('calcula la edad al cambiar la fecha de nacimiento', () => {
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 8, 12, 12));
   render(<Formulario />);
-  fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: '2000-09-13' } });
+  const nacimiento = screen.getByLabelText('Fecha de nacimiento');
+  fireEvent.change(nacimiento, { target: { value: '13/09/2000' } });
+  fireEvent.blur(nacimiento);
   expect(screen.getByLabelText('Edad actual')).toHaveValue('25');
-  fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: '2000-09-12' } });
+  fireEvent.change(nacimiento, { target: { value: '12/09/2000' } });
+  fireEvent.blur(nacimiento);
   expect(screen.getByLabelText('Edad actual')).toHaveValue('26');
   expect(JSON.parse(screen.getByTestId('values').textContent).edad).toBe(26);
 });

@@ -14,6 +14,8 @@
 .hc-patient-grid > * { min-width: 0; }
 .hc-patient-grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hc-patient-grid--four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.hc-patient-grid--identity { grid-template-columns: minmax(7rem, 9rem) minmax(12.5rem, 14rem) minmax(0, 1fr); }
+.hc-field--datetime { max-width: 14rem; }
 .hc-patient-grid--birth { grid-template-columns: 1fr .5fr 1.5fr; }
 .hc-patient-grid > .hc-span-two { grid-column: span 2; }
 .hc-patient-grid > .hc-span-full { grid-column: 1 / -1; }
@@ -80,7 +82,8 @@
 }
 @container admission-card (max-width: 560px) {
   .hc-admission .undac-section-card__header, .hc-admission .undac-section-card__body { padding: 16px; }
-  .hc-patient-grid, .hc-attendance .undac-choice__options { grid-template-columns: 1fr; }
+  .hc-patient-grid, .hc-patient-grid--identity, .hc-attendance .undac-choice__options { grid-template-columns: 1fr; }
+  .hc-field--datetime { max-width: none; }
   .hc-patient-grid > .hc-span-two { grid-column: auto; }
   .hc-operator-summary dl { grid-template-columns: repeat(2, minmax(0, 1fr)); flex-basis: 100%; gap: 12px; }
   .hc-operator-identity { flex-basis: 100%; }

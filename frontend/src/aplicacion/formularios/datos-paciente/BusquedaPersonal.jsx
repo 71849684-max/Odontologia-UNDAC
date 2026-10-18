@@ -2,9 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Search, UserRound } from 'lucide-react';
 import { Field } from '../compartidos/ControlesClinicos.jsx';
 import { listarPersonal } from '../../servicios/servicioClinico.js';
+import { formatearFecha, formatearFechaHora, partesFecha } from '../../utilidades/fechas.mjs';
 
 const normalizar = (texto) => String(texto ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-const mostrarFecha = (fecha) => fecha ? fecha.split('-').reverse().join('/') : '—';
+const mostrarFecha = (fecha) => {
+  if (!fecha) return '—';
+  const partes = partesFecha(fecha);
+  if (!partes) return '—';
+  return partes.hora != null ? formatearFechaHora(fecha) : formatearFecha(fecha);
+};
 
 export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
   const [busqueda, setBusqueda] = useState('');
@@ -43,7 +49,7 @@ export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
     </div>}
     {value ? <div className="hc-operator-summary" role="status" aria-label="Personal seleccionado">
       <div className="hc-operator-identity"><span className="hc-operator-avatar"><UserRound size={24} aria-hidden="true" /></span><div><strong>{value.nombre}</strong><span className="hc-operator-role">{value.rol}</span><small>Responsable de la historia clínica</small></div></div>
-      <dl>{[['DNI', value.dni], ['C.O.P.', value.cop || 'No registrado'], ['Semestre', value.semestre || meta?.semestre], ['Año académico', meta?.anioAcademico], ['Fecha de registro', mostrarFecha(fecha)], ['Docente', meta?.docente]].map(([label, dato]) => <div key={label}><dt>{label}</dt><dd>{dato || '—'}</dd></div>)}</dl>
+      <dl>{[['DNI', value.dni], ['C.O.P.', value.cop || 'No registrado'], ['Semestre', value.semestre || meta?.semestre], ['Año académico', meta?.anioAcademico], ['Fecha y hora de registro', mostrarFecha(fecha)], ['Docente', meta?.docente]].map(([label, dato]) => <div key={label}><dt>{label}</dt><dd>{dato || '—'}</dd></div>)}</dl>
     </div> : <div className="hc-operator-empty"><UserRound size={20} aria-hidden="true" /><span>Seleccione al operador para ver su ficha.</span></div>}
   </div>;
 }

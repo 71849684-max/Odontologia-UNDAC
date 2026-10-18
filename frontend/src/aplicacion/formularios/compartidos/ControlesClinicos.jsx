@@ -1,5 +1,6 @@
 import React from 'react';
 import { BloqueCarga } from './ControlesCarga.jsx';
+import { aIsoFecha, aIsoFechaHora, dentroDeRangoIso, formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 export { BloqueCarga, SlotConstancia } from './ControlesCarga.jsx';
 
@@ -52,12 +53,64 @@ export function CollapsibleSection({ title, subtitle, summary, children, default
   );
 }
 
+/** Entrada de fecha en dd/mm/aaaa (valor interno ISO). */
+export function InputFecha({ id, value, onChange, min, max, required, readOnly, disabled, conHora = false, placeholder, className = '' }) {
+  return <CampoFechaTexto id={id} value={value} onChange={onChange} min={min} max={max} required={required} readOnly={readOnly || disabled} conHora={conHora} placeholder={placeholder} className={className} />;
+}
+
+function CampoFechaTexto({ id, value, onChange, min, max, required, readOnly, conHora = false, placeholder, className = '' }) {
+  const aIso = conHora ? aIsoFechaHora : aIsoFecha;
+  const textoDe = (valor) => (conHora ? formatearFechaHora(valor) : formatearFecha(valor));
+  const [texto, setTexto] = React.useState(() => textoDe(value));
+  React.useEffect(() => { setTexto(textoDe(value)); }, [value, conHora]);
+
+  const confirmar = (raw) => {
+    if (readOnly) return;
+    const limpio = String(raw ?? '').trim();
+    if (!limpio) {
+      onChange?.('');
+      setTexto('');
+      return;
+    }
+    const iso = aIso(limpio);
+    const isoFecha = iso ? iso.slice(0, 10) : null;
+    if (!iso || !dentroDeRangoIso(isoFecha, min, max)) {
+      setTexto(textoDe(value));
+      return;
+    }
+    onChange?.(iso);
+    setTexto(textoDe(iso));
+  };
+
+  return (
+    <input
+      id={id}
+      type="text"
+      className={className}
+      inputMode="numeric"
+      autoComplete="off"
+      placeholder={placeholder || (conHora ? 'dd/mm/aaaa hh:mm' : 'dd/mm/aaaa')}
+      value={texto}
+      required={required}
+      readOnly={readOnly}
+      onChange={(event) => setTexto(event.target.value)}
+      onBlur={(event) => confirmar(event.target.value)}
+      onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); confirmar(event.currentTarget.value); } }}
+    />
+  );
+}
+
 export function Field({ label, value = '', onChange, type = 'text', placeholder = '', required = false, min, max, step, className = '', help, readOnly = false, maxLength, inputMode }) {
   const id = React.useId();
+  const esFecha = type === 'date' || type === 'datetime-local';
   return (
     <label className={`undac-field ${className}`} htmlFor={id}>
       <span>{label}{required ? <em> *</em> : null}</span>
-      <input id={id} type={type} value={value ?? ''} placeholder={placeholder} min={min} max={max} step={step} required={required} readOnly={readOnly} maxLength={maxLength} inputMode={inputMode} onChange={(event) => onChange?.(event.target.value)} />
+      {esFecha ? (
+        <CampoFechaTexto id={id} value={value} onChange={onChange} min={min} max={max} required={required} readOnly={readOnly} conHora={type === 'datetime-local'} placeholder={placeholder} />
+      ) : (
+        <input id={id} type={type} value={value ?? ''} placeholder={placeholder} min={min} max={max} step={step} required={required} readOnly={readOnly} maxLength={maxLength} inputMode={inputMode} onChange={(event) => onChange?.(event.target.value)} />
+      )}
       {help ? <small>{help}</small> : null}
     </label>
   );
@@ -90,11 +143,11 @@ export function SelectField({ label, value = '', onChange, options = [], placeho
   );
 }
 
-export function ChoiceGroup({ label, value = '', onChange, options = ['Sí', 'No'], inline = true, className = '' }) {
+export function ChoiceGroup({ label, value = '', onChange, options = ['Sí', 'No'], inline = true, className = '', hideLabel = false }) {
   const name = React.useId();
   return (
     <fieldset className={`undac-choice ${inline ? 'undac-choice--inline' : ''} ${className}`}>
-      <legend>{label}</legend>
+      {label ? <legend className={hideLabel ? 'solo-lectores' : undefined}>{label}</legend> : null}
       <div className="undac-choice__options">
         {options.map((option) => {
           const normalized = typeof option === 'string' ? { value: option, label: option } : option;

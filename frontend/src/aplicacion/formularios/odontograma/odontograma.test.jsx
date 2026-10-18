@@ -4,7 +4,7 @@ import { cleanup, render, screen, fireEvent, within } from '@testing-library/rea
 import Odontograma from './Odontograma.jsx';
 import { CompactTooth, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
 import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition } from './odontograma.config.mjs';
-import { createRecord, addFinding, removeFinding, toothFindings, closeExamination, updateExamination, addExamination, readRecord, findingTeeth } from './odontogramaRegistro.mjs';
+import { createRecord, addFinding, removeFinding, toothFindings, closeExamination, updateExamination, addExamination, readRecord, findingTeeth, ERROR_LECTURA_ODONTOGRAMA } from './odontogramaRegistro.mjs';
 
 // Node 25 también expone localStorage: use un almacén controlado para jsdom.
 beforeEach(() => {
@@ -25,6 +25,17 @@ test('el gráfico visible incluye raíces y conserva marcas radiculares al recar
   const treatment = within(tooth).getByText('Tratamiento de conductos / pulpectomía', { selector: 'title' }).parentElement;
   expect(treatment).toHaveAttribute('stroke', '#1d4ed8');
   expect(treatment.querySelector('path')).toBeInTheDocument();
+});
+
+test('los premolares 14 y 24 dibujan dos raíces continuas sin trazo discontinuo', () => {
+  render(<Odontograma patientId="premolares" />);
+  for (const pieza of ['14', '24']) {
+    const tooth = screen.getByLabelText(`Gráfico de pieza ${pieza}`);
+    const roots = within(tooth).getByText(`Raíces de pieza ${pieza}`, { selector: 'title' }).parentElement;
+    expect(roots).toHaveAttribute('d', 'M8 77.5L30 10L50 55L70 10L92 77.5');
+    expect(roots).not.toHaveAttribute('stroke-dasharray');
+    expect(tooth.querySelectorAll('path[stroke-dasharray]')).toHaveLength(0);
+  }
 });
 
 test('la selección incisal anterior sigue accesible sin una quinta casilla', () => {
@@ -97,11 +108,18 @@ describe('estructura NTS 188', () => {
     expect(() => addExamination(next, 'Reingreso')).toThrow(/borrador/);
   });
   test('rechaza archivos ajenos o incompletos sin reemplazarlos', () => {
-    expect(() => readRecord(JSON.stringify(createRecord('a')), 'b')).toThrow();
-    expect(() => readRecord('{', 'a')).toThrow();
+    expect(() => readRecord(JSON.stringify(createRecord('a')), 'b')).toThrow(ERROR_LECTURA_ODONTOGRAMA);
+    expect(() => readRecord('{', 'a')).toThrow(ERROR_LECTURA_ODONTOGRAMA);
     const record = createRecord('a'); delete record.examinations[0].teeth['11'];
-    expect(() => readRecord(JSON.stringify(record), 'a')).toThrow();
+    expect(() => readRecord(JSON.stringify(record), 'a')).toThrow(ERROR_LECTURA_ODONTOGRAMA);
   });
+});
+
+test('muestra el error de lectura cuando el odontograma local está corrupto', () => {
+  localStorage.setItem('undac:odontograma:nts188:v1:corrupto', '{');
+  render(<Odontograma patientId="corrupto" />);
+  expect(screen.getByRole('alert')).toHaveTextContent(ERROR_LECTURA_ODONTOGRAMA);
+  expect(localStorage.getItem('undac:odontograma:nts188:v1:corrupto')).toBe('{');
 });
 
 test('muestra el nombre de cada sección del diente en la leyenda y en la guía', () => {

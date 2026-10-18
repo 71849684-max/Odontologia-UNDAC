@@ -79,13 +79,20 @@ export function removeFinding(exam, markId) {
 export function toothFindings(tooth) {
   return [...tooth.findings, ...Object.values(tooth.surfaces).flatMap((s) => s.findings)];
 }
+export const ERROR_LECTURA_ODONTOGRAMA = 'No se pudo leer el odontograma guardado. Se conservó el contenido original; no se sobrescribirá.';
+
 export function readRecord(raw, patientId) {
   if (!raw) return createRecord(patientId);
-  const value = JSON.parse(raw);
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    throw new Error(ERROR_LECTURA_ODONTOGRAMA);
+  }
   const validMark = (m) => m && typeof m.id === 'string' && typeof m.note === 'string' && typeof m.code === 'string' && ['good','bad'].includes(m.condition) && stateFor(m.state).id !== 'sin-registro' && Array.isArray(m.teeth) && m.teeth.length > 0 && m.teeth.every((n) => allTeeth.some((t) => t.number === n)) && Array.isArray(m.points) && m.points.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v) && v >= 0 && v <= 100));
   if (value?.version !== 1 || value.patientId !== String(patientId) || !Array.isArray(value.examinations) || !value.examinations.length || value.examinations.filter((e) => e.status === 'draft').length > 1 || value.examinations.some((e) => !e || typeof e.id !== 'string' || !['draft','closed'].includes(e.status) || !['date','professional','cop','specifications','observations'].every((key) => typeof e[key] === 'string') || !Array.isArray(e.ranges) || !e.ranges.every(validMark) || !allTeeth.every(({ number }) => {
     const t = e.teeth?.[number];
     return t && Array.isArray(t.findings) && t.findings.every(validMark) && toothSurfaces.every((s) => Array.isArray(t.surfaces?.[s.id]?.findings) && t.surfaces[s.id].findings.every(validMark));
-  }))) throw new Error('No se pudo leer el odontograma guardado. Se conservó el contenido original; no se sobrescribirá.');
+  }))) throw new Error(ERROR_LECTURA_ODONTOGRAMA);
   return value;
 }

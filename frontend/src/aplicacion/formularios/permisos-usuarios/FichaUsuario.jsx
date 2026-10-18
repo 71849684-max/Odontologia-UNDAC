@@ -3,14 +3,11 @@ import { createPortal } from 'react-dom';
 import { UserRound, X } from 'lucide-react';
 import { obtenerUsuario } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
+import { formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 function fecha(iso) {
     if (!iso) return 'Sin registros';
-    try {
-        return new Intl.DateTimeFormat('es-PE', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
-    } catch {
-        return iso;
-    }
+    return formatearFechaHora(iso) || iso;
 }
 
 export default function FichaUsuario({ id, onClose, onManage }) {

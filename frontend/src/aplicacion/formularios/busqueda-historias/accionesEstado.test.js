@@ -44,5 +44,5 @@ test('el modal lista todas las observaciones de la historia', () => {
     expect(lista).toHaveLength(2);
     expect(lista[0].texto).toBe('Segunda');
     expect(lista[0].docente).toBe('Ana Docente');
-    expect(formatearFechaObservacion('2026-10-16 12:00:00')).toMatch(/16/);
+    expect(formatearFechaObservacion('2026-10-16 12:00:00')).toBe('16/10/2026 12:00');
 });

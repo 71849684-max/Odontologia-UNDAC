@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Bell, BellOff, CheckCheck } from 'lucide-react';
 import { listarNotificaciones, marcarNotificacionLeida, marcarTodasNotificacionesLeidas, sinRedEnPrueba } from '../../servicios/servicioClinico.js';
+import { formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 export default function NotificationMenu({ onNavigate }) {
     const [abierto, setAbierto] = useState(false);
@@ -89,7 +90,7 @@ export default function NotificationMenu({ onNavigate }) {
                                         <span className="notification-list__dot" aria-hidden="true" />
                                         <strong>{n.titulo || 'Aviso'}</strong>
                                         <p>{n.texto || n.mensaje}</p>
-                                        <small>{n.tiempo ? new Date(n.tiempo).toLocaleString('es-PE') : ''}</small>
+                                        <small>{n.tiempo ? formatearFechaHora(n.tiempo) : ''}</small>
                                     </button>
                                 </li>
                             ))}

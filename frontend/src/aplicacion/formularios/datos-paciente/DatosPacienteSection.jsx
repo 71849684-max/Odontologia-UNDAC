@@ -9,15 +9,31 @@ import './datos-paciente.css';
 
 export function fechaRegistroActual() {
   const hoy = new Date();
-  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+  const hora = `${String(hoy.getHours()).padStart(2, '0')}:${String(hoy.getMinutes()).padStart(2, '0')}`;
+  return `${fecha}T${hora}`;
+}
+
+export function soloFecha(valor = fechaRegistroActual()) {
+  return String(valor ?? '').slice(0, 10);
+}
+
+/** Normaliza fecha o datetime al formato de input datetime-local (YYYY-MM-DDTHH:mm). */
+export function valorFechaHoraRegistro(valor) {
+  const texto = String(valor ?? '').trim();
+  if (!texto) return fechaRegistroActual();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return `${texto}T00:00`;
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(texto)) return texto.replace(' ', 'T').slice(0, 16);
+  return texto.slice(0, 16);
 }
 
 export function calcularEdad(fecha, referencia = fechaRegistroActual()) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || fecha > referencia) return '';
+  const refFecha = soloFecha(referencia);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha) || fecha > refFecha) return '';
   const [anio, mes, dia] = fecha.split('-').map(Number);
   const nacimiento = new Date(anio, mes - 1, dia);
   if (nacimiento.getMonth() !== mes - 1 || nacimiento.getDate() !== dia) return '';
-  const [actual, mesActual, diaActual] = referencia.split('-').map(Number);
+  const [actual, mesActual, diaActual] = refFecha.split('-').map(Number);
   return actual - anio - (mesActual < mes || (mesActual === mes && diaActual < dia) ? 1 : 0);
 }
 
@@ -45,6 +61,7 @@ export default function DatosPacienteSection({ values, onChange, meta }) {
   const nombres = (items) => items.map((item) => item.nombre_ubigeo);
   const campo = (label, key, props = {}) => <Field label={label} value={get(key)} onChange={set(key)} {...props} />;
   const conAcompanante = get('modalidadAsistencia', 'acompanado') === 'acompanado';
+  const fechaHoy = soloFecha();
   return <div className="undac-section-stack hc-admission clinical-admission-flow">
     <CollapsibleSection
       title="Identificación del paciente"
@@ -53,9 +70,9 @@ export default function DatosPacienteSection({ values, onChange, meta }) {
       defaultOpen
       status={hasAny(values, ['dni', 'nombres', 'apellidos']) ? 'progress' : 'pending'}
     >
-      <div className="hc-patient-grid">
+      <div className="hc-patient-grid hc-patient-grid--identity">
         {campo('DNI', 'dni', { inputMode: 'numeric', maxLength: 8 })}
-        <Field label="Fecha de registro" type="date" value={get('fechaPaciente', fechaRegistroActual())} readOnly />
+        <Field className="hc-field--datetime" label="Fecha y hora de registro" type="datetime-local" value={valorFechaHoraRegistro(get('fechaPaciente', fechaRegistroActual()))} readOnly />
         <ChoiceGroup label="Sexo" value={get('sexo')} onChange={set('sexo')} options={[{ value: 'M', label: 'Masculino (M)' }, { value: 'F', label: 'Femenino (F)' }]} />
       </div>
       <div className="hc-patient-grid hc-patient-grid--two hc-admission-row">
@@ -63,7 +80,7 @@ export default function DatosPacienteSection({ values, onChange, meta }) {
         {campo('Nombres completos', 'nombres')}
       </div>
       <div className="hc-patient-grid hc-patient-grid--birth hc-admission-row">
-        <Field label="Fecha de nacimiento" type="date" max={fechaRegistroActual()} value={get('fechaNacimiento')} onChange={(fecha) => { onChange?.('fechaNacimiento', fecha); onChange?.('edad', calcularEdad(fecha)); }} />
+        <Field label="Fecha de nacimiento" type="date" max={fechaHoy} value={get('fechaNacimiento')} onChange={(fecha) => { onChange?.('fechaNacimiento', fecha); onChange?.('edad', calcularEdad(fecha)); }} />
         <Field label="Edad actual" value={get('fechaNacimiento') ? calcularEdad(get('fechaNacimiento')) : get('edad')} readOnly placeholder="Años" />
         {campo('Lugar de nacimiento (ciudad / hospital)', 'lugarNacimiento')}
       </div>

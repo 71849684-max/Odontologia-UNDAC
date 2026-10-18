@@ -3,6 +3,7 @@ import { KeyRound, Save, UserRound } from 'lucide-react';
 import { actualizarPerfil, obtenerEstadoAcademico, sincronizarAcademico } from '../../servicios/servicioAcademico.js';
 import { mensajeError } from '../../servicios/servicioClinico.js';
 import { cambiarMiContrasena, guardarMiPerfil, obtenerMiPerfil, problemaContrasena } from '../../servicios/servicioCuenta.js';
+import { formatearFecha } from '../../utilidades/fechas.mjs';
 
 function nombreSesion(usuario) {
   const partes = String(usuario?.nombre || '').replace(/^(Dr|Dra)\.\s*/i, '').trim().split(/\s+/).filter(Boolean);
@@ -58,7 +59,7 @@ function detalleAsignaciones(estado, perfil) {
         grupo: grupo?.nombre || grupo?.codigo || 'Grupo',
         curso: estado.cursos.find((item) => item.id === rotacion.cursoId)?.nombre || 'Curso',
         periodo: estado.periodos.find((item) => item.id === rotacion.periodoId)?.codigo || 'Periodo',
-        vigencia: `${rotacion.fechaInicio} — ${rotacion.fechaFin}`,
+        vigencia: `${formatearFecha(rotacion.fechaInicio) || '—'} — ${formatearFecha(rotacion.fechaFin) || '—'}`,
         actual: rotacion.estado === 'activa',
       };
     })

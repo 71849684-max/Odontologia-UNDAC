@@ -17,8 +17,11 @@ import {
   sincronizarAcademico,
 } from '../../servicios/servicioAcademico.js';
 import { mensajeError } from '../../servicios/servicioClinico.js';
+import { InputFecha } from '../compartidos/ControlesClinicos.jsx';
+import { formatearFecha } from '../../utilidades/fechas.mjs';
 
 const GRUPO_VACIO = { codigo: '', nombre: '', semestre: '', estado: 'activo' };
+const rangoFechas = (inicio, fin) => `${formatearFecha(inicio) || '—'} — ${formatearFecha(fin) || '—'}`;
 const PERIODO_VACIO = { codigo: '', nombre: '', fechaInicio: '', fechaFin: '', estado: 'activo' };
 
 function PeriodDialog({ open, triggerRef, onClose, onCreated }) {
@@ -41,8 +44,8 @@ function PeriodDialog({ open, triggerRef, onClose, onCreated }) {
       <div className="admin-dialogo__grid">
         <label><span>Código</span><input value={formulario.codigo} onChange={(event) => setFormulario({ ...formulario, codigo: event.target.value })} required /></label>
         <label><span>Nombre</span><input value={formulario.nombre} onChange={(event) => setFormulario({ ...formulario, nombre: event.target.value })} required /></label>
-        <label><span>Inicio</span><input type="date" value={formulario.fechaInicio} onChange={(event) => setFormulario({ ...formulario, fechaInicio: event.target.value })} required /></label>
-        <label><span>Fin</span><input type="date" value={formulario.fechaFin} onChange={(event) => setFormulario({ ...formulario, fechaFin: event.target.value })} required /></label>
+        <label><span>Inicio</span><InputFecha required value={formulario.fechaInicio} onChange={(fechaInicio) => setFormulario({ ...formulario, fechaInicio })} /></label>
+        <label><span>Fin</span><InputFecha required value={formulario.fechaFin} onChange={(fechaFin) => setFormulario({ ...formulario, fechaFin })} /></label>
       </div>
       <footer className="admin-dialogo__acciones"><button type="button" className="hc-button hc-button--ghost" onClick={onClose}>Cancelar</button><button type="submit" className="hc-button hc-button--primary">Guardar periodo</button></footer>
     </form>
@@ -215,8 +218,8 @@ function RotationsBlock({ estado, grupo, onRefresh }) {
       <form className="hc-rotation-form" onSubmit={submit}>
         <label>Curso de la rotación<select value={formulario.cursoId} onChange={(event) => setFormulario({ ...formulario, cursoId: event.target.value })} required>{estado.cursos.filter((item) => item.estado === 'activo').map((curso) => <option key={curso.id} value={curso.id}>{curso.nombre}</option>)}</select></label>
         <label>Periodo de la rotación<select value={formulario.periodoId} onChange={(event) => setFormulario({ ...formulario, periodoId: event.target.value })} required>{estado.periodos.map((periodo) => <option key={periodo.id} value={periodo.id}>{periodo.codigo}</option>)}</select></label>
-        <label>Inicio de la rotación<input type="date" value={formulario.fechaInicio} onChange={(event) => setFormulario({ ...formulario, fechaInicio: event.target.value })} required /></label>
-        <label>Fin de la rotación<input type="date" value={formulario.fechaFin} onChange={(event) => setFormulario({ ...formulario, fechaFin: event.target.value })} required /></label>
+        <label>Inicio de la rotación<InputFecha required value={formulario.fechaInicio} onChange={(fechaInicio) => setFormulario({ ...formulario, fechaInicio })} /></label>
+        <label>Fin de la rotación<InputFecha required value={formulario.fechaFin} onChange={(fechaFin) => setFormulario({ ...formulario, fechaFin })} /></label>
         <button type="submit" className="hc-button hc-button--primary">Agregar rotación</button>
       </form>
       {error && <p className="hc-form-error" role="alert">{error}</p>}
@@ -244,7 +247,7 @@ function GroupTeachersTab({ estado, grupo, onManage }) {
   return <section className="hc-academic-block" aria-labelledby="grupo-docentes-titulo">
     <header><div><h3 id="grupo-docentes-titulo">Docentes</h3><p>{new Set(filas.map((item) => item.personaId)).size} docentes en {rotaciones.length} rotaciones</p></div><button type="button" className="hc-button hc-button--ghost" onClick={onManage}>Gestionar en rotaciones</button></header>
     {filas.length ? <div className="hc-table-card"><table className="hc-table" aria-label="Docentes del grupo"><thead><tr><th>Docente</th><th>Rotación</th><th>Vigencia</th><th>Función</th></tr></thead><tbody>
-      {filas.map((item) => <tr key={item.id}><td data-label="Docente">{item.nombre}</td><td data-label="Rotación">{etiquetaRotacion(estado, item.rotacion)}</td><td data-label="Vigencia">{item.rotacion.fechaInicio} — {item.rotacion.fechaFin}</td><td data-label="Función">{item.funcion === 'colaborador' ? 'Colaborador' : 'Responsable'}</td></tr>)}
+      {filas.map((item) => <tr key={item.id}><td data-label="Docente">{item.nombre}</td><td data-label="Rotación">{etiquetaRotacion(estado, item.rotacion)}</td><td data-label="Vigencia">{rangoFechas(item.rotacion.fechaInicio, item.rotacion.fechaFin)}</td><td data-label="Función">{item.funcion === 'colaborador' ? 'Colaborador' : 'Responsable'}</td></tr>)}
     </tbody></table></div> : <p>Aún no hay docentes asignados. Asígnelos desde cada rotación registrada.</p>}
   </section>;
 }
@@ -258,9 +261,9 @@ function GroupHistoryTab({ estado, grupo }) {
   return <section className="hc-academic-block" aria-labelledby="grupo-historial-titulo">
     <header><div><h3 id="grupo-historial-titulo">Historial</h3><p>Membresías y rotaciones finalizadas que se conservan en el grupo.</p></div></header>
     <h4>Membresías finalizadas</h4>
-    {membresias.length ? <ul className="hc-chip-list" aria-label="Membresías finalizadas">{membresias.map((item) => <li key={item.id}><span>{item.nombre} · {item.fechaInicio || '—'} — {item.fechaFin || '—'}</span></li>)}</ul> : <p>No hay membresías finalizadas.</p>}
+    {membresias.length ? <ul className="hc-chip-list" aria-label="Membresías finalizadas">{membresias.map((item) => <li key={item.id}><span>{item.nombre} · {rangoFechas(item.fechaInicio, item.fechaFin)}</span></li>)}</ul> : <p>No hay membresías finalizadas.</p>}
     <h4>Rotaciones concluidas</h4>
-    {rotaciones.length ? <ul className="hc-chip-list" aria-label="Rotaciones concluidas">{rotaciones.map((item) => <li key={item.id}><span>{etiquetaRotacion(estado, item)} · {item.fechaInicio} — {item.fechaFin}</span></li>)}</ul> : <p>No hay rotaciones concluidas.</p>}
+    {rotaciones.length ? <ul className="hc-chip-list" aria-label="Rotaciones concluidas">{rotaciones.map((item) => <li key={item.id}><span>{etiquetaRotacion(estado, item)} · {rangoFechas(item.fechaInicio, item.fechaFin)}</span></li>)}</ul> : <p>No hay rotaciones concluidas.</p>}
   </section>;
 }
 

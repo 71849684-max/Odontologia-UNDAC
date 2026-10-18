@@ -12,6 +12,7 @@ import {
 } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
 import { problemaContrasena } from '../../servicios/servicioCuenta.js';
+import { formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 const FORMULARIO_VACIO = {
     nombre_usuario: '',
@@ -28,14 +29,7 @@ const FORMULARIO_VACIO = {
 
 function formatearFecha(iso) {
     if (!iso) return 'Sin registros';
-    try {
-        return new Intl.DateTimeFormat('es-PE', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-        }).format(new Date(iso));
-    } catch {
-        return iso;
-    }
+    return formatearFechaHora(iso) || iso;
 }
 
 export default function UsuariosApp() {

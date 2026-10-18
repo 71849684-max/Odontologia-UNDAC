@@ -75,12 +75,15 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
   const clipId = React.useId().replace(/:/g, '');
   const position = Number(number[1]), temporary = Number(number[0]) > 4;
   const molar = isMolar(number);
-  const roots = molar ? (isUpper(number) ? 'M8 77.5L17 10L36 60L50 10L64 60L83 10L92 77.5' : 'M8 77.5L25 10L50 60L75 10L92 77.5') : 'M8 77.5L50 10L92 77.5';
+  // Premolares superiores 14/24: dos raíces continuas (sin trazo discontinuo cruzado).
+  const premolarBirradicular = !temporary && ['14', '24'].includes(number);
+  const roots = molar
+    ? (isUpper(number) ? 'M8 77.5L17 10L36 60L50 10L64 60L83 10L92 77.5' : 'M8 77.5L25 10L50 60L75 10L92 77.5')
+    : (premolarBirradicular ? 'M8 77.5L30 10L50 55L70 10L92 77.5' : 'M8 77.5L50 10L92 77.5');
   const absence = tooth.findings.findLast((mark) => mark.state === 'ausente');
   return <>
     <defs><clipPath id={clipId}><ellipse cx="50" cy="77.5" rx="42" ry="17.5" /></clipPath></defs>
     <path d={roots} fill="white" stroke="black" strokeWidth="2.5" strokeLinejoin="round"><title>Raíces de pieza {number}</title></path>
-    {!temporary && ['14','24'].includes(number) && <path d="M32 60L60 10L75 60" fill="none" stroke="black" strokeDasharray="3 2" />}
     <g clipPath={`url(#${clipId})`}>
       {toothSurfaces.map((s) => {
         const finding = absence || tooth.surfaces[s.id].findings.findLast((mark) => !mark.points.length);

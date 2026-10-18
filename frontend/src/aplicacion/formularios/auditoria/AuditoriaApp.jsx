@@ -4,19 +4,13 @@ import { StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 import { listarAuditoria } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
+import { formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 const POR_PAGINA = 10;
 
 function formatearFecha(valor) {
     if (!valor) return '—';
-    try {
-        return new Intl.DateTimeFormat('es-PE', {
-            dateStyle: 'medium',
-            timeStyle: 'short',
-        }).format(new Date(valor));
-    } catch {
-        return valor;
-    }
+    return formatearFechaHora(valor) || valor;
 }
 
 export default function AuditoriaApp() {
