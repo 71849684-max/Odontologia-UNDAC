@@ -220,7 +220,11 @@ ul.hc-chip-list { margin: 0 0 12px; padding: 0; list-style: none; }
 .permisos-page .btn-principal { min-height: 42px; border-color: #0d9488; background: #0d9488; }
 .permisos-page .permiso-grupo-head--modal.seleccionado { border-color: #99f6e4; background: #f0fdfa; box-shadow: none; }
 .permisos-page .permiso-item.activo .permiso-box { background: #0d9488; border-color: #0d9488; }
-.permisos-page .permisos-hero { margin-bottom: 18px; }
+.permisos-page .permisos-hero { margin-bottom: 18px; align-items: flex-end; }
+.permisos-modo { display: inline-flex; gap: 4px; padding: 4px; border: 1px solid #dbe4ea; border-radius: 10px; background: #f8fafc; }
+.permisos-modo button { min-height: 36px; border: 0; border-radius: 8px; padding: 0 14px; background: transparent; color: #475569; font-size: 13px; font-weight: 700; cursor: pointer; }
+.permisos-modo button[aria-selected="true"] { background: #0d9488; color: #fff; }
+.permisos-roles-nota { margin: 0; color: #64748b; font-size: 12px; line-height: 1.45; }
 .permisos-page .permisos-layout { grid-template-columns: minmax(285px, 320px) minmax(0, 1fr); gap: 16px; align-items: stretch; }
 .permisos-page .permisos-columna { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
 .permisos-ficha--modal { width: min(560px, 100%); padding: 22px 24px; }

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import PaginaAcceso from './paginas/PaginaAcceso';
 import AppLayout from './disenos/AppLayout';
-import { MENU_POR_ROL, perfilDesdeRoles } from './configuracion/menuPorRol';
+import { menuParaSesion, perfilDesdeRoles } from './configuracion/menuPorRol';
 import { useSesion } from './autenticacion/ContextoSesion';
 import { puedeVerRuta } from './autenticacion/rutasProtegidas';
 import AccesoDenegado from './paginas/AccesoDenegado';
 import DashboardApp from './paginas/DashboardApp';
 import PacientesApp from './paginas/PacientesApp';
 import HistoriasApp from './paginas/HistoriasApp';
-import NuevaHistoriaApp from './paginas/NuevaHistoriaApp';
 import HistoriaClinicaApp from './paginas/HistoriaClinicaApp';
 import PermisosUsuariosApp from './paginas/PermisosUsuariosApp';
 import UsuariosApp from './paginas/UsuariosApp';
@@ -25,7 +24,7 @@ const routeAliases = {
     inicio: 'inicio',
     pacientes: 'pacientes',
     historias: 'historias',
-    'nueva-historia': 'nueva-historia',
+    'nueva-historia': 'historias',
     historia: 'historia-clinica',
     'historia-clinica': 'historia-clinica',
     permisos: 'permisos-usuarios',
@@ -72,7 +71,6 @@ const VIEW_COMPONENTS = {
     'mis-pacientes': PacientesApp,
     historias: HistoriasApp,
     'mis-historias': HistoriasApp,
-    'nueva-historia': NuevaHistoriaApp,
     'historia-clinica': HistoriaClinicaApp,
     usuarios: UsuariosApp,
     'permisos-usuarios': PermisosUsuariosApp,
@@ -101,6 +99,7 @@ export default function Aplicacion() {
     const [openHistoriaId, setOpenHistoriaId] = useState(destinoInicial.historiaId);
     const [openSection, establecerSeccionAbierta] = useState(destinoInicial.seccion);
     const [pacienteInicialHistoria, setPacienteInicialHistoria] = useState(null);
+    const [abrirNuevaHistoria, setAbrirNuevaHistoria] = useState(false);
 
     const navigate = useCallback((payload, opciones = {}) => {
         if (!payload) return;
@@ -109,9 +108,12 @@ export default function Aplicacion() {
         let historiaId = null;
         let seccion = 'datos-paciente';
         let pacienteInicial = null;
+        let abrirNueva = false;
+        const vistaOriginal = typeof payload === 'object' ? (payload.view ?? payload.id) : payload;
 
         if (typeof payload === 'string') {
             nextRoute = normalizarRuta(payload);
+            abrirNueva = payload === 'nueva-historia';
         }
 
         if (typeof payload === 'object') {
@@ -119,13 +121,16 @@ export default function Aplicacion() {
             historiaId = payload.historiaId ?? payload.params?.historiaId ?? null;
             seccion = payload.section ?? payload.params?.section ?? 'datos-paciente';
             pacienteInicial = payload.paciente ?? null;
+            abrirNueva = Boolean(payload.abrirNueva || pacienteInicial || vistaOriginal === 'nueva-historia');
         }
 
         if (!nextRoute) return;
         setRoute(nextRoute);
         setOpenHistoriaId(historiaId);
         establecerSeccionAbierta(seccion);
-        setPacienteInicialHistoria(nextRoute === 'nueva-historia' ? pacienteInicial : null);
+        const esListaHistorias = nextRoute === 'historias' || nextRoute === 'mis-historias';
+        setPacienteInicialHistoria(esListaHistorias ? pacienteInicial : null);
+        setAbrirNuevaHistoria(esListaHistorias && abrirNueva);
 
         if (typeof window !== 'undefined') {
             const hash = crearHashNavegacion(nextRoute, historiaId, seccion);
@@ -171,6 +176,7 @@ export default function Aplicacion() {
             setOpenHistoriaId(destino.historiaId);
             establecerSeccionAbierta(destino.seccion);
             setPacienteInicialHistoria(null);
+            setAbrirNuevaHistoria(false);
         }
 
         window.addEventListener('popstate', sincronizarConNavegador);
@@ -209,7 +215,7 @@ export default function Aplicacion() {
     }
 
     const perfil = perfilDesdeRoles(sesion.roles);
-    const menu = MENU_POR_ROL[perfil] ?? MENU_POR_ROL.administrativo;
+    const menu = menuParaSesion(perfil, sesion.permisos);
     const ComponenteVista = puedeVerRuta(route, sesion)
         ? VIEW_COMPONENTS[route] ?? VistaNoDisponible
         : AccesoDenegado;
@@ -230,10 +236,12 @@ export default function Aplicacion() {
             <ComponenteVista
                 rol={perfil}
                 usuario={sesion.usuario}
+                permisos={sesion.permisos}
                 tipo={route === 'pendientes' ? 'pendientes' : 'seguimiento'}
                 historiaId={openHistoriaId}
                 seccionInicial={openSection}
                 pacienteInicial={pacienteInicialHistoria}
+                abrirNueva={abrirNuevaHistoria}
                 onNavigate={navigate}
                 onCreated={(historia) => {
                     navigate({ view: 'historia-clinica', historiaId: historia.id, section: 'datos-paciente' });

@@ -50,6 +50,14 @@ export function restaurarPermisosUsuario(id) {
     return clienteHttp.eliminar(`/admin/usuarios/${id}/permisos`);
 }
 
+export function obtenerPermisosRol(codigo) {
+    return clienteHttp.obtener(`/admin/roles/${codigo}/permisos`);
+}
+
+export function guardarPermisosRol(codigo, permisos) {
+    return clienteHttp.actualizar(`/admin/roles/${codigo}/permisos`, { permisos });
+}
+
 export function listarAuditoria(filtros = {}) {
     return clienteHttp.obtener(`/admin/auditoria${consulta(filtros)}`);
 }

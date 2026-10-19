@@ -217,12 +217,15 @@ class ServicioExpediente
 
         $apellidos = preg_split('/\s+/', (string) $paciente->apellidos) ?: [];
 
-        return array_filter($this->pacientes->ficha((int) $paciente->id_paciente) + [
+        // fechaPaciente = momento de creación de ESTA historia (no la ficha del paciente ni una HC previa).
+        $ficha = array_filter($this->pacientes->ficha((int) $paciente->id_paciente) + [
             'apellidoPaterno' => $apellidos[0] ?? '',
             'apellidoMaterno' => implode(' ', array_slice($apellidos, 1)),
-            'fechaPaciente' => $historia['fecha'] ?? '',
             'operador' => $historia['operador'] ?? '',
         ], fn ($valor) => $valor !== null && $valor !== '');
+        $ficha['fechaPaciente'] = Valores::fechaHoraLocal($historia['fecha'] ?? null);
+
+        return $ficha;
     }
 
     private function guardarAnamnesis(int $id, array $datos): void

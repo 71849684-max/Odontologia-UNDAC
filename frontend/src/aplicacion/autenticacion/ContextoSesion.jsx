@@ -7,7 +7,7 @@ import {
 
 const ContextoSesion = createContext(null);
 
-const SESION_ANONIMA = { usuario: null, roles: [], esAdministrador: false };
+const SESION_ANONIMA = { usuario: null, roles: [], esAdministrador: false, permisos: null };
 
 function normalizarSesion(datos) {
     if (!datos?.usuario) return null;
@@ -16,6 +16,7 @@ function normalizarSesion(datos) {
         usuario: datos.usuario,
         roles: datos.roles ?? [],
         esAdministrador: Boolean(datos.es_administrador),
+        permisos: Array.isArray(datos.permisos) ? datos.permisos : null,
     };
 }
 
@@ -67,6 +68,16 @@ export function ProveedorSesion({ children, sesionInicial = null }) {
         }
     }, []);
 
+    const refrescar = useCallback(async () => {
+        try {
+            const datos = await obtenerSesion();
+            const normalizada = normalizarSesion(datos);
+            if (normalizada) establecerSesion(normalizada);
+        } catch {
+            // La sesión en pantalla se conserva si el servidor no responde.
+        }
+    }, []);
+
     const cerrarSesion = useCallback(async () => {
         try {
             await cerrarSesionEnServidor();
@@ -88,8 +99,9 @@ export function ProveedorSesion({ children, sesionInicial = null }) {
             error,
             iniciarSesion,
             cerrarSesion,
+            refrescar,
         }),
-        [sesion, cargando, enviando, error, iniciarSesion, cerrarSesion],
+        [sesion, cargando, enviando, error, iniciarSesion, cerrarSesion, refrescar],
     );
 
     return <ContextoSesion.Provider value={valor}>{children}</ContextoSesion.Provider>;

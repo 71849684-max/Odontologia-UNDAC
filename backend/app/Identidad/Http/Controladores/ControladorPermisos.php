@@ -3,15 +3,19 @@
 namespace App\Identidad\Http\Controladores;
 
 use App\Http\Controllers\Controller;
+use App\Identidad\Aplicacion\Permisos\GuardarPermisosDeRol;
 use App\Identidad\Aplicacion\Permisos\GuardarPermisosDeUsuario;
 use App\Identidad\Aplicacion\Permisos\ObtenerCatalogoPermisos;
+use App\Identidad\Aplicacion\Permisos\ObtenerPermisosDeRol;
 use App\Identidad\Aplicacion\Permisos\ObtenerPermisosDeUsuario;
 use App\Identidad\Aplicacion\Permisos\RestaurarPermisosDeUsuario;
 use App\Identidad\Dominio\Cuenta;
+use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
 use App\Identidad\Http\ContextoDesdePeticion;
 use App\Identidad\Http\Solicitudes\Admin\SolicitudGuardarPermisos;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ControladorPermisos extends Controller
 {
@@ -20,6 +24,8 @@ class ControladorPermisos extends Controller
         private readonly ObtenerPermisosDeUsuario $deUsuario,
         private readonly GuardarPermisosDeUsuario $guardarPermisos,
         private readonly RestaurarPermisosDeUsuario $restaurarPermisos,
+        private readonly ObtenerPermisosDeRol $permisosRol,
+        private readonly GuardarPermisosDeRol $guardarPermisosRol,
     ) {}
 
     public function catalogo(): JsonResponse
@@ -51,5 +57,32 @@ class ControladorPermisos extends Controller
             $idUsuario,
             ContextoDesdePeticion::de($solicitud),
         ));
+    }
+
+    public function deRol(string $codigoRol): JsonResponse
+    {
+        return response()->json($this->responderRol(fn () => $this->permisosRol->ejecutar($codigoRol)));
+    }
+
+    public function guardarRol(SolicitudGuardarPermisos $solicitud, string $codigoRol): JsonResponse
+    {
+        return response()->json($this->responderRol(fn () => $this->guardarPermisosRol->ejecutar(
+            $codigoRol,
+            $solicitud->idsPermisos(),
+            ContextoDesdePeticion::de($solicitud),
+        )));
+    }
+
+    /**
+     * @param  callable(): array<string, mixed>  $accion
+     * @return array<string, mixed>
+     */
+    private function responderRol(callable $accion): array
+    {
+        try {
+            return $accion();
+        } catch (OperacionNoPermitida $excepcion) {
+            throw ValidationException::withMessages([$excepcion->campo => $excepcion->getMessage()]);
+        }
     }
 }

@@ -6,7 +6,7 @@ export default function AccesoDenegado({ onNavigate }) {
             <section className="estado-visual" aria-label="Acceso denegado">
                 <ShieldAlert size={30} aria-hidden="true" />
                 <strong>Acceso denegado</strong>
-                <p>Tu rol institucional no tiene permitido el módulo de administración.</p>
+                <p>No tienes permiso para ver este módulo.</p>
             </section>
             <button type="button" className="hc-button hc-button--primary" onClick={() => onNavigate?.('inicio')}>
                 <ArrowLeft size={17} /> Volver al inicio

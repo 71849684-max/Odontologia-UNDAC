@@ -190,4 +190,95 @@ class AdministracionModuloTest extends TestCase
         $this->actingAs($docente, 'web')->getJson('/api/admin/auditoria')->assertForbidden();
         $this->actingAs($docente, 'web')->getJson('/api/admin/configuracion')->assertForbidden();
     }
+
+    public function test_la_plantilla_de_alumno_y_docente_no_pisa_el_ajuste_personal(): void
+    {
+        $admin = $this->crearUsuario('admin.plantilla', self::CLAVE, 'ADMINISTRADOR');
+        $docente = $this->crearUsuario('docente.plantilla', self::CLAVE, 'DOCENTE');
+        $companero = $this->crearUsuario('docente.plantilla.dos', self::CLAVE, 'DOCENTE');
+        $alumno = $this->crearUsuario('alumno.plantilla', self::CLAVE, 'ALUMNO');
+        $idPacientes = (int) DB::table('submodulo')->where('codigo_submodulo', 'PACIENTES')->value('id_submodulo');
+        $idBitacora = (int) DB::table('submodulo')->where('codigo_submodulo', 'BITACORA')->value('id_submodulo');
+
+        $plantilla = $this->actingAs($admin, 'web')
+            ->getJson('/api/admin/roles/DOCENTE/permisos')
+            ->assertOk()
+            ->assertJsonPath('rol.codigo', 'DOCENTE')
+            ->json('efectivos');
+        $this->assertContains($idPacientes, $plantilla);
+        $this->assertNotContains($idBitacora, $plantilla);
+
+        $this->actingAs($admin, 'web')
+            ->putJson('/api/admin/usuarios/'.$docente->getKey().'/permisos', [
+                'permisos' => array_values(array_unique([...$plantilla, $idBitacora])),
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'web')
+            ->putJson('/api/admin/roles/DOCENTE/permisos', [
+                'permisos' => array_values(array_diff($plantilla, [$idPacientes])),
+            ])
+            ->assertOk()
+            ->assertJsonPath('rol.nombre', 'Docente');
+
+        $this->assertNotContains(
+            $idPacientes,
+            $this->actingAs($admin, 'web')->getJson('/api/admin/roles/DOCENTE/permisos')->json('efectivos')
+        );
+        $this->assertContains(
+            $idPacientes,
+            $this->actingAs($admin, 'web')->getJson('/api/admin/roles/ALUMNO/permisos')->json('efectivos')
+        );
+
+        $this->actingAs($docente, 'web')->getJson('/api/pacientes')->assertForbidden();
+        $this->actingAs($companero, 'web')->getJson('/api/pacientes')->assertForbidden();
+        $this->actingAs($alumno, 'web')->getJson('/api/pacientes')->assertOk();
+
+        $sesion = $this->postJson('/api/auth/login', [
+            'nombre_usuario' => 'docente.plantilla',
+            'contrasena' => self::CLAVE,
+        ])->assertOk();
+        $this->assertNotContains('PACIENTES', $sesion->json('permisos'));
+        $this->assertContains('BITACORA', $sesion->json('permisos'));
+        $this->assertNotContains(
+            'BITACORA',
+            $this->postJson('/api/auth/login', [
+                'nombre_usuario' => 'docente.plantilla.dos',
+                'contrasena' => self::CLAVE,
+            ])->json('permisos')
+        );
+
+        $this->actingAs($admin, 'web')
+            ->putJson('/api/admin/roles/ADMINISTRADOR/permisos', ['permisos' => []])
+            ->assertStatus(422);
+    }
+
+    public function test_quitar_un_modulo_al_administrador_bloquea_ese_modulo(): void
+    {
+        $admin = $this->crearUsuario('admin.sin.usuarios', self::CLAVE, 'ADMINISTRADOR');
+        $otro = $this->crearUsuario('admin.con.usuarios', self::CLAVE, 'ADMINISTRADOR');
+        $idUsuarios = (int) DB::table('submodulo')->where('codigo_submodulo', 'USUARIOS')->value('id_submodulo');
+
+        $efectivos = $this->actingAs($admin, 'web')
+            ->getJson('/api/admin/usuarios/'.$admin->getKey().'/permisos')
+            ->json('efectivos');
+        $this->assertContains($idUsuarios, $efectivos);
+
+        $this->actingAs($otro, 'web')
+            ->putJson('/api/admin/usuarios/'.$admin->getKey().'/permisos', [
+                'permisos' => array_values(array_diff($efectivos, [$idUsuarios])),
+            ])
+            ->assertOk();
+
+        $this->actingAs($admin, 'web')->getJson('/api/admin/usuarios')->assertForbidden();
+        $this->actingAs($otro, 'web')->getJson('/api/admin/usuarios')->assertOk();
+
+        $permisos = $this->postJson('/api/auth/login', [
+            'nombre_usuario' => 'admin.sin.usuarios',
+            'contrasena' => self::CLAVE,
+        ])->assertOk()->json('permisos');
+        $this->assertIsArray($permisos);
+        $this->assertNotContains('USUARIOS', $permisos);
+        $this->assertContains('ROLES', $permisos);
+    }
 }

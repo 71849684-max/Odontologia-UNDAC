@@ -1,6 +1,6 @@
 import React from 'react';
 import { CompactTooth } from './GraficoOdontograma.jsx';
-import { superficiesDentales, toothSurfaces } from './odontograma.config.mjs';
+import { rootSurfaceIds, superficiesDentales, surfaceName, toothSurfaces } from './odontograma.config.mjs';
 
 /** Leyenda breve de las secciones, siempre visible bajo el odontograma. */
 export function LeyendaSuperficies() {
@@ -8,6 +8,9 @@ export function LeyendaSuperficies() {
     <p className="nts-surface-legend" aria-label="Leyenda de superficies del diente">
       {toothSurfaces.map((surface) => (
         <span key={surface.id}><b>{surface.short}</b> {surface.label}</span>
+      ))}
+      {rootSurfaceIds.map((id) => (
+        <span key={id}><b>{{ raiz: 'R', 'raiz-mesial': 'RM', 'raiz-distal': 'RD', 'raiz-palatina': 'RP' }[id]}</b> {surfaceName(id)}</span>
       ))}
     </p>
   );
@@ -25,11 +28,11 @@ export default function GuiaSuperficies({ molar, incisivo }) {
         <div className="nts-surface-guide__figuras">
           <figure>
             <CompactTooth number="16" tooth={molar} interactive={false} showLabels ariaLabel="Guía de superficies: molar 16" />
-            <figcaption>Molar superior (16): vestibular, mesial, distal, lingual y <b>oclusal</b>.</figcaption>
+            <figcaption>Molar superior (16): caras de la corona y raíces mesial, palatina y distal.</figcaption>
           </figure>
           <figure>
             <CompactTooth number="11" tooth={incisivo} interactive={false} showLabels ariaLabel="Guía de superficies: incisivo 11" />
-            <figcaption>Incisivo superior (11): vestibular, mesial, distal, lingual y <b>borde incisal</b>.</figcaption>
+            <figcaption>Incisivo superior (11): caras de la corona y su raíz.</figcaption>
           </figure>
         </div>
         <dl className="nts-surface-guide__definiciones">

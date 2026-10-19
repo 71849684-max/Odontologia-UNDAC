@@ -1,3 +1,5 @@
+import { vistaPermitida } from '../configuracion/permisosVista.js';
+
 /**
  * Vistas que forman el módulo de administración. El bloqueo real vive en el
  * middleware rol:ADMINISTRADOR del backend; esto evita además que la vista se
@@ -10,6 +12,7 @@ export function esRutaAdmin(ruta) {
 }
 
 export function puedeVerRuta(ruta, sesion) {
+    if (Array.isArray(sesion?.permisos) && !vistaPermitida(ruta, sesion.permisos)) return false;
     if (!esRutaAdmin(ruta)) return true;
 
     return Boolean(sesion?.esAdministrador);

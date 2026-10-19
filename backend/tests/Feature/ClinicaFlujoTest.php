@@ -57,6 +57,47 @@ class ClinicaFlujoTest extends TestCase
         ]);
     }
 
+    public function test_un_alumno_puede_abrir_otra_historia_del_mismo_paciente(): void
+    {
+        $alumno = $this->crearUsuario('alumno.segunda.hc', self::CLAVE, 'ALUMNO');
+
+        $paciente = $this->actingAs($alumno, 'web')->postJson('/api/pacientes', [
+            'nombres' => 'Marco',
+            'apellidoPaterno' => 'Ríos',
+            'apellidoMaterno' => 'Paz',
+            'numeroDocumento' => '70000099',
+            'sexo' => 'M',
+        ])->assertCreated();
+
+        $primera = $this->actingAs($alumno, 'web')->postJson('/api/historias', [
+            'pacienteId' => $paciente->json('id'),
+        ])->assertCreated();
+
+        DB::table('historia_clinica')->where('id_historia_clinica', $primera->json('id'))->update([
+            'creado_en' => now()->subHour(),
+        ]);
+
+        $segunda = $this->actingAs($alumno, 'web')->postJson('/api/historias', [
+            'pacienteId' => $paciente->json('id'),
+        ])->assertCreated();
+
+        $this->assertNotSame($primera->json('id'), $segunda->json('id'));
+        $this->assertNotSame($primera->json('codigo'), $segunda->json('codigo'));
+        $this->assertSame($paciente->json('id'), $segunda->json('pacienteId'));
+        $this->assertSame(2, DB::table('historia_clinica')->where('id_paciente', $paciente->json('id'))->count());
+
+        $exp1 = $this->actingAs($alumno, 'web')->getJson('/api/historias/'.$primera->json('id').'/expediente')->assertOk();
+        $exp2 = $this->actingAs($alumno, 'web')->getJson('/api/historias/'.$segunda->json('id').'/expediente')->assertOk();
+        $this->assertNotSame(
+            $exp1->json('formData.datos-paciente.fechaPaciente'),
+            $exp2->json('formData.datos-paciente.fechaPaciente'),
+        );
+        $this->assertMatchesRegularExpression(
+            '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/',
+            (string) $exp2->json('formData.datos-paciente.fechaPaciente'),
+        );
+    }
+
     public function test_el_docente_gestiona_el_periodo_y_un_curso(): void
     {
         $docente = $this->crearUsuario('docente.academico', self::CLAVE, 'DOCENTE');

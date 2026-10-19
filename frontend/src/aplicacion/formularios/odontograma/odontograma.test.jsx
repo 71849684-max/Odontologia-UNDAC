@@ -2,7 +2,7 @@ import React from 'react';
 import { beforeEach, afterEach, describe, test, expect, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent, within } from '@testing-library/react';
 import Odontograma from './Odontograma.jsx';
-import { CompactTooth, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
+import { CompactTooth, rootRegions, toothSurfacePolygon, surfacePolygons, surfaceLabelPoint } from './GraficoOdontograma.jsx';
 import { arches, temporaryArches, createEmptyOdontogram, stateFor, clinicalColor, surfacePosition } from './odontograma.config.mjs';
 import { createRecord, addFinding, removeFinding, toothFindings, closeExamination, updateExamination, addExamination, readRecord, findingTeeth, ERROR_LECTURA_ODONTOGRAMA } from './odontogramaRegistro.mjs';
 
@@ -113,6 +113,21 @@ describe('estructura NTS 188', () => {
     const record = createRecord('a'); delete record.examinations[0].teeth['11'];
     expect(() => readRecord(JSON.stringify(record), 'a')).toThrow(ERROR_LECTURA_ODONTOGRAMA);
   });
+
+  test('recupera un odontograma cuyos textos vacíos se guardaron como null', () => {
+    const record = createRecord('a');
+    record.examinations[0] = addFinding(record.examinations[0], { state: 'caries', tooth: '14', surface: 'oclusal', code: 'CE', points: [[10, 10], [40, 10], [20, 30]] });
+    record.examinations[0].professional = null;
+    record.examinations[0].cop = null;
+    record.examinations[0].specifications = null;
+    record.examinations[0].observations = null;
+    record.examinations[0].teeth['14'].surfaces.oclusal.note = null;
+    record.examinations[0].teeth['14'].surfaces.oclusal.findings[0].note = null;
+    const leido = readRecord(JSON.stringify(record), 'a');
+    expect(leido.examinations[0].professional).toBe('');
+    expect(leido.examinations[0].teeth['14'].surfaces.oclusal.findings[0].note).toBe('');
+    expect(leido.examinations[0].teeth['14'].surfaces.oclusal.findings[0].code).toBe('CE');
+  });
 });
 
 test('muestra el error de lectura cuando el odontograma local está corrupto', () => {
@@ -138,11 +153,43 @@ test('muestra el nombre de cada sección del diente en la leyenda y en la guía'
   }
 
   const definiciones = document.querySelector('.nts-surface-guide__definiciones');
-  expect(definiciones.querySelectorAll('dt')).toHaveLength(8);
+  expect(definiciones.querySelectorAll('dt')).toHaveLength(12);
   expect(definiciones.textContent).toContain('línea media');
   expect(definiciones.textContent).toContain('Superficie de masticación');
   expect(definiciones.textContent).toContain('Borde cortante');
   expect(definiciones.textContent).toContain('mesial y distal');
+});
+
+test('orienta cada raíz hacia la línea media y deja seleccionarla', () => {
+  expect(rootRegions('11')).toEqual([{ id: 'raiz', label: 'Raíz', short: 'R', points: '8,77.5 50,10 92,77.5' }]);
+  expect(rootRegions('16').find((raiz) => raiz.id === 'raiz-mesial').points).toContain('83,10');
+  expect(rootRegions('26').find((raiz) => raiz.id === 'raiz-mesial').points).toContain('17,10');
+  expect(rootRegions('14').map((raiz) => raiz.id)).toEqual(['raiz-distal', 'raiz-mesial']);
+  expect(rootRegions('46').find((raiz) => raiz.id === 'raiz-mesial').points).toContain('75,10');
+
+  const select = vi.fn();
+  const tooth = createEmptyOdontogram()['16'];
+  render(<CompactTooth number="16" tooth={tooth} onSelect={select} />);
+  for (const nombre of ['Raíz distal', 'Raíz palatina', 'Raíz mesial']) {
+    expect(screen.getByRole('button', { name: `Pieza 16, ${nombre}` })).toBeInTheDocument();
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 16, Raíz palatina' }));
+  expect(select).toHaveBeenCalledWith('raiz-palatina');
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 16, Vestibular' }));
+  expect(select).toHaveBeenLastCalledWith('vestibular');
+});
+
+test('guarda un hallazgo en la raíz elegida sin marcar las demás', () => {
+  render(<Odontograma patientId="raices-sel" />);
+  fireEvent.click(screen.getByRole('button', { name: 'Pieza 16, Raíz palatina' }));
+  const modal = screen.getByRole('dialog', { name: 'Acciones para pieza 16, Raíz palatina' });
+  fireEvent.click(within(modal).getByRole('button', { name: 'Caries', exact: true }));
+  fireEvent.click(within(modal).getByRole('button', { name: 'Aplicar en esta superficie' }));
+  expect(screen.getByRole('button', { name: 'Pieza 16, Raíz palatina' })).toHaveAttribute('data-state', 'caries');
+  expect(screen.getByRole('button', { name: 'Pieza 16, Raíz mesial' })).toHaveAttribute('data-state', 'sin-registro');
+  expect(screen.getByRole('button', { name: 'Pieza 16, Vestibular' })).toHaveAttribute('data-state', 'sin-registro');
+  const stored = JSON.parse(localStorage.getItem('undac:odontograma:nts188:v1:raices-sel')).examinations[0];
+  expect(stored.teeth['16'].surfaces['raiz-palatina'].findings[0]).toMatchObject({ code: 'CE', surface: 'raiz-palatina' });
 });
 
 test('sitúa el rótulo de cada superficie en el centro de su polígono', () => {
@@ -216,7 +263,7 @@ test('interfaz guarda, recupera y separa el registro por historia', () => {
   expect(within(modal).getByText('Sin hallazgos registrados.')).toBeInTheDocument();
   other.unmount();
   render(<Odontograma patientId="a" />);
-  expect(screen.getAllByRole('button', { name: /^Pieza 11,/ })).toHaveLength(5);
+  expect(screen.getAllByRole('button', { name: /^Pieza 11,/ })).toHaveLength(6);
   for (const button of screen.getAllByRole('button', { name: /^Pieza 11,/ })) {
     expect(button).toHaveAttribute('data-state', 'ausente');
   }
@@ -276,19 +323,19 @@ test.each([['11', 'DEX'], ['41', 'DAO'], ['51', 'DAO'], ['81', 'DEX']])(
     const select = vi.fn();
     const { rerender } = render(<CompactTooth number={number} tooth={absent.teeth[number]} onSelect={select} />);
     const surfaces = screen.getAllByRole('button');
-    expect(surfaces).toHaveLength(5);
+    expect(surfaces).toHaveLength(6);
     for (const button of surfaces) {
       expect(button).toHaveAttribute('data-state', 'ausente');
       expect(button).toHaveStyle('background-color: rgb(29, 78, 216)');
     }
-    fireEvent.click(surfaces[2]);
+    fireEvent.click(screen.getByRole('button', { name: `Pieza ${number}, Mesial` }));
     expect(select).toHaveBeenCalledWith('mesial');
     expect(toothFindings(absent.teeth[number])).toHaveLength(2);
     const restored = removeFinding(absent, absent.teeth[number].findings[0].id);
     expect(restored.teeth[number]).toEqual(original.teeth[number]);
     rerender(<CompactTooth number={number} tooth={restored.teeth[number]} />);
     expect(screen.getByRole('button', { name: `Pieza ${number}, Vestibular` })).toHaveAttribute('data-state', 'caries');
-    expect(screen.getAllByRole('button').filter((button) => button.dataset.state === 'sin-registro')).toHaveLength(4);
+    expect(screen.getAllByRole('button').filter((button) => button.dataset.state === 'sin-registro')).toHaveLength(5);
   },
 );
 

@@ -22,6 +22,8 @@ vi.mock('../servicios/servicioAdministracion', () => ({
     obtenerPermisosUsuario: vi.fn(),
     guardarPermisosUsuario: vi.fn(),
     restaurarPermisosUsuario: vi.fn(),
+    obtenerPermisosRol: vi.fn(),
+    guardarPermisosRol: vi.fn(),
     listarAuditoria: vi.fn(),
     listarConfiguracion: vi.fn(),
     guardarConfiguracion: vi.fn(),
@@ -229,4 +231,40 @@ test('el administrador restablece la contraseña de un usuario', async () => {
 
     await waitFor(() => expect(admin.restablecerContrasenaUsuario).toHaveBeenCalledWith(3, 'Temporal2026'));
     expect(await screen.findByText(/Contraseña restablecida para admin/)).toBeInTheDocument();
+});
+
+test('guarda la plantilla de permisos del rol docente', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue(SESIONES.administrador);
+    admin.obtenerPermisosRol.mockResolvedValue({
+        rol: { codigo: 'DOCENTE', nombre: 'Docente', descripcion: 'Docente de la clínica' },
+        catalogo: [
+            { id: 2, codigo: 'PACIENTES', nombre: 'Pacientes', accion: 'Acceder', modulo: 'Pacientes', seccion: 'Pacientes' },
+            { id: 3, codigo: 'HISTORIAS', nombre: 'Historias clínicas', accion: 'Acceder', modulo: 'Historia clínica', seccion: 'Historias clínicas' },
+        ],
+        efectivos: [2, 3],
+    });
+    admin.guardarPermisosRol.mockResolvedValue({
+        rol: { codigo: 'DOCENTE', nombre: 'Docente', descripcion: 'Docente de la clínica' },
+        catalogo: [
+            { id: 2, codigo: 'PACIENTES', nombre: 'Pacientes', accion: 'Acceder', modulo: 'Pacientes', seccion: 'Pacientes' },
+            { id: 3, codigo: 'HISTORIAS', nombre: 'Historias clínicas', accion: 'Acceder', modulo: 'Historia clínica', seccion: 'Historias clínicas' },
+        ],
+        efectivos: [3],
+    });
+
+    await renderizarAplicacion();
+    await ingresar(usuario);
+    await act(async () => { window.onNavigate('permisos-usuarios'); });
+    await usuario.click(await screen.findByRole('tab', { name: 'Por rol' }));
+    await usuario.click(await screen.findByRole('button', { name: /Docente/ }));
+
+    const editor = await screen.findByRole('region', { name: 'Editor de permisos' });
+    expect(within(editor).getByRole('heading', { name: 'Docente' })).toBeInTheDocument();
+    await usuario.click(within(editor).getByRole('button', { name: /Pacientes/ }));
+    await usuario.click(within(editor).getByRole('checkbox', { name: 'Pacientes' }));
+    await usuario.click(within(editor).getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => expect(admin.guardarPermisosRol).toHaveBeenCalledWith('DOCENTE', [3]));
+    expect(admin.guardarPermisosUsuario).not.toHaveBeenCalled();
 });

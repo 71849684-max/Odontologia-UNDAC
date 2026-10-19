@@ -60,6 +60,20 @@ final class Valores
         return $edad >= 0 ? $edad : '';
     }
 
+    /** Formato datetime-local del frontend (Y-m-d\TH:i) a partir de creado_en / fecha de la historia. */
+    public static function fechaHoraLocal(mixed $valor): string
+    {
+        if ($valor === null || $valor === '') {
+            return now()->format('Y-m-d\TH:i');
+        }
+
+        try {
+            return Carbon::parse($valor)->format('Y-m-d\TH:i');
+        } catch (\Throwable) {
+            return now()->format('Y-m-d\TH:i');
+        }
+    }
+
     /**
      * @param  array<string, mixed>  $datos
      * @return array{0: string, 1: string}

@@ -1,19 +1,20 @@
 import { ChevronDown, RotateCcw, Save, ShieldCheck, UserRound } from 'lucide-react';
 
-export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efectivos, grupoAbierto, guardando, mensaje, onToggleGroup, onTogglePermission, onRestore, onSave, onViewProfile }) {
+export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efectivos, grupoAbierto, guardando, mensaje, onToggleGroup, onTogglePermission, onRestore, onSave, onViewProfile, alcance = 'usuario' }) {
   const grupos = [...new Set(catalogo.map((item) => item.modulo))];
+  const esRol = alcance === 'rol';
 
   return <section className="permisos-card permisos-editor" aria-label="Editor de permisos">
     <header className="permisos-user-head">
       <div className="permisos-user-main">
-        <span className="usuario-avatar grande"><UserRound size={22} /></span>
-        <div><h2>{usuario.nombre}</h2><p>{(usuario.roles ?? []).join(', ') || 'Sin rol'} <span className={`permisos-user-state ${usuario.estado ? 'is-active' : ''}`}>{usuario.estado ? 'Activo' : 'Inactivo'}</span></p><small>{usuario.correo || usuario.nombre_usuario}</small></div>
+        <span className="usuario-avatar grande">{esRol ? <ShieldCheck size={22} /> : <UserRound size={22} />}</span>
+        <div><h2>{usuario.nombre}</h2><p>{esRol ? 'Plantilla del rol' : ((usuario.roles ?? []).join(', ') || 'Sin rol')} {!esRol && <span className={`permisos-user-state ${usuario.estado ? 'is-active' : ''}`}>{usuario.estado ? 'Activo' : 'Inactivo'}</span>}</p><small>{usuario.correo || usuario.nombre_usuario}</small></div>
       </div>
-      <button type="button" className="btn-secundario" onClick={onViewProfile}><UserRound size={16} /> Ver perfil</button>
+      {!esRol && <button type="button" className="btn-secundario" onClick={onViewProfile}><UserRound size={16} /> Ver perfil</button>}
     </header>
 
     <section className="permisos-editor__body" aria-labelledby="permisos-usuario-titulo">
-      <div className="permisos-title-row"><div><h3 id="permisos-usuario-titulo">Permisos del usuario</h3><p>Activa o desactiva los permisos por módulo. Los cambios se aplican solo para este usuario.</p></div></div>
+      <div className="permisos-title-row"><div><h3 id="permisos-usuario-titulo">{esRol ? 'Permisos del rol' : 'Permisos del usuario'}</h3><p>{esRol ? 'Esta plantilla la heredan todas las personas del rol. Un ajuste personal sigue teniendo prioridad.' : 'Si desactivas un módulo, esta persona deja de verlo. El resto del rol no cambia.'}</p></div></div>
       <div className="permisos-editor__modules">
         {grupos.map((grupo) => {
           const items = catalogo.filter((item) => item.modulo === grupo);
@@ -32,7 +33,7 @@ export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efect
               return <label key={permiso.id} className={`permiso-switch ${activo ? 'activo' : ''}`}>
                 <input type="checkbox" checked={activo} onChange={() => onTogglePermission(permiso.id)} aria-label={permiso.seccion || permiso.nombre} />
                 <span className="permiso-switch__control" aria-hidden="true"><i /></span>
-                <span><strong>{permiso.seccion || permiso.nombre}</strong><small>{permiso.nombre}{!delRol.has(permiso.id) && activo ? ' · adicional' : ''}</small></span>
+                <span><strong>{permiso.seccion || permiso.nombre}</strong><small>{permiso.nombre}{!esRol && !delRol.has(permiso.id) && activo ? ' · adicional' : ''}{!esRol && delRol.has(permiso.id) && !activo ? ' · no visible' : ''}</small></span>
               </label>;
             })}</div>}
           </article>;
@@ -40,6 +41,6 @@ export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efect
       </div>
     </section>
 
-    <footer className="permisos-footer"><span>{mensaje || 'Los cambios se guardan en la base de datos institucional.'}</span><div><button type="button" className="btn-secundario" onClick={onRestore} disabled={guardando}><RotateCcw size={16} /> Restaurar rol</button><button type="button" className="btn-principal" onClick={onSave} disabled={guardando}><Save size={17} /> {guardando ? 'Guardando…' : 'Guardar cambios'}</button></div></footer>
+    <footer className="permisos-footer"><span>{mensaje || (esRol ? 'Al guardar, el cambio llega a quienes no tengan un ajuste personal.' : 'Los cambios se guardan en la base de datos institucional.')}</span><div>{!esRol && <button type="button" className="btn-secundario" onClick={onRestore} disabled={guardando}><RotateCcw size={16} /> Restaurar rol</button>}<button type="button" className="btn-principal" onClick={onSave} disabled={guardando}><Save size={17} /> {guardando ? 'Guardando…' : 'Guardar cambios'}</button></div></footer>
   </section>;
 }

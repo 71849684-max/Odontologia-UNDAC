@@ -5,8 +5,8 @@ import { StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 import PacienteForm from '../registro-paciente/PacienteForm.jsx';
 import useModalDialog from '../../componentes/interfaz/useModalDialog.js';
-import { historiasDePaciente, listarPacientesLocales, PACIENTES_STORAGE_KEY, registrarHistoriaClinica } from '../../servicios/registroHistoriaClinica.js';
-import { abrirHistoria, actualizarPaciente, crearPaciente, esFalloDeRed, listarHistoriasRemotas, listarPacientes, mensajeError } from '../../servicios/servicioClinico.js';
+import { historiasDePaciente, listarPacientesLocales, PACIENTES_STORAGE_KEY } from '../../servicios/registroHistoriaClinica.js';
+import { actualizarPaciente, crearPaciente, esFalloDeRed, listarHistoriasRemotas, listarPacientes, mensajeError } from '../../servicios/servicioClinico.js';
 import { formatearFecha } from '../../utilidades/fechas.mjs';
 
 // Almacén heredado de versiones con datos simulados: se limpia al abrir la vista.
@@ -73,23 +73,8 @@ export default function PacientesApp({ onNavigate }) {
     }
 
     function abrirNuevaHistoria(patient) {
-        if (usaApi) {
-            abrirHistoria({ pacienteId: patient.id, dni: patient.dni, nombres: patient.nombres, apellidoPaterno: patient.apellidoPaterno, apellidoMaterno: patient.apellidoMaterno, sexo: patient.sexo, telefono: patient.telefono })
-                .then((historia) => {
-                    setPersistenciaError('');
-                    go({ view: 'historia', historiaId: historia.id, section: 'datos-paciente' });
-                })
-                .catch((error) => setPersistenciaError(mensajeError(error, 'No fue posible registrar la historia clínica.')));
-            return;
-        }
-        try {
-            const historia = registrarHistoriaClinica(patient);
-            setLocalPatients(listarPacientesLocales());
-            setPersistenciaError('');
-            go({ view: 'historia', historiaId: historia.id, section: 'datos-paciente' });
-        } catch {
-            setPersistenciaError('No fue posible registrar la historia clínica. Revise el almacenamiento e inténtelo nuevamente.');
-        }
+        setPersistenciaError('');
+        go({ view: 'historias', abrirNueva: true, paciente: patient });
     }
 
     function abrirEdicion(patient) {
@@ -131,7 +116,7 @@ export default function PacientesApp({ onNavigate }) {
                     await recargarApi();
                     setPersistenciaError('');
                     cerrarFormulario();
-                    if (crearHistoria) go({ view: 'nueva-historia', paciente: creado });
+                    if (crearHistoria) go({ view: 'historias', abrirNueva: true, paciente: creado });
                 })
                 .catch((error) => {
                     if (esFalloDeRed(error)) {
@@ -153,14 +138,14 @@ export default function PacientesApp({ onNavigate }) {
             setLocalPatients(actualizados);
             setPersistenciaError('');
             cerrarFormulario();
-            if (crearHistoria) go({ view: 'nueva-historia', paciente: patient });
+            if (crearHistoria) go({ view: 'historias', abrirNueva: true, paciente: patient });
         } catch {
             setPersistenciaError('No fue posible guardar el paciente en este navegador. Revise el almacenamiento e inténtelo nuevamente.');
         }
     }
 
     return <div className="hc-page space-y-5">
-        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Gestión clínica</p><h1 className="hc-page-title">Pacientes</h1><p className="hc-page-subtitle">Pacientes vinculados a sus historias clínicas. Para registrar uno nuevo use «Nuevo paciente» o busque el DNI exacto al abrir una historia.</p></div><button ref={patientTriggerRef} type="button" className="hc-button hc-button--primary" onClick={() => { setPersistenciaError(''); setEditando(null); setFormularioAbierto(true); }}><UserPlus size={17} /> Nuevo paciente</button></header>
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Gestión clínica</p><h1 className="hc-page-title">Pacientes</h1><p className="hc-page-subtitle">Pacientes vinculados a sus historias clínicas. Use «Nueva HC» en cada fila para otra historia del mismo paciente, o «Nueva historia clínica» en Historias clínicas.</p></div><button ref={patientTriggerRef} type="button" className="hc-button hc-button--primary" onClick={() => { setPersistenciaError(''); setEditando(null); setFormularioAbierto(true); }}><UserPlus size={17} /> Nuevo paciente</button></header>
         {usaApi === false ? <p className="hc-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
         <section className="hc-compact-stats" aria-label="Resumen de pacientes"><article><strong>{patients.length}</strong><small>Registrados</small></article><article><strong>{patients.filter((item) => item.estado === 'En proceso').length}</strong><small>En atención</small></article><article><strong>{patients.filter((item) => item.estado === 'Pendiente de revisión').length}</strong><small>Por revisar</small></article></section>
         <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar paciente</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nombre, DNI o código..." /></label><div className="hc-filter-actions"><label className="hc-select-filter"><span>Estado</span><select value={estado} onChange={(e) => setEstado(e.target.value)}><option value="">Todos</option>{[...new Set(patients.map((item) => item.estado))].map((item) => <option key={item}>{item}</option>)}</select></label><span>{filtered.length} pacientes</span></div></div>

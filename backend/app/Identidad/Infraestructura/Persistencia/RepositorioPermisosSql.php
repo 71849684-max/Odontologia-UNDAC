@@ -80,6 +80,57 @@ class RepositorioPermisosSql implements RepositorioPermisos
         return $resultado;
     }
 
+    public function codigosEfectivos(Cuenta $cuenta): array
+    {
+        $ids = $this->idsEfectivos($cuenta);
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return DB::table('submodulo')
+            ->whereIn('id_submodulo', $ids)
+            ->where('estado', 1)
+            ->orderBy('codigo_submodulo')
+            ->pluck('codigo_submodulo')
+            ->map(fn ($codigo) => (string) $codigo)
+            ->values()
+            ->all();
+    }
+
+    public function rolPorCodigo(string $codigoRol): ?array
+    {
+        $fila = DB::table('rol')
+            ->where('codigo_rol', $codigoRol)
+            ->where('estado', 1)
+            ->first(['id_rol', 'codigo_rol', 'nombre_rol', 'descripcion']);
+
+        if ($fila === null) {
+            return null;
+        }
+
+        return [
+            'id' => (int) $fila->id_rol,
+            'codigo' => (string) $fila->codigo_rol,
+            'nombre' => (string) $fila->nombre_rol,
+            'descripcion' => $fila->descripcion,
+        ];
+    }
+
+    public function idsDelRolCodigo(string $codigoRol): array
+    {
+        return DB::table('rol_submodulo as rs')
+            ->join('rol as r', 'r.id_rol', '=', 'rs.id_rol')
+            ->where('r.codigo_rol', $codigoRol)
+            ->where('r.estado', 1)
+            ->where('rs.estado', 1)
+            ->pluck('rs.id_submodulo')
+            ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+    }
+
     public function sincronizar(Cuenta $cuenta, array $deseados, int $idOperador): void
     {
         $validos = DB::table('submodulo')->where('estado', 1)->pluck('id_submodulo')->map(fn ($id) => (int) $id)->all();
@@ -108,6 +159,28 @@ class RepositorioPermisosSql implements RepositorioPermisos
                 ]);
             }
         });
+    }
+
+    public function sincronizarRol(int $idRol, array $deseados): array
+    {
+        $validos = DB::table('submodulo')->where('estado', 1)->pluck('id_submodulo')->map(fn ($id) => (int) $id)->all();
+        $deseados = array_values(array_intersect(array_unique(array_map('intval', $deseados)), $validos));
+        sort($deseados);
+
+        DB::transaction(function () use ($idRol, $deseados) {
+            DB::table('rol_submodulo')->where('id_rol', $idRol)->delete();
+
+            foreach ($deseados as $idSubmodulo) {
+                DB::table('rol_submodulo')->insert([
+                    'id_rol' => $idRol,
+                    'id_submodulo' => $idSubmodulo,
+                    'estado' => 1,
+                    'creado_en' => now(),
+                ]);
+            }
+        });
+
+        return $deseados;
     }
 
     public function restaurarRol(Cuenta $cuenta): void

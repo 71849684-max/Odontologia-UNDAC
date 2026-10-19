@@ -26,6 +26,8 @@ vi.mock('../servicios/servicioAdministracion', () => ({
     })),
     guardarPermisosUsuario: vi.fn(),
     restaurarPermisosUsuario: vi.fn(),
+    obtenerPermisosRol: vi.fn(),
+    guardarPermisosRol: vi.fn(),
     listarAuditoria: vi.fn(async () => ({ data: [], accesos_recientes: [], acciones: [], indicadores: {} })),
     listarConfiguracion: vi.fn(async () => ({ data: [] })),
     guardarConfiguracion: vi.fn(),
@@ -277,9 +279,12 @@ test('abre una nueva historia con los datos del paciente recién registrado', as
     await usuario.type(screen.getByLabelText('Teléfono'), '999 111 222');
     await usuario.click(screen.getByRole('button', { name: 'Crear historia clínica' }));
 
-    expect(await screen.findByRole('heading', { name: 'Nueva historia clínica' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Historias clínicas' })).toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'Nueva historia clínica' })).toBeInTheDocument();
     expect(screen.getByLabelText('DNI')).toHaveValue('71234567');
-    expect(screen.getByLabelText('Apellidos y nombres')).toHaveValue('Lucía Ramos Vega');
+    expect(screen.getByLabelText('Nombres')).toHaveValue('Lucía');
+    expect(screen.getByLabelText('Apellido paterno')).toHaveValue('Ramos');
+    expect(screen.getByLabelText('Apellido materno')).toHaveValue('Vega');
     expect(screen.getByLabelText('N.º de celular')).toHaveValue('999 111 222');
 });
 

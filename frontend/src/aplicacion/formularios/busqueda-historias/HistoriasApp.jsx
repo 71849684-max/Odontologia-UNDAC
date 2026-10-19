@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Filter, Search, X } from 'lucide-react';
+import { Filter, Plus, Search, X } from 'lucide-react';
 import { listarHistorias } from '../../servicios/registroHistoriaClinica.js';
 import { cambiarEstadoHistoria, listarHistoriasRemotas, mensajeError } from '../../servicios/servicioClinico.js';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
+import NuevaHistoriaModal from '../nueva-historia/NuevaHistoriaModal.jsx';
 import { formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 const CODIGO_ESTADO = {
@@ -56,7 +57,7 @@ export function observacionesDeHistoria(historia) {
     return texto ? [{ id: 'unica', texto, fecha: null }] : [];
 }
 
-export default function HistoriasApp({ rol, onNavigate }) {
+export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, abrirNueva = false }) {
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState('');
     const [historias, setHistorias] = useState(listarHistorias);
@@ -67,6 +68,14 @@ export default function HistoriasApp({ rol, onNavigate }) {
     const [observando, setObservando] = useState(null);
     const [viendoObservacion, setViendoObservacion] = useState(null);
     const [enviando, setEnviando] = useState(false);
+    const [modalNueva, setModalNueva] = useState(Boolean(abrirNueva || pacienteInicial));
+    const [pacienteModal, setPacienteModal] = useState(pacienteInicial);
+    useEffect(() => {
+        if (abrirNueva || pacienteInicial) {
+            setPacienteModal(pacienteInicial);
+            setModalNueva(true);
+        }
+    }, [abrirNueva, pacienteInicial]);
     useEffect(() => {
         let vigente = true;
         listarHistoriasRemotas()
@@ -118,7 +127,16 @@ export default function HistoriasApp({ rol, onNavigate }) {
     }
 
     return <div className="hc-page space-y-5">
-        <header><p className="hc-kicker">Gestión clínica</p><h1 className="hc-page-title">Historias clínicas</h1><p className="hc-page-subtitle">Seguimiento de historias para el perfil {rol === 'alumno' ? 'alumno operador' : rol}: borradores, revisión docente, observaciones y validación.</p></header>
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+                <p className="hc-kicker">Gestión clínica</p>
+                <h1 className="hc-page-title">Historias clínicas</h1>
+                <p className="hc-page-subtitle">Seguimiento de historias para el perfil {rol === 'alumno' ? 'alumno operador' : rol}: borradores, revisión docente, observaciones y validación.</p>
+            </div>
+            <button type="button" className="hc-button hc-button--primary" onClick={() => { setPacienteModal(null); setModalNueva(true); }}>
+                <Plus size={17} /> Nueva historia clínica
+            </button>
+        </header>
         <section className="hc-compact-stats" aria-label="Resumen de historias">{indicadores.map(([etiqueta, valor]) => <article key={etiqueta}><strong>{valor}</strong><small>{etiqueta}</small></article>)}</section>
         <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, alumno o docente..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
@@ -164,5 +182,15 @@ export default function HistoriasApp({ rol, onNavigate }) {
                 <footer className="admin-dialogo__acciones"><button type="button" className="hc-button hc-button--primary" onClick={() => setViendoObservacion(null)}>Entendido</button></footer>
             </div>
         </div>}
+        <NuevaHistoriaModal
+            open={modalNueva}
+            pacienteInicial={pacienteModal}
+            onClose={() => { setModalNueva(false); setPacienteModal(null); }}
+            onCreated={(historia) => {
+                setHistorias((lista) => [historia, ...lista.filter((item) => item.id !== historia.id)]);
+                setAviso(`${historia.codigo}: historia creada`);
+                go({ view: 'historia', historiaId: historia.id, section: 'datos-paciente' });
+            }}
+        />
     </div>;
 }

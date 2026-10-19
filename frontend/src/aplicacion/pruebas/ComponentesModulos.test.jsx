@@ -7,7 +7,6 @@ import PanelConfiguracion from '../formularios/configuracion-panel/PanelConfigur
 import TablaRegistros from '../componentes/modulos/TablaRegistros';
 import HistoriasApp from '../formularios/busqueda-historias/HistoriasApp.jsx';
 import PacientesApp from '../formularios/busqueda-pacientes/PacientesApp.jsx';
-import HistoriaClinica from '../componentes/clinica/HistoriaClinica.jsx';
 import '../../css/app.css';
 
 beforeEach(() => {
@@ -61,7 +60,7 @@ test('registra un paciente y continúa con una historia clínica desde el formul
     const onNavigate = vi.fn();
     render(<PacientesApp onNavigate={onNavigate} />);
 
-    expect(screen.queryByRole('button', { name: 'Nueva historia' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nueva historia clínica' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Nueva HC' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo paciente' }));
@@ -76,7 +75,8 @@ test('registra un paciente y continúa con una historia clínica desde el formul
 
     expect(screen.getByRole('cell', { name: /Lucía Ramos Vega/ })).toBeInTheDocument();
     expect(onNavigate).toHaveBeenCalledWith({
-        view: 'nueva-historia',
+        view: 'historias',
+        abrirNueva: true,
         paciente: expect.objectContaining({
             dni: '71234567',
             nombres: 'Lucía Ramos Vega',
@@ -106,7 +106,7 @@ test('registra un paciente en el navegador y lo recupera al volver a abrir la vi
     expect(screen.getByRole('cell', { name: /Lucía Ramos Vega/ })).toBeInTheDocument();
 });
 
-test('nueva HC de un paciente registrado abre su historia y no el formulario de datos mínimos', () => {
+test('nueva HC de un paciente registrado abre el modal de historia con sus datos precargados', () => {
     const onNavigate = vi.fn();
     render(<PacientesApp onNavigate={onNavigate} />);
     fireEvent.click(screen.getByRole('button', { name: 'Nuevo paciente' }));
@@ -114,23 +114,35 @@ test('nueva HC de un paciente registrado abre su historia y no el formulario de 
     fireEvent.change(screen.getByLabelText('Apellido paterno'), { target: { value: 'Ramos' } });
     fireEvent.change(screen.getByLabelText('Apellido materno'), { target: { value: 'Vega' } });
     fireEvent.change(screen.getByLabelText('Número documento'), { target: { value: '71234567' } });
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '999 111 222' } });
     fireEvent.click(screen.getByRole('button', { name: 'Guardar paciente' }));
 
     const row = screen.getByRole('cell', { name: /Lucía Ramos Vega/ }).closest('tr');
     fireEvent.click(within(row).getByRole('button', { name: 'Nueva HC' }));
 
-    const historias = JSON.parse(window.localStorage.getItem('undac:historias:frontend:v1'));
-    expect(historias).toHaveLength(1);
-    expect(historias[0]).toMatchObject({ paciente: 'Lucía Ramos Vega', dni: '71234567', estado: 'Borrador' });
-    expect(onNavigate).toHaveBeenCalledWith({ view: 'historia', historiaId: historias[0].id, section: 'datos-paciente' });
-    expect(screen.queryByRole('heading', { name: 'Datos mínimos del paciente' })).not.toBeInTheDocument();
+    expect(onNavigate).toHaveBeenCalledWith({
+        view: 'historias',
+        abrirNueva: true,
+        paciente: expect.objectContaining({
+            dni: '71234567',
+            nombres: 'Lucía Ramos Vega',
+            apellidoPaterno: 'Ramos',
+            apellidoMaterno: 'Vega',
+            telefono: '999 111 222',
+        }),
+    });
+    expect(JSON.parse(window.localStorage.getItem('undac:historias:frontend:v1') || '[]')).toHaveLength(0);
 
     cleanup();
-    render(<HistoriaClinica historiaId={historias[0].id} initialSection="datos-paciente" />);
-    expect(screen.getByRole('heading', { name: /Lucía Ramos Vega/i, level: 1 })).toBeInTheDocument();
+    const destino = onNavigate.mock.calls.at(-1)[0];
+    render(<HistoriasApp abrirNueva={destino.abrirNueva} pacienteInicial={destino.paciente} onNavigate={vi.fn()} />);
+    expect(screen.getByRole('dialog', { name: 'Nueva historia clínica' })).toBeInTheDocument();
     expect(screen.getByLabelText('DNI')).toHaveValue('71234567');
-    expect(screen.getByLabelText('Nombres completos')).toHaveValue('Lucía');
-    expect(screen.getByLabelText('Apellidos completos (paterno y materno)')).toHaveValue('Ramos Vega');
+    expect(screen.getByLabelText('Nombres')).toHaveValue('Lucía');
+    expect(screen.getByLabelText('Apellido paterno')).toHaveValue('Ramos');
+    expect(screen.getByLabelText('Apellido materno')).toHaveValue('Vega');
+    expect(screen.getByLabelText('N.º de celular')).toHaveValue('999 111 222');
+    expect(screen.getByText('Paciente registrado seleccionado')).toBeInTheDocument();
 });
 
 test('el formulario de paciente cierra con Escape y devuelve el foco al botón de apertura', () => {

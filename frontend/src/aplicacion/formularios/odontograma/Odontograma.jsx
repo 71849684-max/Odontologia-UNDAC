@@ -3,7 +3,7 @@ import ShapeEditor from './ShapeEditor.jsx';
 import React, { useRef, useState } from 'react';
 import { Maximize2, X } from 'lucide-react';
 import './odontograma.css';
-import { arches, temporaryArches, toothSurfaces, stateFor, clinicalColor, markCode } from './odontograma.config.mjs';
+import { arches, temporaryArches, stateFor, clinicalColor, markCode, surfaceName } from './odontograma.config.mjs';
 import { ERROR_LECTURA_ODONTOGRAMA, readRecord, updateExamination, closeExamination, addExamination, addFinding, removeFinding, toothFindings, examinationReasons, localDate } from './odontogramaRegistro.mjs';
 import { guardarOdontograma, idHistoria, mensajeError, obtenerOdontograma } from '../../servicios/servicioClinico.js';
 import { OdontogramRow } from './GraficoOdontograma.jsx';
@@ -100,7 +100,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
   const locked = exam.status === 'closed', state = stateFor(stateId);
   const selectedMarks = [...toothFindings(exam.teeth[selectedTooth]), ...exam.ranges.filter((m) => m.teeth.includes(selectedTooth))];
   const allMarks = [...Object.entries(exam.teeth).flatMap(([number, tooth]) => toothFindings(tooth).map((m) => ({ ...m, teeth: [number] }))), ...exam.ranges];
-  const actionSurface = actionTarget ? toothSurfaces.find((item) => item.id === actionTarget.surface) : null;
+  const actionSurface = actionTarget ? surfaceName(actionTarget.surface) : '';
 
   const persist = (cambio, guardado = 'Guardado en la historia clínica.') => {
     try {
@@ -132,7 +132,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
     setCondition('good'); setMode('mark'); resetEditor();
   };
   const apply = (number = selectedTooth, nextSurface = surface, tracedPoints = []) => run(() => {
-    const existing = state.scope === 'surface' ? exam.teeth[number].surfaces[nextSurface].findings : exam.teeth[number].findings;
+    const existing = state.scope === 'surface' ? (exam.teeth[number].surfaces[nextSurface]?.findings || []) : exam.teeth[number].findings;
     if (!tracedPoints.length && existing.some((mark) => mark.state === stateId && mark.code === code && mark.condition === (state.condition ? condition : 'good') && mark.note === note.trim())) {
       setMessage('Este hallazgo ya está registrado en la selección.'); return false;
     }
@@ -143,7 +143,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
   const remove = (id) => run(() => { const next = removeFinding(exam, id); if (persist(updateExamination(record, exam.id, { teeth: next.teeth, ranges: next.ranges }))) { setReviewed(false); return true; } return false; });
   const erase = (number, nextSurface) => {
     const tooth = exam.teeth[number];
-    const mark = tooth.findings.findLast((item) => item.state === 'ausente') || tooth.surfaces[nextSurface].findings.at(-1) || tooth.findings.at(-1);
+    const mark = tooth.findings.findLast((item) => item.state === 'ausente') || tooth.surfaces[nextSurface]?.findings?.at(-1) || tooth.findings.at(-1);
     return mark ? remove(mark.id) : false;
   };
   const select = (number, nextSurface) => {
@@ -203,14 +203,14 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
         <label className="undac-field"><span>Especificaciones</span><textarea rows="3" disabled={locked} value={exam.specifications} onChange={(e) => change({ specifications: e.target.value })} placeholder="Características adicionales, fluorosis y clasificación, material o color del metal…" /></label>
         <label className="undac-field"><span>Observaciones</span><textarea rows="3" disabled={locked} value={exam.observations} onChange={(e) => change({ observations: e.target.value })} placeholder="Hallazgos clínicos no contemplados en la nomenclatura…" /></label>
       </div>
-      {allMarks.length > 0 && <details className="nts-register"><summary>Registro de hallazgos ({allMarks.length})</summary><table><thead><tr><th>Pieza(s)</th><th>Hallazgo / sigla</th><th>Superficie</th><th>Especificación</th></tr></thead><tbody>{allMarks.map((m) => <tr key={m.id}><td>{m.teeth.join(', ')}</td><td style={{ color: clinicalColor(m) }}>{stateFor(m.state).label} {markCode(m)}{stateFor(m.state).condition ? ` · ${m.condition === 'bad' ? 'Mal estado' : 'Buen estado'}` : ''}</td><td>{m.surface ? toothSurfaces.find((s) => s.id === m.surface)?.label : 'Pieza / conjunto'}</td><td>{m.note || '—'}</td></tr>)}</tbody></table></details>}
+      {allMarks.length > 0 && <details className="nts-register"><summary>Registro de hallazgos ({allMarks.length})</summary><table><thead><tr><th>Pieza(s)</th><th>Hallazgo / sigla</th><th>Superficie</th><th>Especificación</th></tr></thead><tbody>{allMarks.map((m) => <tr key={m.id}><td>{m.teeth.join(', ')}</td><td style={{ color: clinicalColor(m) }}>{stateFor(m.state).label} {markCode(m)}{stateFor(m.state).condition ? ` · ${m.condition === 'bad' ? 'Mal estado' : 'Buen estado'}` : ''}</td><td>{m.surface ? surfaceName(m.surface) : 'Pieza / conjunto'}</td><td>{m.note || '—'}</td></tr>)}</tbody></table></details>}
       {!locked ? <div className="nts-close nts-no-print"><label><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> He revisado el registro de esta evaluación.</label><button type="button" className="undac-btn undac-btn--primary" disabled={!reviewed} onClick={() => run(() => { if (persist(closeExamination(record, exam.id), servidor ? 'Evaluación cerrada y guardada en la historia clínica.' : 'Evaluación cerrada y conservada en este navegador.')) setReviewed(false); })}>Cerrar evaluación</button></div> : <p>Cerrada el {formatearFechaHora(exam.closedAt)} · Responsable: {exam.professional} · COP {exam.cop}</p>}
     </SectionCard>
       {actionTarget && (
         <div className="nts-action-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setActionTarget(null); }}>
-          <section className="nts-action-modal" role="dialog" aria-modal="true" aria-label={`Acciones para pieza ${actionTarget.tooth}, ${actionSurface?.label}`}>
+          <section className="nts-action-modal" role="dialog" aria-modal="true" aria-label={`Acciones para pieza ${actionTarget.tooth}, ${actionSurface}`}>
             <header>
-              <div><h3>Pieza {actionTarget.tooth}</h3><p>{actionSurface?.label}</p></div>
+              <div><h3>Pieza {actionTarget.tooth}</h3><p>{actionSurface}</p></div>
               <button type="button" className="hc-mini-button" onClick={() => setActionTarget(null)} aria-label="Cerrar acciones de la pieza"><X size={18} /></button>
             </header>
             <HerramientasOdontograma mode={mode} state={state} code={code} condition={condition} endTooth={endTooth}
@@ -222,7 +222,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
                 {state.graphic.startsWith('draw-') && <details><summary>Trazo personalizado (opcional)</summary><ShapeEditor number={selectedTooth} tooth={exam.teeth[selectedTooth]} surface={state.scope === 'surface' ? surface : null} state={state} points={points} onChange={setPoints} disabled={locked} condition={condition} /></details>}
               </fieldset>
             </details>
-            <div className="nts-findings"><h4>Hallazgos de la pieza {selectedTooth}</h4>{selectedMarks.length === 0 ? <p>Sin hallazgos registrados.</p> : selectedMarks.map((m) => <div key={m.id}><span style={{ color: clinicalColor(m) }}><b>{markCode(m)}</b> {stateFor(m.state).label}</span><span>{m.surface ? toothSurfaces.find((s) => s.id === m.surface)?.label : m.teeth.join(' – ')}{m.note ? ` · ${m.note}` : ''}</span>{!locked && <button type="button" className="undac-btn undac-btn--ghost" onClick={() => remove(m.id)}>Quitar del borrador</button>}</div>)}</div>
+            <div className="nts-findings"><h4>Hallazgos de la pieza {selectedTooth}</h4>{selectedMarks.length === 0 ? <p>Sin hallazgos registrados.</p> : selectedMarks.map((m) => <div key={m.id}><span style={{ color: clinicalColor(m) }}><b>{markCode(m)}</b> {stateFor(m.state).label}</span><span>{m.surface ? surfaceName(m.surface) : m.teeth.join(' – ')}{m.note ? ` · ${m.note}` : ''}</span>{!locked && <button type="button" className="undac-btn undac-btn--ghost" onClick={() => remove(m.id)}>Quitar del borrador</button>}</div>)}</div>
             <footer>
               <button type="button" className="undac-btn undac-btn--secondary" onClick={() => setActionTarget(null)}>Cancelar</button>
               <button type="button" className="undac-btn undac-btn--primary" onClick={applySurfaceAction}>{locked || mode === 'inspect' ? 'Cerrar' : mode === 'erase' ? 'Borrar marca' : 'Aplicar en esta superficie'}</button>

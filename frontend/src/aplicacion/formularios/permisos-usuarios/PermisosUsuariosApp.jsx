@@ -1,16 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import ListaUsuariosPermisos from './ListaUsuariosPermisos.jsx';
+import ListaRolesPermisos from './ListaRolesPermisos.jsx';
 import EditorPermisosUsuario from './EditorPermisosUsuario.jsx';
 import FichaUsuario from './FichaUsuario.jsx';
 import {
+    guardarPermisosRol,
     guardarPermisosUsuario,
     listarUsuarios,
+    obtenerPermisosRol,
     obtenerPermisosUsuario,
     restaurarPermisosUsuario,
 } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
+import { useSesion } from '../../autenticacion/ContextoSesion.jsx';
+
+const ROLES_BASE = [
+    { codigo: 'ALUMNO', nombre: 'Alumno', detalle: 'Plantilla de todos los alumnos' },
+    { codigo: 'DOCENTE', nombre: 'Docente', detalle: 'Plantilla de todos los docentes' },
+];
 
 export default function PermisosUsuariosApp({ onNavigate }) {
+    const sesion = useSesion();
+    const [modo, setModo] = useState('usuarios');
     const [usuarios, setUsuarios] = useState([]);
     const [usuarioId, setUsuarioId] = useState(null);
     const [busqueda, setBusqueda] = useState('');
@@ -25,6 +36,8 @@ export default function PermisosUsuariosApp({ onNavigate }) {
     const [error, setError] = useState('');
     const [usuarioActual, setUsuarioActual] = useState(null);
     const [fichaAbierta, setFichaAbierta] = useState(false);
+    const [rolCodigo, setRolCodigo] = useState('ALUMNO');
+    const [rolActual, setRolActual] = useState(null);
 
     const roles = useMemo(() => [...new Set(usuarios.map((item) => item.rol).filter(Boolean))], [usuarios]);
 
@@ -38,6 +51,16 @@ export default function PermisosUsuariosApp({ onNavigate }) {
         const lista = respuesta.data ?? [];
         setUsuarios(lista);
         return lista;
+    }
+
+    async function cargarPermisosRol(codigo) {
+        const respuesta = await obtenerPermisosRol(codigo);
+        setRolActual(respuesta.rol ?? ROLES_BASE.find((item) => item.codigo === codigo));
+        setCatalogo(respuesta.catalogo ?? []);
+        setDelRol(new Set(respuesta.efectivos ?? []));
+        setEfectivos(new Set(respuesta.efectivos ?? []));
+        setGrupoAbierto(null);
+        setMensaje('');
     }
 
     async function cargarPermisos(id) {
@@ -110,7 +133,49 @@ export default function PermisosUsuariosApp({ onNavigate }) {
         }
     }
 
+    async function seleccionarRol(codigo) {
+        setRolCodigo(codigo);
+        setError('');
+        setCargando(true);
+        try {
+            await cargarPermisosRol(codigo);
+        } catch (err) {
+            setError(err instanceof ErrorHttp ? err.message : 'No se pudieron cargar los permisos del rol.');
+        } finally {
+            setCargando(false);
+        }
+    }
+
+    async function cambiarModo(siguiente) {
+        setModo(siguiente);
+        setError('');
+        setMensaje('');
+        setGrupoAbierto(null);
+        if (siguiente === 'roles' && !rolActual) {
+            await seleccionarRol(rolCodigo);
+        }
+    }
+
     async function guardar() {
+        if (modo === 'roles') {
+            if (!rolCodigo) return;
+            setGuardando(true);
+            setError('');
+            try {
+                const respuesta = await guardarPermisosRol(rolCodigo, [...efectivos]);
+                setRolActual(respuesta.rol ?? rolActual);
+                setDelRol(new Set(respuesta.efectivos ?? []));
+                setEfectivos(new Set(respuesta.efectivos ?? []));
+                setMensaje('Plantilla guardada. Quienes no tengan un ajuste personal ya usan estos módulos.');
+                await sesion.refrescar?.();
+            } catch (err) {
+                setError(err instanceof ErrorHttp ? err.message : 'No se pudieron guardar los permisos del rol.');
+            } finally {
+                setGuardando(false);
+            }
+            return;
+        }
+
         if (!usuarioId) return;
         setGuardando(true);
         setError('');
@@ -119,6 +184,7 @@ export default function PermisosUsuariosApp({ onNavigate }) {
             setDelRol(new Set(respuesta.del_rol ?? []));
             setEfectivos(new Set(respuesta.efectivos ?? []));
             setMensaje('Permisos guardados para este usuario. El rol base no cambia.');
+            await sesion.refrescar?.();
         } catch (err) {
             setError(err instanceof ErrorHttp ? err.message : 'No se pudieron guardar los permisos.');
         } finally {
@@ -131,17 +197,24 @@ export default function PermisosUsuariosApp({ onNavigate }) {
             <div className="permisos-hero">
                 <div>
                     <h1>Permisos por usuario</h1>
-                    <p>Gestiona los permisos individuales de cada usuario del sistema.</p>
+                    <p>Primero define qué módulos ven alumno y docente. Después puedes personalizar a cada persona.</p>
+                </div>
+                <div className="permisos-modo" role="tablist" aria-label="Alcance de los permisos">
+                    <button type="button" role="tab" aria-selected={modo === 'roles'} onClick={() => cambiarModo('roles')}>Por rol</button>
+                    <button type="button" role="tab" aria-selected={modo === 'usuarios'} onClick={() => cambiarModo('usuarios')}>Por usuario</button>
                 </div>
             </div>
 
             {error && <p className="hc-inline-callout" role="alert">{error}</p>}
 
             <div className="permisos-layout">
-                <ListaUsuariosPermisos usuarios={filtrados} roles={roles} seleccionadoId={usuarioId} busqueda={busqueda} rol={filtroRol} onBusquedaChange={setBusqueda} onRolChange={setFiltroRol} onSelect={seleccionarUsuario} />
+                {modo === 'roles'
+                    ? <ListaRolesPermisos roles={ROLES_BASE} seleccionado={rolCodigo} onSelect={seleccionarRol} />
+                    : <ListaUsuariosPermisos usuarios={filtrados} roles={roles} seleccionadoId={usuarioId} busqueda={busqueda} rol={filtroRol} onBusquedaChange={setBusqueda} onRolChange={setFiltroRol} onSelect={seleccionarUsuario} />}
                 <div className="permisos-columna">
                     {cargando && <section className="permisos-card" aria-label="Editor de permisos"><p role="status" style={{ padding: 24 }}>Cargando permisos…</p></section>}
-                    {!cargando && usuarioActual && <EditorPermisosUsuario usuario={usuarioActual} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onRestore={restaurarRol} onSave={guardar} onViewProfile={() => setFichaAbierta(true)} />}
+                    {!cargando && modo === 'roles' && rolActual && <EditorPermisosUsuario alcance="rol" usuario={{ nombre: rolActual.nombre, nombre_usuario: rolActual.descripcion || 'Módulos compartidos por el rol', estado: true }} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onSave={guardar} />}
+                    {!cargando && modo === 'usuarios' && usuarioActual && <EditorPermisosUsuario usuario={usuarioActual} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onRestore={restaurarRol} onSave={guardar} onViewProfile={() => setFichaAbierta(true)} />}
                     {fichaAbierta && usuarioId && <FichaUsuario id={usuarioId} onClose={() => setFichaAbierta(false)} onManage={onNavigate ? () => onNavigate('usuarios') : undefined} />}
                 </div>
             </div>

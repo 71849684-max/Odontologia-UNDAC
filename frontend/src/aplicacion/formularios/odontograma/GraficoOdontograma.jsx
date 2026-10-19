@@ -11,6 +11,54 @@ export const isUpper = (number) => ['1','2','5','6'].includes(number[0]);
 export const toothDrawingScaleY = 1.7;
 const toothColumnWidth = 60;
 const isMolar = (number) => Number(number[1]) >= (Number(number[0]) > 4 ? 4 : 6);
+const puntos = (vertices) => vertices.map(([x, y]) => `${x},${y}`).join(' ');
+
+/**
+ * Cada raíz es una región cerrada. La mesial queda hacia la línea media;
+ * en los molares superiores la raíz central es la palatina.
+ */
+export function rootRegions(number) {
+  const temporary = Number(number[0]) > 4;
+  const mesialALaDerecha = ['1', '4', '5', '8'].includes(String(number)[0]);
+  const lado = (izquierda, derecha) => (mesialALaDerecha ? [derecha, izquierda] : [izquierda, derecha]);
+  if (isMolar(number) && isUpper(number)) {
+    const [mesial, distal] = lado(
+      { id: 'raiz-mesial', label: 'Raíz mesial', short: 'RM', points: puntos([[8, 77.5], [17, 10], [36, 60], [36, 77.5]]) },
+      { id: 'raiz-mesial', label: 'Raíz mesial', short: 'RM', points: puntos([[64, 77.5], [64, 60], [83, 10], [92, 77.5]]) },
+    );
+    return [
+      { ...distal, id: 'raiz-distal', label: 'Raíz distal', short: 'RD' },
+      { id: 'raiz-palatina', label: 'Raíz palatina', short: 'RP', points: puntos([[36, 77.5], [36, 60], [50, 10], [64, 60], [64, 77.5]]) },
+      mesial,
+    ];
+  }
+  if (isMolar(number) || (!temporary && ['14', '24'].includes(number))) {
+    const spec = isMolar(number)
+      ? {
+        izquierda: puntos([[8, 77.5], [25, 10], [50, 60], [50, 77.5]]),
+        derecha: puntos([[50, 77.5], [50, 60], [75, 10], [92, 77.5]]),
+      }
+      : {
+        izquierda: puntos([[8, 77.5], [30, 10], [50, 55], [50, 77.5]]),
+        derecha: puntos([[50, 77.5], [50, 55], [70, 10], [92, 77.5]]),
+      };
+    const [mesial, distal] = lado(
+      { id: 'raiz-mesial', label: 'Raíz mesial', short: 'RM', points: spec.izquierda },
+      { id: 'raiz-mesial', label: 'Raíz mesial', short: 'RM', points: spec.derecha },
+    );
+    return [{ ...distal, id: 'raiz-distal', label: 'Raíz distal', short: 'RD' }, mesial];
+  }
+  return [{ id: 'raiz', label: 'Raíz', short: 'R', points: puntos([[8, 77.5], [50, 10], [92, 77.5]]) }];
+}
+
+function rootOutline(number) {
+  const temporary = Number(number[0]) > 4;
+  const molar = isMolar(number);
+  const premolarBirradicular = !temporary && ['14', '24'].includes(number);
+  return molar
+    ? (isUpper(number) ? 'M8 77.5L17 10L36 60L50 10L64 60L83 10L92 77.5' : 'M8 77.5L25 10L50 60L75 10L92 77.5')
+    : (premolarBirradicular ? 'M8 77.5L30 10L50 55L70 10L92 77.5' : 'M8 77.5L50 10L92 77.5');
+}
 // La arcada inferior se refleja al dibujar; convierta la posición visual al plano local.
 export function toothSurfacePolygon(number, surface) {
   const position = surfacePosition(number, surface);
@@ -38,6 +86,18 @@ export function surfaceLabelPoint(number, surface) {
  * Nombre corto de cada sección dibujado sobre la superficie.
  * El texto contrarresta el reflejo de la arcada inferior y el alargado vertical del esquema.
  */
+function RootLabels({ number }) {
+  return <g className="nts-surface-labels" pointerEvents="none" aria-hidden="true">
+    {rootRegions(number).map((raiz) => {
+      const vertices = raiz.points.split(' ').map((par) => par.split(',').map(Number));
+      const apex = vertices.reduce((mejor, punto) => (punto[1] < mejor[1] ? punto : mejor));
+      const escalaY = (isUpper(number) ? 1 : -1) / toothDrawingScaleY;
+      return <text key={raiz.id} className="nts-surface-label" textAnchor="middle" dy=".34em"
+        transform={`translate(${apex[0]} ${apex[1] + 16}) scale(1 ${escalaY})`}>{raiz.short}</text>;
+    })}
+  </g>;
+}
+
 function SurfaceLabels({ number }) {
   return <g className="nts-surface-labels" pointerEvents="none" aria-hidden="true">
     {toothSurfaces.map((surface) => {
@@ -73,17 +133,37 @@ function ToothMark({ mark, number }) {
 
 export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interactive = true, showLabels = false }) {
   const clipId = React.useId().replace(/:/g, '');
-  const position = Number(number[1]), temporary = Number(number[0]) > 4;
+  const position = Number(number[1]);
   const molar = isMolar(number);
-  // Premolares superiores 14/24: dos raíces continuas (sin trazo discontinuo cruzado).
-  const premolarBirradicular = !temporary && ['14', '24'].includes(number);
-  const roots = molar
-    ? (isUpper(number) ? 'M8 77.5L17 10L36 60L50 10L64 60L83 10L92 77.5' : 'M8 77.5L25 10L50 60L75 10L92 77.5')
-    : (premolarBirradicular ? 'M8 77.5L30 10L50 55L70 10L92 77.5' : 'M8 77.5L50 10L92 77.5');
+  const roots = rootOutline(number);
+  const regiones = rootRegions(number);
   const absence = tooth.findings.findLast((mark) => mark.state === 'ausente');
+  const activar = (id) => (event) => {
+    if (event.type === 'keydown') {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+    }
+    onSelect?.(id);
+  };
   return <>
     <defs><clipPath id={clipId}><ellipse cx="50" cy="77.5" rx="42" ry="17.5" /></clipPath></defs>
-    <path d={roots} fill="white" stroke="black" strokeWidth="2.5" strokeLinejoin="round"><title>Raíces de pieza {number}</title></path>
+    {regiones.map((raiz) => {
+      const finding = absence || tooth.surfaces?.[raiz.id]?.findings?.findLast((mark) => !mark.points.length);
+      const color = finding ? clinicalColor(finding) : undefined;
+      return <polygon key={raiz.id} points={raiz.points}
+        className={`nts-surface nts-root${selectedSurface === raiz.id ? ' is-selected' : ''}`}
+        fill={color || 'white'} stroke="black" strokeWidth="1.6" strokeLinejoin="round"
+        style={color ? { background: color } : undefined}
+        data-state={finding?.state || absence?.state || tooth.surfaces?.[raiz.id]?.findings?.at(-1)?.state || 'sin-registro'}
+        role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined}
+        aria-label={interactive ? `Pieza ${number}, ${raiz.label}` : undefined}
+        aria-pressed={interactive ? selectedSurface === raiz.id : undefined}
+        onClick={interactive ? activar(raiz.id) : undefined}
+        onKeyDown={interactive ? activar(raiz.id) : undefined}>
+        <title>{number} · {raiz.label}{finding ? ` · ${markCode(finding)}` : ''}</title>
+      </polygon>;
+    })}
+    <path d={roots} fill="none" stroke="black" strokeWidth="2.5" strokeLinejoin="round" pointerEvents="none"><title>Raíces de pieza {number}</title></path>
     <g clipPath={`url(#${clipId})`}>
       {toothSurfaces.map((s) => {
         const finding = absence || tooth.surfaces[s.id].findings.findLast((mark) => !mark.points.length);
@@ -96,8 +176,8 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
           style={color ? { background: color } : undefined} data-state={finding?.state || absence?.state || tooth.surfaces[s.id].findings.at(-1)?.state || 'sin-registro'}
           role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-label={interactive ? `Pieza ${number}, ${s.label}` : undefined}
           aria-pressed={interactive ? selectedSurface === s.id : undefined}
-          onClick={interactive ? () => onSelect?.(s.id) : undefined}
-          onKeyDown={interactive ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect?.(s.id); } } : undefined}>
+          onClick={interactive ? activar(s.id) : undefined}
+          onKeyDown={interactive ? activar(s.id) : undefined}>
           <title>{number} · {s.label}{finding ? ` · ${markCode(finding)}` : ''}</title>
         </Element>;
       })}
@@ -105,8 +185,10 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
     </g>
     <ellipse cx="50" cy="77.5" rx="42" ry="17.5" fill="none" stroke="black" strokeWidth="2.5" pointerEvents="none" />
     {toothFindings(tooth).filter((mark) => !stateFor(mark.state).graphic.startsWith('draw-') || mark.points.length).map((mark) => <ToothMark key={mark.id} number={number} mark={mark} />)}
-    {selectedSurface && <polygon points={toothSurfacePolygon(number, selectedSurface)} clipPath={`url(#${clipId})`} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
+    {selectedSurface && toothSurfaces.some((s) => s.id === selectedSurface) && <polygon points={toothSurfacePolygon(number, selectedSurface)} clipPath={`url(#${clipId})`} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
+    {regiones.some((raiz) => raiz.id === selectedSurface) && <polygon points={regiones.find((raiz) => raiz.id === selectedSurface).points} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
     {showLabels && <SurfaceLabels number={number} />}
+    {showLabels && <RootLabels number={number} />}
   </>;
 }
 

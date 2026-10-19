@@ -1,6 +1,5 @@
 import React from 'react';
 import { GraduationCap, Menu } from 'lucide-react';
-import { clinicalMoments } from '../../../configuracion/historiaClinica.config.mjs';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
 import { SECTION_STATUS } from '../logica/clinicalStatus.mjs';
 
@@ -12,7 +11,7 @@ function momentState(moment, statuses) {
 }
 
 export default function ClinicalMomentSidebar({ id, open, onNavigate, onToggle, desktopNavigation, navigationTriggerRef }) {
-  const { activeMoment, sectionStatuses, navigateToMoment, history } = useHistoriaClinica();
+  const { activeMoment, moments, sectionStatuses, navigateToMoment, history } = useHistoriaClinica();
 
   function selectMoment(momentId) {
     navigateToMoment(momentId);
@@ -37,7 +36,7 @@ export default function ClinicalMomentSidebar({ id, open, onNavigate, onToggle, 
           ><Menu size={18} aria-hidden="true" /></button> : null}
         </div>
         <nav aria-label="Secciones de Historia Clínica">
-          {clinicalMoments.map((moment) => {
+          {moments.map((moment) => {
             const active = moment.id === activeMoment.id;
             const state = momentState(moment, sectionStatuses);
             return <button type="button" key={moment.id} className={`clinical-moment-nav is-${state}${active ? ' is-active' : ''}`} onClick={() => selectMoment(moment.id)} aria-current={active ? 'step' : undefined}>

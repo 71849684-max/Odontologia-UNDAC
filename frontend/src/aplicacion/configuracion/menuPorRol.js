@@ -1,3 +1,5 @@
+import { vistaPermitida } from './permisosVista.js';
+
 /**
  * Traduce los codigos de rol que devuelve el backend (tabla rol) al perfil de
  * menu que usa la interfaz.
@@ -64,3 +66,21 @@ export const MENU_POR_ROL = {
         ]},
     ],
 };
+
+/**
+ * El perfil arma el menú posible. `permisos` (códigos efectivos de la sesión)
+ * oculta lo que esa persona no tiene. Sin lista, se conserva el menú del rol.
+ */
+export function menuParaSesion(perfil, permisos) {
+    const base = MENU_POR_ROL[perfil] ?? MENU_POR_ROL.administrativo;
+    if (!Array.isArray(permisos)) return base;
+
+    return base.flatMap((item) => {
+        if (!item.children) {
+            return vistaPermitida(item.id, permisos) ? [item] : [];
+        }
+
+        const children = item.children.filter((hijo) => vistaPermitida(hijo.id, permisos));
+        return children.length ? [{ ...item, children }] : [];
+    });
+}

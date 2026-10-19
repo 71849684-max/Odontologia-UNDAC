@@ -30,7 +30,7 @@ class ServicioOdontograma
             foreach ([$fila->registro_json, $fila->especificaciones] as $contenido) {
                 $registro = json_decode((string) $contenido, true);
                 if (is_array($registro) && ($registro['version'] ?? null) === 1) {
-                    return $registro;
+                    return $this->normalizarRegistro($registro);
                 }
             }
         }
@@ -40,6 +40,8 @@ class ServicioOdontograma
 
     public function guardar(int $idHistoria, array $registro, Cuenta $actor): array
     {
+        $registro = $this->normalizarRegistro($registro);
+
         if (($registro['version'] ?? null) !== 1 || ! is_array($registro['examinations'] ?? null) || $registro['examinations'] === []) {
             throw new OperacionNoPermitida('odontograma', 'El registro del odontograma no tiene el formato esperado.');
         }
@@ -209,6 +211,69 @@ class ServicioOdontograma
                 }
             }
         }
+    }
+
+    /**
+     * El autoguardado de la historia pasa por un middleware que convierte '' en null.
+     * El odontograma necesita esas cadenas vacías para volver a abrirse.
+     *
+     * @param  array<string, mixed>  $registro
+     * @return array<string, mixed>
+     */
+    private function normalizarRegistro(array $registro): array
+    {
+        if (! is_array($registro['examinations'] ?? null)) {
+            return $registro;
+        }
+
+        foreach ($registro['examinations'] as $indice => $examen) {
+            if (! is_array($examen)) {
+                continue;
+            }
+            foreach (['date', 'professional', 'cop', 'specifications', 'observations'] as $campo) {
+                if (! is_string($examen[$campo] ?? null)) {
+                    $examen[$campo] = '';
+                }
+            }
+            $examen['ranges'] = array_map(fn ($marca) => $this->normalizarMarca($marca), (array) ($examen['ranges'] ?? []));
+            foreach ((array) ($examen['teeth'] ?? []) as $codigo => $diente) {
+                if (! is_array($diente)) {
+                    continue;
+                }
+                if (! is_string($diente['generalNote'] ?? null)) {
+                    $diente['generalNote'] = '';
+                }
+                $diente['findings'] = array_map(fn ($marca) => $this->normalizarMarca($marca), (array) ($diente['findings'] ?? []));
+                foreach ((array) ($diente['surfaces'] ?? []) as $cara => $superficie) {
+                    if (! is_array($superficie)) {
+                        continue;
+                    }
+                    if (! is_string($superficie['note'] ?? null)) {
+                        $superficie['note'] = '';
+                    }
+                    $superficie['findings'] = array_map(fn ($marca) => $this->normalizarMarca($marca), (array) ($superficie['findings'] ?? []));
+                    $diente['surfaces'][$cara] = $superficie;
+                }
+                $examen['teeth'][$codigo] = $diente;
+            }
+            $registro['examinations'][$indice] = $examen;
+        }
+
+        return $registro;
+    }
+
+    private function normalizarMarca(mixed $marca): mixed
+    {
+        if (! is_array($marca)) {
+            return $marca;
+        }
+        foreach (['note', 'code'] as $campo) {
+            if (! is_string($marca[$campo] ?? null)) {
+                $marca[$campo] = '';
+            }
+        }
+
+        return $marca;
     }
 
     public function codigoCatalogo(string $estado): string

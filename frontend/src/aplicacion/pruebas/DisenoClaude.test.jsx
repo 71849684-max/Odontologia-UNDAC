@@ -69,7 +69,7 @@ test('el sidebar principal contiene el cierre de sesión y conserva el acceso a 
 
   const sidebar = screen.getByRole('complementary', { name: 'Navegación principal' });
   expect(within(sidebar).queryByRole('button', { name: 'Nueva historia clínica' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Nueva historia clínica' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Nueva historia clínica' })).toBeInTheDocument();
   fireEvent.click(within(sidebar).getByRole('button', { name: 'Cerrar sesión' }));
   expect(onLogout).toHaveBeenCalledTimes(1);
 });

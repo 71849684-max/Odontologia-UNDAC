@@ -98,4 +98,35 @@ class OdontogramaTest extends TestCase
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $conNueva])->assertOk();
         $this->assertSame(2, DB::table('odontograma')->where('id_historia_clinica', $id)->count());
     }
+
+    public function test_los_textos_vacios_guardados_como_null_vuelven_a_leerse_como_cadena(): void
+    {
+        $alumno = $this->crearUsuario('alumno.nulos', self::CLAVE, 'ALUMNO');
+        $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', ['dni' => '70000203', 'nombres' => 'Paciente Nulos', 'sexo' => 'M'])->json('id');
+
+        $registro = $this->registro();
+        $registro['examinations'][0]['professional'] = null;
+        $registro['examinations'][0]['cop'] = null;
+        $registro['examinations'][0]['specifications'] = null;
+        $registro['examinations'][0]['observations'] = null;
+        $registro['examinations'][0]['teeth']['16']['surfaces']['oclusal']['note'] = null;
+        $registro['examinations'][0]['teeth']['16']['surfaces']['oclusal']['findings'][0]['note'] = null;
+        $registro['examinations'][0]['teeth']['55']['findings'][0]['code'] = null;
+
+        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $registro])->assertOk();
+
+        $this->actingAs($alumno, 'web')->getJson("/api/historias/{$id}/odontograma")
+            ->assertOk()
+            ->assertJsonPath('registro.examinations.0.professional', '')
+            ->assertJsonPath('registro.examinations.0.cop', '')
+            ->assertJsonPath('registro.examinations.0.specifications', '')
+            ->assertJsonPath('registro.examinations.0.observations', '')
+            ->assertJsonPath('registro.examinations.0.teeth.16.surfaces.oclusal.note', '')
+            ->assertJsonPath('registro.examinations.0.teeth.16.surfaces.oclusal.findings.0.note', '')
+            ->assertJsonPath('registro.examinations.0.teeth.55.findings.0.code', '');
+
+        $json = (string) DB::table('odontograma')->where('id_historia_clinica', $id)->value('registro_json');
+        $this->assertStringNotContainsString('"professional":null', $json);
+        $this->assertStringContainsString('"professional":""', $json);
+    }
 }

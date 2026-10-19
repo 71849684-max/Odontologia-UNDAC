@@ -30,6 +30,24 @@ export const toothSurfaces = [
   { id: 'oclusal', label: 'Oclusal / Incisal', short: 'O/I' },
 ];
 
+/** Regiones radiculares que se pueden marcar. No son obligatorias en un registro ya guardado. */
+export const rootSurfaceIds = ['raiz', 'raiz-mesial', 'raiz-distal', 'raiz-palatina'];
+
+const rootSurfaceNames = {
+  raiz: 'Raíz',
+  'raiz-mesial': 'Raíz mesial',
+  'raiz-distal': 'Raíz distal',
+  'raiz-palatina': 'Raíz palatina',
+};
+
+export function surfaceName(id) {
+  return toothSurfaces.find((surface) => surface.id === id)?.label || rootSurfaceNames[id] || '';
+}
+
+export function isRecordedSurface(id) {
+  return toothSurfaces.some((surface) => surface.id === id) || rootSurfaceIds.includes(id);
+}
+
 // NTS 188 / nomenclatura de caras: el odontograma puede mostrar el nombre de cada sección.
 export const superficiesDentales = [
   { term: 'Mesial', short: 'M', surface: 'mesial', desc: 'Cara del diente más cercana a la línea media que divide la boca en dos mitades iguales.' },
@@ -40,6 +58,10 @@ export const superficiesDentales = [
   { term: 'Oclusal', short: 'O/I', surface: 'oclusal', desc: 'Superficie de masticación en molares y premolares.' },
   { term: 'Borde incisal', short: 'O/I', surface: 'oclusal', desc: 'Borde cortante que sirve para cortar, presente en incisivos y caninos.' },
   { term: 'Proximal', desc: 'Término que engloba las caras en contacto con los dientes vecinos: mesial y distal.' },
+  { term: 'Raíz', short: 'R', desc: 'Porción radicular. En las piezas de una sola raíz se selecciona completa.' },
+  { term: 'Raíz mesial', short: 'RM', desc: 'Raíz más cercana a la línea media, en piezas con más de una raíz.' },
+  { term: 'Raíz distal', short: 'RD', desc: 'Raíz más alejada de la línea media.' },
+  { term: 'Raíz palatina', short: 'RP', desc: 'Raíz central de los molares superiores, orientada hacia el paladar.' },
 ];
 
 // NTS 188-MINSA/DGIESP-2022, 6.1. Los símbolos gráficos no son siglas clínicas.

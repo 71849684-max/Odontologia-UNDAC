@@ -27,6 +27,13 @@ function fechaHoy() {
     return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
 }
 
+function fechaHoraRegistro() {
+    const hoy = new Date();
+    const fecha = fechaHoy();
+    const hora = `${String(hoy.getHours()).padStart(2, '0')}:${String(hoy.getMinutes()).padStart(2, '0')}`;
+    return `${fecha}T${hora}`;
+}
+
 function calcularEdad(fechaNacimiento) {
     if (!fechaNacimiento) return '';
     const nacimiento = new Date(`${fechaNacimiento}T00:00:00`);
@@ -119,7 +126,7 @@ export function registrarHistoriaClinica(paciente) {
         dni: paciente.dni ?? '',
         operador: '',
         docente: '',
-        fecha: fechaHoy(),
+        fecha: fechaHoraRegistro(),
         estado: 'Borrador',
         progreso: 0,
         pacienteRegistro: fichaPaciente(paciente),
@@ -130,9 +137,15 @@ export function registrarHistoriaClinica(paciente) {
 }
 
 export function registrarPacienteMinimo(form) {
+    const apellidoPaterno = texto(form.apellidoPaterno);
+    const apellidoMaterno = texto(form.apellidoMaterno);
+    const nombresPila = texto(form.nombres);
+    const nombres = [nombresPila, apellidoPaterno, apellidoMaterno].filter(Boolean).join(' ') || nombresPila;
     const paciente = {
         id: nuevoId('local'),
-        nombres: texto(form.nombres),
+        nombres,
+        apellidoPaterno,
+        apellidoMaterno,
         dni: texto(form.dni),
         edad: calcularEdad(form.nacimiento),
         sexo: form.sexo ?? '',

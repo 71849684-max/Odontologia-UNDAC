@@ -91,7 +91,15 @@ class ServicioHistorias
             }
 
             $anio = now()->year;
-            $correlativo = (int) DB::table('historia_clinica')->where('numero_historia', 'like', "HC-{$anio}-%")->count() + 1;
+            // Usar el máximo correlativo (no el conteo) para no chocar con uq_historia_numero si hay huecos.
+            $ultimo = DB::table('historia_clinica')
+                ->where('numero_historia', 'like', "HC-{$anio}-%")
+                ->orderByDesc('numero_historia')
+                ->value('numero_historia');
+            $correlativo = 1;
+            if (is_string($ultimo) && preg_match('/HC-\d+-(\d+)$/', $ultimo, $partes)) {
+                $correlativo = ((int) $partes[1]) + 1;
+            }
             $numero = sprintf('HC-%d-%03d', $anio, $correlativo);
             $idEstado = (int) DB::table('estado_historia_clinica')->where('codigo', 'BORRADOR')->value('id_estado_historia');
 
@@ -281,7 +289,7 @@ class ServicioHistorias
             'dni' => $fila->numero_documento,
             'operador' => $operador ?? '',
             'docente' => $docente ?? '',
-            'fecha' => $fila->creado_en ?: $fila->fecha_apertura,
+            'fecha' => Valores::fechaHoraLocal($fila->creado_en ?: $fila->fecha_apertura),
             'estado' => $fila->nombre_estado,
             'codigoEstado' => $fila->codigo_estado,
             'observacion' => $listaObservaciones[0]['texto'] ?? null,

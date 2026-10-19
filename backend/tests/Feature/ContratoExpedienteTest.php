@@ -27,7 +27,7 @@ class ContratoExpedienteTest extends TestCase
         return [
             'datos-paciente' => ['datos-paciente', [
                 'dni' => '70000099',
-                'fechaPaciente' => $hoy,
+                // fechaPaciente la fija el servidor con creado_en de la historia; no es ida y vuelta del cliente.
                 'sexo' => 'F',
                 'apellidos' => 'Salazar Huamán',
                 'nombres' => 'Andrea Lucía',

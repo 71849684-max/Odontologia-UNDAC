@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { clinicalMoments, clinicalSections, getMomentForSection } from '../../../configuracion/historiaClinica.config.mjs';
+import { clinicalMoments, clinicalSections } from '../../../configuracion/historiaClinica.config.mjs';
+import { momentosPermitidos, seccionesPermitidas } from '../../../configuracion/permisosVista.js';
 import { historiasClinicas, metaHistoriaVacia, pacientesClinicos } from '../../../configuracion/datosClinicos.mjs';
 import { buscarHistoria, pacienteDeHistoria } from '../../../servicios/registroHistoriaClinica.js';
 import { eliminarArchivoClinico, esFalloDeRed, guardarExpediente, idHistoria, obtenerExpediente, subirArchivoClinico } from '../../../servicios/servicioClinico.js';
@@ -7,6 +8,7 @@ import { ArchivosClinicosContext } from '../../../formularios/compartidos/archiv
 import { buildClinicalAlerts } from '../logica/clinicalAlerts.mjs';
 import { inferSectionStatus, SECTION_STATUS } from '../logica/clinicalStatus.mjs';
 import { cambiosCoherentes, validarSeccion } from '../logica/reglasClinicas.mjs';
+import { fechaRegistroActual, valorFechaHoraRegistro } from '../../../formularios/datos-paciente/DatosPacienteSection.jsx';
 
 const HistoriaClinicaContext = createContext(null);
 
@@ -20,6 +22,23 @@ function loadLocalState(storageKey) {
   } catch {
     return {};
   }
+}
+
+function fechaRegistroHistoria(history) {
+  const origen = history?.fecha ?? history?.creadoEn ?? '';
+  return origen ? valorFechaHoraRegistro(origen) : fechaRegistroActual();
+}
+
+function conFechaRegistroHistoria(formData, history) {
+  const datos = formData?.['datos-paciente'];
+  if (!datos || typeof datos !== 'object') return formData;
+  return {
+    ...formData,
+    'datos-paciente': {
+      ...datos,
+      fechaPaciente: fechaRegistroHistoria(history),
+    },
+  };
 }
 
 function patientSeed(patient, history) {
@@ -44,11 +63,14 @@ function patientSeed(patient, history) {
     celular: patient.telefono ?? '',
     correo: patient.correo ?? '',
     fechaNacimiento: patient.fechaNacimiento ?? '',
+    fechaPaciente: fechaRegistroHistoria(history),
     operador: history?.operador ?? '',
   };
 }
 
-export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-paciente', children }) {
+export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-paciente', permisos = null, children }) {
+  const seccionesVisibles = useMemo(() => seccionesPermitidas(permisos), [permisos]);
+  const momentosVisibles = useMemo(() => momentosPermitidos(permisos), [permisos]);
   const [expediente, setExpediente] = useState(null);
   const historiaLocal = buscarHistoria(historiaId)
     ?? historiasClinicas.find((item) => String(item.id) === String(historiaId))
@@ -61,14 +83,29 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     ?? expediente?.paciente
     ?? pacientesClinicos.find((item) => String(item.id) === String(selectedHistory.pacienteId ?? selectedHistory.id))
     ?? { id: null, nombres: 'Paciente sin datos', dni: '—', edad: '', sexo: '', telefono: '' };
-  const safeInitial = clinicalSections.some((item) => item.id === initialSection) ? initialSection : 'datos-paciente';
-  const storageKey = `undac:hc:workspace:v3:${selectedHistory.codigo}`;
+  const safeInitial = seccionesVisibles.some((item) => item.id === initialSection) ? initialSection : (seccionesVisibles[0]?.id ?? 'datos-paciente');
+  // Clave por id de historia (no por código) para no mezclar borradores de «Sin historia».
+  const storageKey = `undac:hc:workspace:v3:${historiaId ?? selectedHistory.id ?? selectedHistory.codigo}`;
   const initialLocal = useMemo(() => loadLocalState(storageKey), [storageKey]);
   const [activeSection, setActiveSection] = useState(safeInitial);
-  const [formData, setFormData] = useState(() => ({
-    'datos-paciente': patientSeed(selectedPatient, selectedHistory),
-    ...(initialLocal.formData ?? {}),
-  }));
+
+  useEffect(() => {
+    if (seccionesVisibles.some((item) => item.id === activeSection)) return;
+    const siguiente = seccionesVisibles[0]?.id;
+    if (siguiente) setActiveSection(siguiente);
+  }, [seccionesVisibles, activeSection]);
+  const [formData, setFormData] = useState(() => {
+    const local = initialLocal.formData ?? {};
+    const datosLocal = local['datos-paciente'] && typeof local['datos-paciente'] === 'object' ? local['datos-paciente'] : {};
+    return {
+      ...local,
+      'datos-paciente': {
+        ...patientSeed(selectedPatient, selectedHistory),
+        ...datosLocal,
+        fechaPaciente: fechaRegistroHistoria(selectedHistory),
+      },
+    };
+  });
   const [explicitStatus, setExplicitStatus] = useState(() => initialLocal.sectionStatus ?? {});
   const historiaServidor = idHistoria(selectedHistory.id);
   const [autosaveStatus, setAutosaveStatus] = useState(historiaServidor ? 'saved' : 'local');
@@ -83,7 +120,8 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     obtenerExpediente(historiaServidor).then((cuerpo) => {
       if (!vigente || !cuerpo?.formData) return;
       setExpediente(cuerpo);
-      setFormData((actual) => ({ ...actual, ...cuerpo.formData }));
+      const historia = cuerpo.historia ?? selectedHistory;
+      setFormData((actual) => conFechaRegistroHistoria({ ...actual, ...cuerpo.formData }, historia));
       if (cuerpo.sectionStatus && typeof cuerpo.sectionStatus === 'object') {
         setExplicitStatus((actual) => ({ ...actual, ...cuerpo.sectionStatus }));
       }
@@ -162,7 +200,10 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     inferSectionStatus(formData[section.id] ?? {}, explicitStatus[section.id]),
   ])), [formData, explicitStatus]);
 
-  const activeMoment = getMomentForSection(activeSection);
+  const activeMoment = useMemo(
+    () => momentosVisibles.find((moment) => moment.sections.includes(activeSection)) ?? momentosVisibles[0] ?? clinicalMoments[0],
+    [momentosVisibles, activeSection],
+  );
   const alerts = useMemo(() => buildClinicalAlerts(formData), [formData]);
 
   const setSectionStatus = useCallback((sectionId, status) => {
@@ -247,22 +288,25 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   }, [sectionStatuses]);
 
   const navigateToMoment = useCallback((momentId) => {
-    const moment = clinicalMoments.find((item) => item.id === momentId);
+    const moment = momentosVisibles.find((item) => item.id === momentId);
     if (!moment) return;
     const preferred = moment.sections.find((id) => sectionStatuses[id] !== SECTION_STATUS.COMPLETE) ?? moment.sections[0];
     setActiveSection(preferred);
-  }, [sectionStatuses]);
+  }, [momentosVisibles, sectionStatuses]);
 
   const navigateRelative = useCallback((offset) => {
-    const index = clinicalSections.findIndex((item) => item.id === activeSection);
-    const nextIndex = Math.min(clinicalSections.length - 1, Math.max(0, index + offset));
-    setActiveSection(clinicalSections[nextIndex].id);
-  }, [activeSection]);
+    const index = seccionesVisibles.findIndex((item) => item.id === activeSection);
+    const nextIndex = Math.min(seccionesVisibles.length - 1, Math.max(0, index + offset));
+    const siguiente = seccionesVisibles[nextIndex];
+    if (siguiente) setActiveSection(siguiente.id);
+  }, [activeSection, seccionesVisibles]);
 
   const value = useMemo(() => ({
     patient: selectedPatient,
     history: selectedHistory,
     meta: { ...metaHistoriaVacia, codigo: selectedHistory.codigo, estado: selectedHistory.estado, operador: selectedHistory.operador, docente: selectedHistory.docente },
+    sections: seccionesVisibles,
+    moments: momentosVisibles,
     activeSection,
     setActiveSection,
     activeMoment,
@@ -283,7 +327,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     alerts,
     autosaveStatus,
     lastSavedAt,
-  }), [selectedPatient, selectedHistory, activeSection, activeMoment, formData, updateSection, updateActiveSection, sectionStatuses, setSectionStatus, markCurrentComplete, sendCurrentToReview, approveCurrent, returnCurrentToEdit, validation, revisionAviso, momentProgress, navigateToMoment, navigateRelative, alerts, autosaveStatus, lastSavedAt]);
+  }), [selectedPatient, selectedHistory, seccionesVisibles, momentosVisibles, activeSection, activeMoment, formData, updateSection, updateActiveSection, sectionStatuses, setSectionStatus, markCurrentComplete, sendCurrentToReview, approveCurrent, returnCurrentToEdit, validation, revisionAviso, momentProgress, navigateToMoment, navigateRelative, alerts, autosaveStatus, lastSavedAt]);
 
   const enServidor = Boolean(historiaServidor && expediente);
   const archivos = useMemo(() => (enServidor ? {

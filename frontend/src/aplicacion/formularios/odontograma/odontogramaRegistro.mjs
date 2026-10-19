@@ -1,4 +1,4 @@
-import { allTeeth, arches, temporaryArches, createEmptyOdontogram, stateFor, toothSurfaces } from './odontograma.config.mjs';
+import { allTeeth, arches, temporaryArches, createEmptyOdontogram, isRecordedSurface, stateFor, toothSurfaces } from './odontograma.config.mjs';
 
 export const examinationReasons = ['Inicial', 'Nuevos hallazgos', 'Fin de tratamiento', 'Reingreso', 'Solicitud judicial', 'Solicitud personal'];
 const id = () => globalThis.crypto.randomUUID();
@@ -61,8 +61,8 @@ export function addFinding(exam, { state: stateId, tooth, surface, endTooth, cod
   if (['range','arch','pair'].includes(state.scope)) return { ...exam, ranges: [...exam.ranges, mark] };
   const current = exam.teeth[tooth];
   if (state.scope === 'surface') {
-    if (!toothSurfaces.some((s) => s.id === surface)) throw new Error('Seleccione una superficie.');
-    const old = current.surfaces[surface];
+    if (!isRecordedSurface(surface)) throw new Error('Seleccione una superficie.');
+    const old = current.surfaces[surface] || { state: 'sin-registro', note: '', findings: [] };
     return { ...exam, teeth: { ...exam.teeth, [tooth]: { ...current, surfaces: { ...current.surfaces, [surface]: { state: stateId, note, findings: [...old.findings, mark] } } } } };
   }
   return { ...exam, teeth: { ...exam.teeth, [tooth]: { ...current, findings: [...current.findings, mark] } } };
@@ -81,6 +81,47 @@ export function toothFindings(tooth) {
 }
 export const ERROR_LECTURA_ODONTOGRAMA = 'No se pudo leer el odontograma guardado. Se conservó el contenido original; no se sobrescribirá.';
 
+function texto(valor) {
+  return typeof valor === 'string' ? valor : '';
+}
+
+function normalizarMarca(marca) {
+  if (!marca || typeof marca !== 'object') return marca;
+  return { ...marca, note: texto(marca.note), code: texto(marca.code) };
+}
+
+function normalizarExamen(examen) {
+  if (!examen || typeof examen !== 'object') return examen;
+  const dientes = examen.teeth && typeof examen.teeth === 'object'
+    ? Object.fromEntries(Object.entries(examen.teeth).map(([numero, diente]) => {
+      if (!diente || typeof diente !== 'object') return [numero, diente];
+      const surfaces = diente.surfaces && typeof diente.surfaces === 'object'
+        ? Object.fromEntries(Object.entries(diente.surfaces).map(([cara, superficie]) => [cara, superficie && typeof superficie === 'object' ? {
+          ...superficie,
+          note: texto(superficie.note),
+          findings: Array.isArray(superficie.findings) ? superficie.findings.map(normalizarMarca) : superficie.findings,
+        } : superficie]))
+        : diente.surfaces;
+      return [numero, {
+        ...diente,
+        generalNote: texto(diente.generalNote),
+        findings: Array.isArray(diente.findings) ? diente.findings.map(normalizarMarca) : diente.findings,
+        surfaces,
+      }];
+    }))
+    : examen.teeth;
+  return {
+    ...examen,
+    date: texto(examen.date),
+    professional: texto(examen.professional),
+    cop: texto(examen.cop),
+    specifications: texto(examen.specifications),
+    observations: texto(examen.observations),
+    ranges: Array.isArray(examen.ranges) ? examen.ranges.map(normalizarMarca) : examen.ranges,
+    teeth: dientes,
+  };
+}
+
 export function readRecord(raw, patientId) {
   if (!raw) return createRecord(patientId);
   let value;
@@ -89,10 +130,11 @@ export function readRecord(raw, patientId) {
   } catch {
     throw new Error(ERROR_LECTURA_ODONTOGRAMA);
   }
+  if (Array.isArray(value?.examinations)) value = { ...value, examinations: value.examinations.map(normalizarExamen) };
   const validMark = (m) => m && typeof m.id === 'string' && typeof m.note === 'string' && typeof m.code === 'string' && ['good','bad'].includes(m.condition) && stateFor(m.state).id !== 'sin-registro' && Array.isArray(m.teeth) && m.teeth.length > 0 && m.teeth.every((n) => allTeeth.some((t) => t.number === n)) && Array.isArray(m.points) && m.points.every((p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v) && v >= 0 && v <= 100));
   if (value?.version !== 1 || value.patientId !== String(patientId) || !Array.isArray(value.examinations) || !value.examinations.length || value.examinations.filter((e) => e.status === 'draft').length > 1 || value.examinations.some((e) => !e || typeof e.id !== 'string' || !['draft','closed'].includes(e.status) || !['date','professional','cop','specifications','observations'].every((key) => typeof e[key] === 'string') || !Array.isArray(e.ranges) || !e.ranges.every(validMark) || !allTeeth.every(({ number }) => {
     const t = e.teeth?.[number];
-    return t && Array.isArray(t.findings) && t.findings.every(validMark) && toothSurfaces.every((s) => Array.isArray(t.surfaces?.[s.id]?.findings) && t.surfaces[s.id].findings.every(validMark));
+    return t && Array.isArray(t.findings) && t.findings.every(validMark) && toothSurfaces.every((s) => Array.isArray(t.surfaces?.[s.id]?.findings) && t.surfaces[s.id].findings.every(validMark)) && Object.entries(t.surfaces).every(([id, superficie]) => toothSurfaces.some((s) => s.id === id) || (superficie && Array.isArray(superficie.findings) && superficie.findings.every(validMark)));
   }))) throw new Error(ERROR_LECTURA_ODONTOGRAMA);
   return value;
 }

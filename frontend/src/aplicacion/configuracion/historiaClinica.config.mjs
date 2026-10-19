@@ -80,7 +80,6 @@ export function getSectionById(sectionId) {
 export const dashboardServices = [
   { id: 'pacientes', label: 'Pacientes', description: 'Registro, búsqueda y acceso a pacientes', metric: '24', metricLabel: 'asignados', target: { view: 'pacientes' }, icon: 'users' },
   { id: 'historias', label: 'Historias clínicas', description: 'Historias activas, en revisión y cerradas', metric: '18', metricLabel: 'activas', target: { view: 'historias' }, icon: 'folder' },
-  { id: 'nueva-historia', label: 'Nueva historia', description: 'Iniciar una historia clínica odontológica', metric: '+', metricLabel: 'registrar', target: { view: 'nueva-historia' }, icon: 'add' },
   { id: 'odontograma', label: 'Odontograma', description: 'Dentición permanente y temporal · numeración FDI', metric: '52', metricLabel: 'posiciones', target: { view: 'historia', section: 'odontograma' }, icon: 'tooth' },
   { id: 'examenes', label: 'Exámenes auxiliares', description: 'Laboratorio, radiografías y resultados clínicos', metric: '3', metricLabel: 'grupos', target: { view: 'historia', section: 'examenes-auxiliares' }, icon: 'lab' },
   { id: 'diagnostico', label: 'Diagnóstico', description: 'Diagnóstico clínico-radiográfico y pronóstico', metric: 'DX', metricLabel: 'clínico', target: { view: 'historia', section: 'diagnostico' }, icon: 'diagnosis' },

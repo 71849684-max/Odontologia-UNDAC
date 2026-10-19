@@ -6,6 +6,7 @@ use App\Identidad\Dominio\Contratos\ConsultaAccesos;
 use App\Identidad\Dominio\Contratos\GestorSesion;
 use App\Identidad\Dominio\Contratos\LimitadorIntentos;
 use App\Identidad\Dominio\Contratos\RegistradorIntentosAcceso;
+use App\Identidad\Dominio\Contratos\RepositorioPermisos;
 use App\Identidad\Dominio\Contratos\RepositorioUsuarios;
 use App\Identidad\Dominio\Contratos\VerificadorContrasena;
 use App\Identidad\Dominio\Cuenta;
@@ -17,6 +18,7 @@ class IniciarSesion
 {
     public function __construct(
         private readonly RepositorioUsuarios $usuarios,
+        private readonly RepositorioPermisos $permisos,
         private readonly ConsultaAccesos $accesos,
         private readonly VerificadorContrasena $contrasenas,
         private readonly LimitadorIntentos $limitador,
@@ -90,6 +92,7 @@ class IniciarSesion
             ],
             'roles' => $this->accesos->roles($cuenta),
             'es_administrador' => $this->accesos->esAdministrador($cuenta),
+            'permisos' => $this->permisos->codigosEfectivos($cuenta),
         ];
     }
 }

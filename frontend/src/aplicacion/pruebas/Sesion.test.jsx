@@ -28,6 +28,8 @@ vi.mock('../servicios/servicioAdministracion', () => ({
     })),
     guardarPermisosUsuario: vi.fn(),
     restaurarPermisosUsuario: vi.fn(),
+    obtenerPermisosRol: vi.fn(),
+    guardarPermisosRol: vi.fn(),
     listarAuditoria: vi.fn(async () => ({ data: [], accesos_recientes: [], acciones: [], indicadores: {} })),
     listarConfiguracion: vi.fn(async () => ({ data: [] })),
     guardarConfiguracion: vi.fn(),
@@ -135,6 +137,23 @@ test('al cerrar sesion se vuelve al acceso aunque el backend falle', async () =>
     });
 });
 
+test('oculta el modulo cuando la sesion no incluye ese permiso', async () => {
+    const usuario = userEvent.setup();
+    iniciarSesion.mockResolvedValue({
+        ...SESIONES.alumno,
+        permisos: ['TABLERO', 'HISTORIAS', 'SEGUIMIENTO'],
+    });
+    await renderizarAplicacion();
+    await ingresar(usuario, { nombreUsuario: 'mquispe' });
+
+    expect(await screen.findByRole('button', { name: 'Mis historias clínicas' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mis pacientes' })).not.toBeInTheDocument();
+
+    await act(async () => { window.onNavigate('mis-pacientes'); });
+    expect(await screen.findByText(/acceso denegado/i)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Pacientes' })).not.toBeInTheDocument();
+});
+
 test('puedeVerRuta solo restringe las rutas del modulo de administracion', () => {
     const administrador = { esAdministrador: true };
     const alumno = { esAdministrador: false };
@@ -144,4 +163,7 @@ test('puedeVerRuta solo restringe las rutas del modulo de administracion', () =>
     expect(puedeVerRuta('usuarios', alumno)).toBe(false);
     expect(puedeVerRuta('usuarios', administrador)).toBe(true);
     expect(puedeVerRuta('usuarios', null)).toBe(false);
+    expect(puedeVerRuta('pacientes', { esAdministrador: false, permisos: ['HISTORIAS'] })).toBe(false);
+    expect(puedeVerRuta('pacientes', { esAdministrador: false, permisos: ['PACIENTES'] })).toBe(true);
+    expect(puedeVerRuta('usuarios', { esAdministrador: true, permisos: ['PACIENTES'] })).toBe(false);
 });

@@ -57,8 +57,11 @@ Route::middleware(['auth', 'usuario.activo'])->group(function (): void {
     Route::middleware('acceso:HISTORIAS')->group(function (): void {
         Route::get('historias', [ControladorHistorias::class, 'listar'])->name('historias.index');
         Route::get('personal', [ControladorHistorias::class, 'personal'])->name('personal.index');
-        Route::get('seguimientos', [ControladorHistorias::class, 'seguimientos'])->name('seguimientos.index');
+        Route::get('seguimientos', [ControladorHistorias::class, 'seguimientos'])
+            ->middleware('acceso:SEGUIMIENTO')
+            ->name('seguimientos.index');
         Route::patch('seguimientos/{idSeguimiento}', [ControladorHistorias::class, 'actualizarSeguimiento'])
+            ->middleware('acceso:SEGUIMIENTO')
             ->whereNumber('idSeguimiento')
             ->name('seguimientos.update');
         Route::patch('programaciones/{idProgramacion}', [ControladorHistorias::class, 'actualizarProgramacion'])
@@ -92,10 +95,10 @@ Route::middleware(['auth', 'usuario.activo'])->group(function (): void {
         Route::post('periodos', [ControladorAcademico::class, 'crearPeriodo'])->name('periodos.store');
         Route::post('cursos', [ControladorAcademico::class, 'crearCurso'])->name('cursos.store');
         Route::put('cursos/{idCurso}', [ControladorAcademico::class, 'actualizarCurso'])->name('cursos.update');
-        Route::post('grupos', [ControladorAcademico::class, 'crearGrupo'])->name('grupos.store');
-        Route::put('grupos/{idGrupo}', [ControladorAcademico::class, 'actualizarGrupo'])->name('grupos.update');
-        Route::post('grupos/{idGrupo}/miembros', [ControladorAcademico::class, 'membresias'])->name('grupos.miembros');
-        Route::patch('miembros/{idMembresia}', [ControladorAcademico::class, 'finalizarMembresia'])->name('miembros.finalizar');
+        Route::post('grupos', [ControladorAcademico::class, 'crearGrupo'])->middleware('acceso:GRUPOS')->name('grupos.store');
+        Route::put('grupos/{idGrupo}', [ControladorAcademico::class, 'actualizarGrupo'])->middleware('acceso:GRUPOS')->name('grupos.update');
+        Route::post('grupos/{idGrupo}/miembros', [ControladorAcademico::class, 'membresias'])->middleware('acceso:GRUPOS')->name('grupos.miembros');
+        Route::patch('miembros/{idMembresia}', [ControladorAcademico::class, 'finalizarMembresia'])->middleware('acceso:GRUPOS')->name('miembros.finalizar');
         Route::post('rotaciones', [ControladorAcademico::class, 'crearRotacion'])->name('rotaciones.store');
         Route::post('rotaciones/{idRotacion}/docentes', [ControladorAcademico::class, 'docentesRotacion'])->name('rotaciones.docentes');
         Route::post('rotaciones/{idRotacion}/alumnos', [ControladorAcademico::class, 'asignaciones'])->name('rotaciones.alumnos');
@@ -104,24 +107,39 @@ Route::middleware(['auth', 'usuario.activo'])->group(function (): void {
     // Modulo de administracion: todo endpoint nuevo nace dentro de este grupo.
     Route::middleware('rol:ADMINISTRADOR')->prefix('admin')->name('admin.')->group(function (): void {
         Route::get('resumen', [ControladorAdministracion::class, 'resumen'])->name('resumen');
-
         Route::get('roles', [ControladorUsuarios::class, 'roles'])->name('roles');
-        Route::get('usuarios', [ControladorUsuarios::class, 'listar'])->name('usuarios.index');
-        Route::post('usuarios', [ControladorUsuarios::class, 'crear'])->name('usuarios.store');
-        Route::get('usuarios/{idUsuario}', [ControladorUsuarios::class, 'mostrar'])->name('usuarios.show');
-        Route::put('usuarios/{idUsuario}', [ControladorUsuarios::class, 'actualizar'])->name('usuarios.update');
-        Route::patch('usuarios/{idUsuario}/estado', [ControladorUsuarios::class, 'cambiarEstado'])->name('usuarios.estado');
-        Route::patch('usuarios/{idUsuario}/clave', [ControladorCuenta::class, 'restablecerContrasena'])
-            ->middleware('throttle:20,1')
-            ->name('usuarios.clave');
 
-        Route::get('permisos', [ControladorPermisos::class, 'catalogo'])->name('permisos.catalogo');
-        Route::get('usuarios/{idUsuario}/permisos', [ControladorPermisos::class, 'deUsuario'])->name('permisos.show');
-        Route::put('usuarios/{idUsuario}/permisos', [ControladorPermisos::class, 'guardar'])->name('permisos.update');
-        Route::delete('usuarios/{idUsuario}/permisos', [ControladorPermisos::class, 'restaurar'])->name('permisos.restore');
+        Route::middleware('acceso:USUARIOS')->group(function (): void {
+            Route::get('usuarios', [ControladorUsuarios::class, 'listar'])->name('usuarios.index');
+            Route::post('usuarios', [ControladorUsuarios::class, 'crear'])->name('usuarios.store');
+            Route::get('usuarios/{idUsuario}', [ControladorUsuarios::class, 'mostrar'])->name('usuarios.show');
+            Route::put('usuarios/{idUsuario}', [ControladorUsuarios::class, 'actualizar'])->name('usuarios.update');
+            Route::patch('usuarios/{idUsuario}/estado', [ControladorUsuarios::class, 'cambiarEstado'])->name('usuarios.estado');
+            Route::patch('usuarios/{idUsuario}/clave', [ControladorCuenta::class, 'restablecerContrasena'])
+                ->middleware('throttle:20,1')
+                ->name('usuarios.clave');
+        });
 
-        Route::get('auditoria', [ControladorAuditoria::class, 'listar'])->name('auditoria');
-        Route::get('configuracion', [ControladorConfiguracion::class, 'listar'])->name('configuracion.index');
-        Route::put('configuracion', [ControladorConfiguracion::class, 'guardar'])->name('configuracion.update');
+        Route::middleware('acceso:ROLES')->group(function (): void {
+            Route::get('permisos', [ControladorPermisos::class, 'catalogo'])->name('permisos.catalogo');
+            Route::get('roles/{codigoRol}/permisos', [ControladorPermisos::class, 'deRol'])
+                ->where('codigoRol', '[A-Za-z_]+')
+                ->name('permisos.rol');
+            Route::put('roles/{codigoRol}/permisos', [ControladorPermisos::class, 'guardarRol'])
+                ->where('codigoRol', '[A-Za-z_]+')
+                ->name('permisos.rol.update');
+            Route::get('usuarios/{idUsuario}/permisos', [ControladorPermisos::class, 'deUsuario'])->name('permisos.show');
+            Route::put('usuarios/{idUsuario}/permisos', [ControladorPermisos::class, 'guardar'])->name('permisos.update');
+            Route::delete('usuarios/{idUsuario}/permisos', [ControladorPermisos::class, 'restaurar'])->name('permisos.restore');
+        });
+
+        Route::middleware('acceso:BITACORA')->group(function (): void {
+            Route::get('auditoria', [ControladorAuditoria::class, 'listar'])->name('auditoria');
+        });
+
+        Route::middleware('acceso:PARAMETROS')->group(function (): void {
+            Route::get('configuracion', [ControladorConfiguracion::class, 'listar'])->name('configuracion.index');
+            Route::put('configuracion', [ControladorConfiguracion::class, 'guardar'])->name('configuracion.update');
+        });
     });
 });
