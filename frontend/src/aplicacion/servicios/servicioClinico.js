@@ -209,6 +209,11 @@ export async function eliminarArchivoClinico(historiaId, archivoId) {
     return clienteHttp.eliminar(`/historias/${historiaId}/archivos/${archivoId}`);
 }
 
+export async function inactivarHistoria(historiaId) {
+    sinRedEnPrueba();
+    return clienteHttp.eliminar(`/historias/${historiaId}`);
+}
+
 export async function obtenerOdontograma(historiaId) {
     sinRedEnPrueba();
     const cuerpo = await clienteHttp.obtener(`/historias/${historiaId}/odontograma`);

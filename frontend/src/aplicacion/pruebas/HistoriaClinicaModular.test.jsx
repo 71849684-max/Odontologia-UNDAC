@@ -192,12 +192,28 @@ test('vincula cada bloque desplegable con su contenido clínico', () => {
   expect(content).toHaveAttribute('id', block.getAttribute('aria-controls'));
 });
 
-test('identifica las tarjetas clínicas mediante su encabezado', () => {
+test('guarda el diagnóstico desde su ficha y pliega la síntesis y el pronóstico', () => {
   render(<HistoriaClinica historiaId="1" initialSection="diagnostico" />);
 
-  const title = screen.getByRole('heading', { name: 'Síntesis diagnóstica estructurada', level: 3 });
-  const card = title.closest('section');
-  expect(card).toHaveAttribute('aria-labelledby', title.id);
+  const sintesis = screen.getByRole('button', { name: /Síntesis diagnóstica estructurada/i });
+  const pronostico = screen.getByRole('button', { name: /Pronóstico clínico/i });
+  expect(sintesis).toHaveAttribute('aria-expanded', 'true');
+  expect(pronostico).toHaveAttribute('aria-expanded', 'true');
+
+  fireEvent.click(screen.getByRole('button', { name: 'Registrar diagnóstico' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar diagnóstico' }));
+  expect(screen.getByRole('alert')).toHaveTextContent('código CIE-10');
+
+  fireEvent.change(screen.getByLabelText('Código CIE-10 / estomatológico'), { target: { value: 'K02.1' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Guardar diagnóstico' }));
+  expect(screen.getByText('Diagnóstico guardado')).toBeInTheDocument();
+
+  fireEvent.click(sintesis);
+  expect(sintesis).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByLabelText('Código CIE-10 / estomatológico')).not.toBeInTheDocument();
+  fireEvent.click(pronostico);
+  expect(pronostico).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.queryByLabelText('Pronóstico')).not.toBeInTheDocument();
 });
 
 test('presenta las constancias del consentimiento como estados pendientes', () => {

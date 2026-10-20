@@ -24,8 +24,8 @@ class ServicioAcademico
 
     public function crearPeriodo(array $datos): array
     {
-        $inicio = Valores::texto($datos['fechaInicio'] ?? null);
-        $fin = Valores::texto($datos['fechaFin'] ?? null);
+        $inicio = Valores::fecha($datos['fechaInicio'] ?? null);
+        $fin = Valores::fecha($datos['fechaFin'] ?? null);
         if ($inicio === null || $fin === null || $fin < $inicio) {
             throw new OperacionNoPermitida('fechaFin', 'La fecha final debe ser igual o posterior a la fecha inicial.');
         }
@@ -74,7 +74,7 @@ class ServicioAcademico
         $creadas = [];
         foreach ($membresias as $item) {
             $idAlumno = $this->idAlumno($item['personaId'] ?? null);
-            $inicio = Valores::texto($item['fechaInicio'] ?? null) ?? now()->toDateString();
+            $inicio = Valores::fecha($item['fechaInicio'] ?? null) ?? now()->toDateString();
             $activa = DB::table('grupo_miembro')
                 ->where('id_grupo', $idGrupo)
                 ->where('id_alumno', $idAlumno)
@@ -88,7 +88,7 @@ class ServicioAcademico
                 'id_grupo' => $idGrupo,
                 'id_alumno' => $idAlumno,
                 'fecha_inicio' => $inicio,
-                'fecha_fin' => Valores::texto($item['fechaFin'] ?? null),
+                'fecha_fin' => Valores::fecha($item['fechaFin'] ?? null),
                 'estado' => 'ACTIVA',
                 'creado_en' => now(),
             ]);
@@ -104,11 +104,12 @@ class ServicioAcademico
         if ($fila === null) {
             throw new OperacionNoPermitida('membresia', 'No se encontró la membresía.');
         }
-        if ($fechaFin === '' || $fechaFin < $fila->fecha_inicio) {
+        $fin = Valores::fecha($fechaFin);
+        if ($fin === null || $fin < $fila->fecha_inicio) {
             throw new OperacionNoPermitida('fechaFin', 'La fecha final debe ser igual o posterior a la fecha inicial.');
         }
         DB::table('grupo_miembro')->where('id_grupo_miembro', $id)->update([
-            'fecha_fin' => $fechaFin,
+            'fecha_fin' => $fin,
             'estado' => 'FINALIZADA',
         ]);
 
@@ -117,8 +118,8 @@ class ServicioAcademico
 
     public function crearRotacion(array $datos): array
     {
-        $inicio = Valores::texto($datos['fechaInicio'] ?? null);
-        $fin = Valores::texto($datos['fechaFin'] ?? null);
+        $inicio = Valores::fecha($datos['fechaInicio'] ?? null);
+        $fin = Valores::fecha($datos['fechaFin'] ?? null);
         if ($inicio === null || $fin === null || $fin < $inicio) {
             throw new OperacionNoPermitida('fechaFin', 'La fecha final debe ser igual o posterior a la fecha inicial.');
         }

@@ -8,6 +8,16 @@ const numero = (valor) => {
   return Number(limpio);
 };
 const hoyIso = () => new Date().toISOString().slice(0, 10);
+const sinAcento = (valor) => texto(valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+function tieneDiagnosticoPresuntivoODefinitivo(valores = {}) {
+  if (!vacio(valores.dxPresuntivo) || !vacio(valores.dxDefinitivo)) return true;
+  const lista = Array.isArray(valores.diagnosticos) ? valores.diagnosticos : [];
+  return lista.some((item) => {
+    const tipo = sinAcento(item?.tipo);
+    return (tipo === 'presuntivo' || tipo === 'definitivo') && !vacio(item?.codigo);
+  });
+}
 
 /**
  * IMC = peso (kg) / talla (m)². La talla se acepta en metros (1.65) o centímetros (165).
@@ -120,7 +130,7 @@ export function validarSeccion(seccion, valores = {}) {
       break;
     }
     case 'diagnostico':
-      if (vacio(valores.dxPresuntivo) && vacio(valores.dxDefinitivo)) {
+      if (!tieneDiagnosticoPresuntivoODefinitivo(valores)) {
         errores.push({ campo: 'dxPresuntivo', mensaje: 'Registre al menos un diagnóstico presuntivo o definitivo.' });
       }
       if (vacio(valores.pronosticoEstructurado) && vacio(valores.pronostico)) {

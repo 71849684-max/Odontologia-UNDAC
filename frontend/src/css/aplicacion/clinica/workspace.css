@@ -175,10 +175,6 @@ fieldset.clinical-active-section__content { min-width: 0; margin: 0; border: 0; 
 .clinical-moment-nav.is-complete .clinical-moment-nav__number { color: #fff; border-color: #0f766e; background: #0f766e; }
 .clinical-moment-nav strong { display: block; margin-top: 1px; font-size: 11px; line-height: 1.3; }
 .clinical-moment-nav small { display: -webkit-box; margin-top: 3px; overflow: hidden; color: #94a3b8; font-size: 9px; line-height: 1.35; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.clinical-moment-sidebar__footer { margin-top: auto; display: flex; align-items: center; gap: 9px; padding: 12px; border: 1px solid #dbe7ef; border-radius: 10px; color: #0f4f5c; background: #f4fbfc; }
-.clinical-moment-sidebar__footer > span { display: grid; }
-.clinical-moment-sidebar__footer strong { font-size: 10px; }
-.clinical-moment-sidebar__footer small { margin-top: 2px; color: #64748b; font-size: 8px; }
 
 .clinical-workspace__main {
   min-width: 0;
@@ -270,6 +266,12 @@ fieldset.clinical-active-section__content { min-width: 0; margin: 0; border: 0; 
 .clinical-workspace-actions > div { display: flex; align-items: center; gap: 7px; }
 
 /* Progressive disclosure */
+.clinical-collapsible__bar { display: flex; align-items: stretch; }
+.clinical-collapsible__bar > .clinical-collapsible__trigger { width: auto; flex: 1 1 auto; min-width: 0; }
+.clinical-collapsible__actions { display: flex; align-items: center; flex: 0 0 auto; padding: 8px 12px 8px 0; background: #fff; }
+.clinical-diagnosis-card__save { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 12px; }
+.clinical-diagnosis-card__save p { flex: 1 1 180px; margin: 0; color: #b42318; font-size: 12px; font-weight: 650; }
+.clinical-diagnosis-card__save > span { color: #0f766e; font-size: 12px; font-weight: 700; }
 .clinical-collapsible { overflow: hidden; border: 1px solid #dce6ed; border-radius: 10px; background: #fff; transition: border-color .16s ease, box-shadow .16s ease; }
 .clinical-collapsible.is-open { border-color: #b9e2db; box-shadow: 0 5px 15px rgba(15, 118, 110, .045); }
 .clinical-collapsible__trigger { width: 100%; min-height: 58px; display: grid; grid-template-columns: minmax(190px, 1fr) minmax(120px, auto) auto 20px; align-items: center; gap: 12px; border: 0; padding: 11px 14px; color: #334155; background: #fff; text-align: left; cursor: pointer; }
@@ -321,6 +323,8 @@ fieldset.clinical-active-section__content { min-width: 0; margin: 0; border: 0; 
 .clinical-context-note { margin-bottom: 15px; display: flex; align-items: flex-start; gap: 8px; border: 1px solid #bae6fd; border-radius: 9px; padding: 10px 11px; color: #075985; background: #f0f9ff; font-size: 9px; line-height: 1.45; }
 .clinical-section-toolbar { display: flex; justify-content: flex-end; margin-bottom: 12px; }
 .clinical-empty-inline { min-height: 90px; display: grid; place-items: center; align-content: center; gap: 5px; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 16px; color: #64748b; text-align: center; }
+.clinical-empty-inline .undac-btn { margin-top: 8px; }
+.clinical-diagnosis-register { display: flex; justify-content: flex-end; margin-top: 12px; }
 .clinical-empty-inline strong { color: #334155; font-size: 11px; }
 .clinical-empty-inline span { max-width: 600px; font-size: 9px; }
 .clinical-icon-action { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid #dce5ed; border-radius: 8px; color: #64748b; background: #fff; cursor: pointer; }
@@ -370,7 +374,7 @@ fieldset.clinical-active-section__content { min-width: 0; margin: 0; border: 0; 
   .clinical-care-summary { grid-column: 1 / -1; }
   .clinical-workspace-layout { display: block; }
   .clinical-moment-sidebar { position: sticky; top: 0; z-index: 30; width: 100%; height: auto; padding: 8px 12px; border-right: 0; border-bottom: 1px solid #dce5ed; }
-  .clinical-moment-sidebar__heading, .clinical-moment-sidebar__footer { display: none; }
+  .clinical-moment-sidebar__heading { display: none; }
   .clinical-moment-sidebar nav { display: flex; gap: 5px; overflow-x: auto; padding: 0; }
   .clinical-moment-nav { min-width: 145px; grid-template-columns: 26px minmax(0,1fr); padding: 7px; }
   .clinical-moment-nav__number { width: 24px; height: 24px; }
@@ -402,6 +406,7 @@ fieldset.clinical-active-section__content { min-width: 0; margin: 0; border: 0; 
   .clinical-operator-card { grid-template-columns: 38px minmax(0,1fr); }
   .clinical-operator-card__change { grid-column: 1 / -1; justify-self: start; }
   .clinical-diagnosis-card { grid-template-columns: 28px minmax(0,1fr); }
+  .clinical-diagnosis-card__save { grid-column: 1 / -1; }
   .clinical-diagnosis-card > .clinical-icon-action { grid-column: 2; justify-self: end; }
   .clinical-diagnosis-card__fields { grid-template-columns: 1fr; }
   .clinical-treatment-item { grid-template-columns: 1fr; }

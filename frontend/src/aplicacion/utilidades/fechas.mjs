@@ -75,6 +75,93 @@ export function formatearFechaHora(valor) {
   return `${pad(p.dia)}/${pad(p.mes)}/${p.anio} ${pad(p.hora)}:${pad(p.minuto)}`;
 }
 
+/**
+ * Inserta las barras de dd/mm/aaaa mientras se escribe.
+ * `anterior` permite borrar la barra sin que vuelva a aparecer al instante.
+ */
+export function enmascararFecha(valor, opciones = {}) {
+  const conHora = opciones === true || opciones?.conHora === true;
+  const anterior = typeof opciones === 'object' ? String(opciones.anterior ?? '') : '';
+  const crudo = String(valor ?? '');
+  if (!crudo.trim()) return '';
+
+  const iso = crudo.trim().match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?$/);
+  if (iso) {
+    let fecha = `${iso[3]}/${iso[2]}/${iso[1]}`;
+    if (conHora && iso[4] != null) fecha += ` ${iso[4]}:${iso[5]}`;
+    return fecha;
+  }
+
+  const borrando = anterior !== '' && crudo.length < anterior.length;
+  const [fechaParte, horaParte = ''] = crudo.trim().split(/\s+/, 2);
+  const bloques = fechaParte.split('/');
+  let dia = '';
+  let mes = '';
+  let anio = '';
+  let hora = '';
+  let minuto = '';
+
+  if (conHora && bloques.length === 1 && !crudo.includes(':') && !crudo.includes(' ')) {
+    const digitos = bloques[0].replace(/\D/g, '').slice(0, 12);
+    dia = digitos.slice(0, 2);
+    mes = digitos.slice(2, 4);
+    anio = digitos.slice(4, 8);
+    hora = digitos.slice(8, 10);
+    minuto = digitos.slice(10, 12);
+  } else if (bloques.length >= 3) {
+    dia = bloques[0].replace(/\D/g, '').slice(0, 2);
+    mes = bloques[1].replace(/\D/g, '').slice(0, 2);
+    anio = bloques.slice(2).join('').replace(/\D/g, '').slice(0, 4);
+  } else if (bloques.length === 2) {
+    dia = bloques[0].replace(/\D/g, '').slice(0, 2);
+    const resto = bloques[1].replace(/\D/g, '');
+    mes = resto.slice(0, 2);
+    anio = resto.slice(2, 6);
+  } else {
+    const digitos = bloques[0].replace(/\D/g, '').slice(0, 8);
+    dia = digitos.slice(0, 2);
+    mes = digitos.slice(2, 4);
+    anio = digitos.slice(4, 8);
+  }
+
+  const hayMes = mes.length > 0 || anio.length > 0 || bloques.length > 1;
+  const diaRecienCompleto = !borrando && dia.length === 2 && bloques.length === 1 && mes.length === 0 && anio.length === 0;
+  let salida = dia;
+  if (hayMes || diaRecienCompleto) salida += `/${mes}`;
+
+  const hayAnio = anio.length > 0 || bloques.length > 2;
+  const mesRecienCompleto = !borrando && mes.length === 2 && anio.length === 0 && bloques.length < 3;
+  if (hayAnio || mesRecienCompleto) salida += `/${anio}`;
+
+  if (!conHora) return salida;
+
+  if (!hora && !minuto && (horaParte || crudo.includes(':'))) {
+    if (horaParte.includes(':')) {
+      const partesHora = horaParte.split(':');
+      hora = (partesHora[0] || '').replace(/\D/g, '').slice(0, 2);
+      minuto = (partesHora[1] || '').replace(/\D/g, '').slice(0, 2);
+    } else {
+      const digitosHora = horaParte.replace(/\D/g, '').slice(0, 4);
+      hora = digitosHora.slice(0, 2);
+      minuto = digitosHora.slice(2, 4);
+    }
+  }
+  if (!hora && !minuto) return salida;
+  salida += ` ${hora}`;
+  if (minuto || horaParte.includes(':') || (!borrando && hora.length === 2)) salida += `:${minuto}`;
+  return salida;
+}
+
+/** La fecha ya tiene día, mes y año (y hora, si corresponde). */
+export function fechaCompleta(valor, conHora = false) {
+  const texto = String(valor ?? '').trim();
+  if (conHora) {
+    return /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})$/.test(texto)
+      || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(texto);
+  }
+  return /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.test(texto) || /^\d{4}-\d{2}-\d{2}$/.test(texto);
+}
+
 /** Convierte texto dd/mm/aaaa (u ISO) a YYYY-MM-DD. */
 export function aIsoFecha(valor) {
   if (valor == null || String(valor).trim() === '') return '';

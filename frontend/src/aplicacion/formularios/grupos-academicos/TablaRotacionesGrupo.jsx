@@ -1,5 +1,6 @@
 import { Settings2 } from 'lucide-react';
 import Paginacion from '../../componentes/interfaz/Paginacion.jsx';
+import { formatearFecha } from '../../utilidades/fechas.mjs';
 
 export default function TablaRotacionesGrupo({ estado, grupo, onManage }) {
   const rotaciones = estado.rotaciones.filter((item) => item.grupoId === grupo.id);
@@ -14,7 +15,7 @@ export default function TablaRotacionesGrupo({ estado, grupo, onManage }) {
         return <tr key={rotacion.id}>
           <td data-label="Periodo">{estado.periodos.find((item) => item.id === rotacion.periodoId)?.codigo || '—'}</td>
           <td data-label="Curso"><strong>{estado.cursos.find((item) => item.id === rotacion.cursoId)?.nombre || '—'}</strong></td>
-          <td data-label="Fechas">{rotacion.fechaInicio}<br />{rotacion.fechaFin}</td>
+          <td data-label="Fechas">{formatearFecha(rotacion.fechaInicio)}<br />{formatearFecha(rotacion.fechaFin)}</td>
           <td data-label="Docentes">{nombresDocentes.length ? nombresDocentes.join(', ') : 'Sin asignar'}</td>
           <td data-label="Estudiantes">{integrantes + excepcionales}</td>
           <td data-label="Estado"><span className={`hc-status-pill is-${rotacion.estado}`}>{rotacion.estado}</span></td>

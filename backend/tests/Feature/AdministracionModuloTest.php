@@ -164,7 +164,7 @@ class AdministracionModuloTest extends TestCase
         $this->actingAs($admin, 'web')
             ->getJson('/api/admin/auditoria')
             ->assertOk()
-            ->assertJsonStructure(['data', 'accesos_recientes', 'indicadores']);
+            ->assertJsonStructure(['data', 'accesos_recientes', 'acciones', 'acciones_acceso', 'indicadores']);
 
         $this->actingAs($admin, 'web')
             ->getJson('/api/admin/configuracion')
@@ -180,6 +180,64 @@ class AdministracionModuloTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonFragment(['codigo' => 'NOMBRE_INSTITUCION', 'valor' => 'Clinica Odontologica UNDAC']);
+    }
+
+    public function test_la_auditoria_separa_accesos_y_acciones_de_historias(): void
+    {
+        $admin = $this->crearUsuario('admin.audit.split', self::CLAVE, 'ADMINISTRADOR');
+
+        DB::table('auditoria')->insert([
+            [
+                'tabla_afectada' => 'historia_clinica',
+                'id_registro' => '99',
+                'accion' => 'INACTIVAR',
+                'tipo_usuario' => 'DOCENTE',
+                'nombre_usuario' => 'admin.audit.split',
+                'direccion_ip' => '10.0.0.8',
+                'agente_usuario' => 'PHPUnit',
+                'valores_anteriores' => json_encode(['estado' => 'activa']),
+                'valores_nuevos' => json_encode(['estado' => 'inactiva']),
+                'creado_en' => now(),
+            ],
+            [
+                'tabla_afectada' => 'usuario_docente',
+                'id_registro' => '1',
+                'accion' => 'CREAR',
+                'tipo_usuario' => 'DOCENTE',
+                'nombre_usuario' => 'admin.audit.split',
+                'direccion_ip' => '10.0.0.8',
+                'agente_usuario' => 'PHPUnit',
+                'valores_anteriores' => null,
+                'valores_nuevos' => json_encode(['nombre_usuario' => 'otro']),
+                'creado_en' => now(),
+            ],
+        ]);
+        DB::table('login_historial_docente')->insert([
+            'nombre_usuario' => 'admin.audit.split',
+            'direccion_ip' => '127.0.0.1',
+            'agente_usuario' => 'PHPUnit',
+            'exito' => 1,
+            'motivo_fallo' => null,
+            'creado_en' => now(),
+        ]);
+
+        $acciones = $this->actingAs($admin, 'web')
+            ->getJson('/api/admin/auditoria?origen=acciones')
+            ->assertOk()
+            ->json();
+        $this->assertTrue(collect($acciones['data'])->contains(fn ($evento) => $evento['accion'] === 'INACTIVAR'));
+        $this->assertFalse(collect($acciones['data'])->contains(fn ($evento) => $evento['accion'] === 'CREAR'));
+        $this->assertSame([], $acciones['accesos_recientes']);
+        $inactivar = collect($acciones['data'])->firstWhere('accion', 'INACTIVAR');
+        $this->assertSame(['estado' => 'inactiva'], $inactivar['valores_nuevos']);
+        $this->assertSame('PHPUnit', $inactivar['agente']);
+
+        $sesiones = $this->actingAs($admin, 'web')
+            ->getJson('/api/admin/auditoria?origen=sesiones')
+            ->assertOk()
+            ->json();
+        $this->assertSame([], $sesiones['data']);
+        $this->assertTrue(collect($sesiones['accesos_recientes'])->contains(fn ($evento) => $evento['accion'] === 'INICIAR SESIÓN' && $evento['usuario'] === 'admin.audit.split'));
     }
 
     public function test_un_docente_no_alcanza_los_endpoints_del_modulo(): void

@@ -111,19 +111,22 @@ export default function ConfiguracionApp() {
                                     </div>
                                 </div>
                                 {item.tipo === 'BOOLEANO' ? (
-                                    <div className="hc-toggle-list">
-                                        <label>
-                                            <span>
-                                                <strong>{ETIQUETAS[item.codigo] || item.nombre}</strong>
-                                                <small>{item.descripcion}</small>
-                                            </span>
+                                    <label className="hc-settings-switch">
+                                        <span>
+                                            <strong>Activar eliminación clínica</strong>
+                                            <small>La historia pasa de activa a inactiva y deja de mostrarse.</small>
+                                        </span>
+                                        <span className="hc-switch">
                                             <input
                                                 type="checkbox"
+                                                role="switch"
+                                                aria-label="Activar eliminación clínica"
                                                 checked={Boolean(valores[item.codigo])}
                                                 onChange={(evento) => actualizar(item.codigo, evento.target.checked)}
                                             />
-                                        </label>
-                                    </div>
+                                            <i aria-hidden="true" />
+                                        </span>
+                                    </label>
                                 ) : (
                                     <div className="hc-settings-fields">
                                         <label>

@@ -776,6 +776,16 @@ button.hc-activity-row:hover { background: #f8fafc; }
 .hc-toggle-list strong { color: #29465c; font-size: 10px; }
 .hc-toggle-list small { color: #8595a1; font-size: 8px; }
 .hc-toggle-list input { width: 18px; height: 18px; accent-color: #087b86; }
+.hc-settings-switch { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 14px; }
+.hc-settings-switch strong { color: #0b2742; font-size: 13px; }
+.hc-settings-switch small { display: block; margin-top: 3px; color: #7c8d9b; font-size: 11px; line-height: 1.4; }
+.hc-switch { position: relative; width: 44px; height: 26px; flex: 0 0 auto; }
+.hc-switch input { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; margin: 0; cursor: pointer; opacity: 0; }
+.hc-switch i { display: block; height: 26px; border-radius: 999px; background: #c5d0d8; }
+.hc-switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .15s ease; }
+.hc-switch input:checked + i { background: #087b86; }
+.hc-switch input:checked + i::after { transform: translateX(18px); }
+.hc-switch input:focus-visible + i { outline: 2px solid #087b86; outline-offset: 2px; }
 
 .hc-history-card { padding: 17px; }
 .hc-history-card__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

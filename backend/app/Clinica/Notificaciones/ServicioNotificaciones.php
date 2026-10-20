@@ -89,13 +89,20 @@ class ServicioNotificaciones
     {
         $limite = min(100, max(1, $limite));
 
-        return DB::table('notificacion')
-            ->where('tipo_destinatario', $actor->tipoCuenta())
-            ->where('id_destinatario', $actor->idActor())
-            ->orderByDesc('creado_en')
-            ->orderByDesc('id_notificacion')
+        return DB::table('notificacion as n')
+            ->leftJoin('historia_clinica as h', 'h.id_historia_clinica', '=', 'n.id_historia_clinica')
+            ->where('n.tipo_destinatario', $actor->tipoCuenta())
+            ->where('n.id_destinatario', $actor->idActor())
+            ->where(function ($q) {
+                $q->whereNull('n.id_historia_clinica')
+                    ->orWhere(function ($vigente) {
+                        $vigente->whereNotNull('h.id_historia_clinica')->whereNull('h.anulado_en');
+                    });
+            })
+            ->orderByDesc('n.creado_en')
+            ->orderByDesc('n.id_notificacion')
             ->limit($limite)
-            ->get()
+            ->get(['n.*'])
             ->map(fn ($fila) => $this->serializar($fila))
             ->all();
     }

@@ -1,4 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { listarConfiguracion } from '../../../servicios/servicioAdministracion.js';
+import { idHistoria } from '../../../servicios/servicioClinico.js';
+import BotonEliminacionClinica from '../../../formularios/busqueda-historias/BotonEliminacionClinica.jsx';
 import { ArrowLeft, ArrowRight, BadgeCheck, CheckCircle2, Printer, Send, Undo2 } from 'lucide-react';
 import { componentesSeccion } from '../../../formularios/registroFormularios.js';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
@@ -32,6 +35,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
   const navigationId = useId();
   const [desktopNavigation, setDesktopNavigation] = useState(desktopNavigationMatches);
   const [navigationOpen, setNavigationOpen] = useState(desktopNavigationMatches);
+  const [eliminacionActiva, setEliminacionActiva] = useState(false);
   const previousNavigationOpen = useRef(navigationOpen);
   const previousSection = useRef(activeSection);
   useEffect(() => {
@@ -40,6 +44,18 @@ export default function ClinicalWorkspace({ onExit, rol }) {
     if (mainRef.current) mainRef.current.scrollTop = 0;
     mainRef.current?.focus({ preventScroll: true });
   }, [activeSection]);
+
+  useEffect(() => {
+    if (rol !== 'administrador') return undefined;
+    let vigente = true;
+    listarConfiguracion()
+      .then((respuesta) => {
+        const item = (respuesta.data ?? []).find((parametro) => parametro.codigo === 'ELIMINACION_CLINICA_PERMITIDA');
+        if (vigente) setEliminacionActiva(Boolean(item?.valor));
+      })
+      .catch(() => { if (vigente) setEliminacionActiva(false); });
+    return () => { vigente = false; };
+  }, [rol]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return undefined;
@@ -151,6 +167,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
                 {supervisa ? <button type="button" className="undac-btn undac-btn--ghost" onClick={approveCurrent}><BadgeCheck size={16} />Aprobar sección</button> : null}
               </>}
               {index < sections.length - 1 ? <button type="button" className="undac-btn undac-btn--primary" onClick={() => navigateRelative(1)}>Continuar<ArrowRight size={16} /></button> : null}
+              {rol === 'administrador' && eliminacionActiva && idHistoria(history.id) ? <BotonEliminacionClinica historiaId={idHistoria(history.id)} codigo={history.codigo} className="undac-btn undac-btn--ghost" onInactivada={onExit} /> : null}
             </div>
           </footer>
         </main>

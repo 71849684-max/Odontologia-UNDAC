@@ -47,6 +47,15 @@ describe('validarSeccion', () => {
     expect(validarSeccion('cuestionario-salud', valores)).toEqual([{ campo: 'q9Detail', mensaje: expect.stringContaining('pregunta 9') }]);
   });
 
+  test('un diagnóstico estructurado presuntivo o definitivo completa la sección', () => {
+    const base = { pronosticoEstructurado: 'Favorable' };
+    expect(validarSeccion('diagnostico', base).map((e) => e.mensaje)).toEqual(['Registre al menos un diagnóstico presuntivo o definitivo.']);
+    expect(validarSeccion('diagnostico', { ...base, diagnosticos: [{ tipo: 'Presuntivo', codigo: 'K02.1' }] })).toEqual([]);
+    expect(validarSeccion('diagnostico', { ...base, diagnosticos: [{ tipo: 'Definitivo', codigo: 'K04.0' }] })).toEqual([]);
+    expect(validarSeccion('diagnostico', { ...base, diagnosticos: [{ tipo: 'Clínico-radiográfico', codigo: 'K02.1' }] }).map((e) => e.campo)).toEqual(['dxPresuntivo']);
+    expect(validarSeccion('diagnostico', { ...base, dxPresuntivo: 'Caries' })).toEqual([]);
+  });
+
   test('valida formato de signos vitales y coherencia de hijos y horas', () => {
     expect(validarSeccion('examen-clinico', { presionArterial: '120-80' })[0].campo).toBe('presionArterial');
     expect(validarSeccion('examen-clinico', { presionArterial: '120/80', temperatura: '36.5', peso: '70', talla: '170' })).toEqual([]);

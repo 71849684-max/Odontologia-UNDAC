@@ -73,9 +73,10 @@ beforeEach(() => {
         adicionales: 0,
     });
     admin.listarAuditoria.mockResolvedValue({
-        data: [{ id: 1, fecha: '2026-09-04 10:00:00', usuario: 'admin', accion: 'CREAR', modulo: 'usuario', registro: '3', ip: '127.0.0.1' }],
-        accesos_recientes: [],
-        acciones: ['CREAR'],
+        data: [{ id: 1, fecha: '2026-09-04 10:00:00', usuario: 'admin', accion: 'INACTIVAR', modulo: 'historia_clinica', registro: '3', ip: '127.0.0.1' }],
+        accesos_recientes: [{ id: 'docente-1', fecha: '2026-09-04 09:00:00', usuario: 'admin', accion: 'INICIAR SESIÓN', ip: '127.0.0.1' }],
+        acciones: ['INACTIVAR'],
+        acciones_acceso: ['INICIAR SESIÓN', 'ACCESO FALLIDO'],
         indicadores: { eventos: 1, accesos_exitosos: 0, accesos_fallidos: 0, modificaciones: 1 },
     });
     admin.listarConfiguracion.mockResolvedValue({

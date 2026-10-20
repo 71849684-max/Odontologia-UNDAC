@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Filter, Plus, Search, X } from 'lucide-react';
 import { listarHistorias } from '../../servicios/registroHistoriaClinica.js';
-import { cambiarEstadoHistoria, listarHistoriasRemotas, mensajeError } from '../../servicios/servicioClinico.js';
+import { listarConfiguracion } from '../../servicios/servicioAdministracion.js';
+import { cambiarEstadoHistoria, idHistoria, listarHistoriasRemotas, mensajeError } from '../../servicios/servicioClinico.js';
+import BotonEliminacionClinica from './BotonEliminacionClinica.jsx';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 import NuevaHistoriaModal from '../nueva-historia/NuevaHistoriaModal.jsx';
@@ -69,6 +71,7 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
     const [viendoObservacion, setViendoObservacion] = useState(null);
     const [enviando, setEnviando] = useState(false);
     const [modalNueva, setModalNueva] = useState(Boolean(abrirNueva || pacienteInicial));
+    const [eliminacionActiva, setEliminacionActiva] = useState(false);
     const [pacienteModal, setPacienteModal] = useState(pacienteInicial);
     useEffect(() => {
         if (abrirNueva || pacienteInicial) {
@@ -76,6 +79,17 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
             setModalNueva(true);
         }
     }, [abrirNueva, pacienteInicial]);
+    useEffect(() => {
+        if (rol !== 'administrador') return undefined;
+        let vigente = true;
+        listarConfiguracion()
+            .then((respuesta) => {
+                const item = (respuesta.data ?? []).find((parametro) => parametro.codigo === 'ELIMINACION_CLINICA_PERMITIDA');
+                if (vigente) setEliminacionActiva(Boolean(item?.valor));
+            })
+            .catch(() => { if (vigente) setEliminacionActiva(false); });
+        return () => { vigente = false; };
+    }, [rol]);
     useEffect(() => {
         let vigente = true;
         listarHistoriasRemotas()
@@ -155,6 +169,7 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
                     <button className="hc-mini-button" type="button" onClick={() => go({ view: 'historia', historiaId: history.id, section: 'datos-paciente' })}>Abrir</button>
                     {puedeVerObservacion(history, rol) ? <button className="hc-mini-button" type="button" aria-label={`Ver observación ${history.codigo}`} onClick={() => setViendoObservacion(history)}>Ver observación</button> : null}
                     {accionesDeEstado(history, rol).map((accion) => <button key={accion.codigo} className="hc-mini-button" type="button" disabled={enviando} aria-label={`${accion.etiqueta} ${history.codigo}`} onClick={() => elegir(history, accion)}>{accion.etiqueta}</button>)}
+                    {rol === 'administrador' && eliminacionActiva && idHistoria(history.id) ? <BotonEliminacionClinica historiaId={idHistoria(history.id)} codigo={history.codigo} onInactivada={() => setHistorias((lista) => lista.filter((item) => item.id !== history.id))} /> : null}
                 </div></td>
             </tr>)}</tbody>
         </table></div> : <EstadoVacio titulo="No hay historias para mostrar" descripcion="Ajusta la búsqueda o selecciona otro estado." />}

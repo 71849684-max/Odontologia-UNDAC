@@ -1,6 +1,6 @@
 import React from 'react';
 import { BloqueCarga } from './ControlesCarga.jsx';
-import { aIsoFecha, aIsoFechaHora, dentroDeRangoIso, formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
+import { aIsoFecha, aIsoFechaHora, dentroDeRangoIso, enmascararFecha, fechaCompleta, formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 export { BloqueCarga, SlotConstancia } from './ControlesCarga.jsx';
 
@@ -36,18 +36,28 @@ export function SectionCard({ title, subtitle, children, actions, className = ''
 }
 
 
-export function CollapsibleSection({ title, subtitle, summary, children, defaultOpen = false, status, className = '' }) {
-  const [open, setOpen] = React.useState(defaultOpen);
+export function CollapsibleSection({ title, subtitle, summary, children, defaultOpen = false, status, className = '', actions, open: openControlado, onToggle }) {
+  const [interno, setInterno] = React.useState(defaultOpen);
+  const controlado = openControlado !== undefined;
+  const open = controlado ? openControlado : interno;
   const contentId = React.useId();
   const triggerId = React.useId();
+  const alternar = () => {
+    const siguiente = !open;
+    if (controlado) onToggle?.(siguiente);
+    else setInterno(siguiente);
+  };
+  const disparador = (
+    <button id={triggerId} type="button" className="clinical-collapsible__trigger" aria-expanded={open} aria-controls={contentId} onClick={alternar}>
+      <span className="clinical-collapsible__copy"><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span>
+      {!open && summary ? <span className="clinical-collapsible__summary">{summary}</span> : null}
+      {status ? <span className={`clinical-collapsible__status is-${status}`}>{status === 'complete' ? 'Completo' : status === 'progress' ? 'En progreso' : 'Pendiente'}</span> : null}
+      <span className="clinical-collapsible__chevron" aria-hidden="true">⌄</span>
+    </button>
+  );
   return (
     <section className={`clinical-collapsible ${open ? 'is-open' : ''} ${className}`}>
-      <button id={triggerId} type="button" className="clinical-collapsible__trigger" aria-expanded={open} aria-controls={contentId} onClick={() => setOpen((value) => !value)}>
-        <span className="clinical-collapsible__copy"><strong>{title}</strong>{subtitle ? <small>{subtitle}</small> : null}</span>
-        {!open && summary ? <span className="clinical-collapsible__summary">{summary}</span> : null}
-        {status ? <span className={`clinical-collapsible__status is-${status}`}>{status === 'complete' ? 'Completo' : status === 'progress' ? 'En progreso' : 'Pendiente'}</span> : null}
-        <span className="clinical-collapsible__chevron" aria-hidden="true">⌄</span>
-      </button>
+      {actions ? <div className="clinical-collapsible__bar">{disparador}<div className="clinical-collapsible__actions">{actions}</div></div> : disparador}
       {open ? <div id={contentId} className="clinical-collapsible__body" role="region" aria-labelledby={triggerId}>{children}</div> : null}
     </section>
   );
@@ -74,12 +84,26 @@ function CampoFechaTexto({ id, value, onChange, min, max, required, readOnly, co
     }
     const iso = aIso(limpio);
     const isoFecha = iso ? iso.slice(0, 10) : null;
-    if (!iso || !dentroDeRangoIso(isoFecha, min, max)) {
+    if (!fechaCompleta(limpio, conHora) || !iso || !dentroDeRangoIso(isoFecha, min, max)) {
       setTexto(textoDe(value));
       return;
     }
     onChange?.(iso);
     setTexto(textoDe(iso));
+  };
+
+  const alEscribir = (event) => {
+    if (readOnly) return;
+    const enmascarado = enmascararFecha(event.target.value, { conHora, anterior: texto });
+    setTexto(enmascarado);
+    if (!enmascarado) {
+      onChange?.('');
+      return;
+    }
+    if (!fechaCompleta(enmascarado, conHora)) return;
+    const iso = aIso(enmascarado);
+    const isoFecha = iso ? iso.slice(0, 10) : null;
+    if (iso && dentroDeRangoIso(isoFecha, min, max)) onChange?.(iso);
   };
 
   return (
@@ -93,7 +117,7 @@ function CampoFechaTexto({ id, value, onChange, min, max, required, readOnly, co
       value={texto}
       required={required}
       readOnly={readOnly}
-      onChange={(event) => setTexto(event.target.value)}
+      onChange={alEscribir}
       onBlur={(event) => confirmar(event.target.value)}
       onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); confirmar(event.currentTarget.value); } }}
     />

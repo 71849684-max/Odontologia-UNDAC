@@ -10,6 +10,7 @@ use App\Clinica\Http\RespondeOperacion;
 use App\Clinica\Notificaciones\ServicioNotificaciones;
 use App\Clinica\Odontograma\ServicioOdontograma;
 use App\Http\Controllers\Controller;
+use App\Identidad\Dominio\Contratos\ConsultaAccesos;
 use App\Identidad\Dominio\Contratos\RegistradorAuditoria;
 use App\Identidad\Dominio\Cuenta;
 use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
@@ -29,6 +30,7 @@ class ControladorHistorias extends Controller
         private readonly RegistradorAuditoria $auditoria,
         private readonly AccesoHistorias $acceso,
         private readonly ServicioNotificaciones $notificaciones,
+        private readonly ConsultaAccesos $accesos,
     ) {}
 
     public function listar(Request $solicitud): JsonResponse
@@ -161,6 +163,21 @@ class ControladorHistorias extends Controller
         );
 
         return response()->json($historia);
+    }
+
+    public function inactivar(Request $solicitud, int $idHistoria): JsonResponse
+    {
+        /** @var Cuenta $actor */
+        $actor = $solicitud->user();
+
+        if (! $this->accesos->esAdministrador($actor)) {
+            abort(403, 'Solo un administrador puede inactivar una historia clínica.');
+        }
+
+        $this->operacion(fn () => $this->historias->inactivar($idHistoria, $actor));
+        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'INACTIVAR', ['estado' => 'activa'], ['estado' => 'inactiva']);
+
+        return response()->json(['estado' => 'inactiva']);
     }
 
     public function expediente(int $idHistoria): JsonResponse

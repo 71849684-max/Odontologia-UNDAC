@@ -16,6 +16,7 @@ class ControladorAuditoria extends Controller
         return response()->json($this->listar->ejecutar([
             'q' => (string) $solicitud->query('q', ''),
             'accion' => (string) $solicitud->query('accion', ''),
+            'origen' => (string) $solicitud->query('origen', ''),
             'limite' => (int) $solicitud->query('limite', 100),
         ]));
     }

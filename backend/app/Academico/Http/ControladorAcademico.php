@@ -4,6 +4,7 @@ namespace App\Academico\Http;
 
 use App\Academico\ServicioAcademico;
 use App\Clinica\Http\RespondeOperacion;
+use App\Clinica\Soporte\Valores;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -51,8 +52,8 @@ class ControladorAcademico extends Controller
         $datos = $solicitud->validate([
             'membresias' => ['required', 'array'],
             'membresias.*.personaId' => ['required', 'string'],
-            'membresias.*.fechaInicio' => ['nullable', 'date'],
-            'membresias.*.fechaFin' => ['nullable', 'date'],
+            'membresias.*.fechaInicio' => $this->reglaFecha(false),
+            'membresias.*.fechaFin' => $this->reglaFecha(false),
         ]);
 
         return response()->json($this->operacion(fn () => $this->academico->guardarMembresias($idGrupo, $datos['membresias'])), 201);
@@ -60,7 +61,7 @@ class ControladorAcademico extends Controller
 
     public function finalizarMembresia(Request $solicitud, int $idMembresia): JsonResponse
     {
-        $datos = $solicitud->validate(['fechaFin' => ['required', 'date']]);
+        $datos = $solicitud->validate(['fechaFin' => $this->reglaFecha(true)]);
 
         return response()->json($this->operacion(fn () => $this->academico->finalizarMembresia($idMembresia, $datos['fechaFin'])));
     }
@@ -71,8 +72,8 @@ class ControladorAcademico extends Controller
             'grupoId' => ['required', 'integer'],
             'cursoId' => ['required', 'integer'],
             'periodoId' => ['required', 'integer'],
-            'fechaInicio' => ['required', 'date'],
-            'fechaFin' => ['required', 'date'],
+            'fechaInicio' => $this->reglaFecha(true),
+            'fechaFin' => $this->reglaFecha(true),
             'estado' => ['nullable', 'string', 'max:30'],
         ]);
 
@@ -100,13 +101,29 @@ class ControladorAcademico extends Controller
         return response()->json($this->operacion(fn () => $this->academico->guardarAsignaciones($idRotacion, $datos['personas'])), 201);
     }
 
+    /** Acepta día/mes/año y también la fecha ISO que envía el formulario. */
+    private function reglaFecha(bool $requerida): array
+    {
+        return [
+            $requerida ? 'required' : 'nullable',
+            function (string $atributo, mixed $valor, \Closure $fallo): void {
+                if ($valor === null || $valor === '') {
+                    return;
+                }
+                if (Valores::fecha($valor) === null) {
+                    $fallo('Use el formato día/mes/año.');
+                }
+            },
+        ];
+    }
+
     private function validarPeriodo(Request $solicitud): array
     {
         return $solicitud->validate([
             'codigo' => ['required', 'string', 'max:30'],
             'nombre' => ['required', 'string', 'max:120'],
-            'fechaInicio' => ['required', 'date'],
-            'fechaFin' => ['required', 'date'],
+            'fechaInicio' => $this->reglaFecha(true),
+            'fechaFin' => $this->reglaFecha(true),
             'estado' => ['nullable', 'string', 'max:20'],
         ]);
     }

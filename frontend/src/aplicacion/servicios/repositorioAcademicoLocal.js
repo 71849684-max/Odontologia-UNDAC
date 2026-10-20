@@ -1,3 +1,5 @@
+import { aIsoFecha } from '../utilidades/fechas.mjs';
+
 const STORAGE_KEY = 'undac:academico:frontend:v1';
 const SCHEMA_VERSION = 2;
 
@@ -25,6 +27,10 @@ function clone(value) {
 
 function text(value) {
   return String(value ?? '').trim();
+}
+
+function fecha(value) {
+  return aIsoFecha(text(value)) || '';
 }
 
 function code(value) {
@@ -130,8 +136,8 @@ export function actualizarPerfil(datos = {}) {
 }
 
 export function crearPeriodo(datos = {}) {
-  const fechaInicio = text(datos.fechaInicio);
-  const fechaFin = text(datos.fechaFin);
+  const fechaInicio = fecha(datos.fechaInicio);
+  const fechaFin = fecha(datos.fechaFin);
   if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) {
     throw new ErrorAcademico('FECHAS_INVALIDAS', 'La fecha final debe ser igual o posterior a la fecha inicial.');
   }
@@ -209,8 +215,8 @@ export function guardarMembresias(grupoId, membresias = []) {
       grupoId,
       personaId: text(item.personaId),
       funcion: text(item.funcion) || 'estudiante',
-      fechaInicio: text(item.fechaInicio),
-      fechaFin: text(item.fechaFin),
+      fechaInicio: fecha(item.fechaInicio) || text(item.fechaInicio),
+      fechaFin: fecha(item.fechaFin),
       estado: text(item.estado) || 'activa',
     }));
 
@@ -237,7 +243,7 @@ export function finalizarMembresia(membresiaId, fechaFin) {
   return update((state) => {
     const membresia = state.membresias.find((item) => item.id === membresiaId);
     if (!membresia) throw new ErrorAcademico('NO_ENCONTRADO', 'No se encontró la membresía.');
-    const fin = text(fechaFin);
+    const fin = fecha(fechaFin);
     if (!fin || fin < membresia.fechaInicio) {
       throw new ErrorAcademico('FECHAS_INVALIDAS', 'La fecha final debe ser igual o posterior a la fecha inicial.');
     }
@@ -248,8 +254,8 @@ export function finalizarMembresia(membresiaId, fechaFin) {
 }
 
 export function crearRotacion(datos = {}) {
-  const fechaInicio = text(datos.fechaInicio);
-  const fechaFin = text(datos.fechaFin);
+  const fechaInicio = fecha(datos.fechaInicio);
+  const fechaFin = fecha(datos.fechaFin);
   if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) {
     throw new ErrorAcademico('FECHAS_INVALIDAS', 'La fecha final debe ser igual o posterior a la fecha inicial.');
   }

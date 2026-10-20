@@ -2,6 +2,7 @@ import React from 'react';
 import { CollapsibleSection, Field, SelectField, ChoiceGroup, CheckboxGroup } from '../compartidos/ControlesClinicos.jsx';
 import { yesNo } from '../compartidos/opcionesClinicas.js';
 import useSection from '../compartidos/useSection.js';
+import { resumenAlergiaMedicamentos, resumenMedicacionActual } from './resumenTerapeutico.mjs';
 
 function hasAny(values, keys) {
   return keys.some((key) => {
@@ -12,14 +13,15 @@ function hasAny(values, keys) {
 
 const blockStatus = (values, keys) => hasAny(values, keys) ? 'progress' : 'pending';
 
-export default function AntecedentesSection({ values, onChange }) {
+export default function AntecedentesSection({ values, onChange, allFormData }) {
   const { get, set } = useSection(values, onChange);
+  const salud = allFormData?.['cuestionario-salud'] ?? {};
   return <div className="undac-section-stack clinical-antecedentes-flow">
     <section className="clinical-antecedentes-summary" aria-label="Resumen de antecedentes terapéuticos">
-      <div><span className="clinical-kicker">Antecedentes terapéuticos</span><h3>Medicación y alergias registradas</h3><p>Revise los detalles en el bloque terapéutico.</p></div>
+      <div><span className="clinical-kicker">Antecedentes terapéuticos</span><h3>Medicación y alergias registradas</h3><p>La alergia incluye las respuestas del cuestionario de salud. La medicación actual se registra en el bloque terapéutico.</p></div>
       <dl>
-        <div><dt>Alergia a medicamentos</dt><dd>{get('alergiaMedicamento') === 'Sí' ? get('alergiaMedicamentoDetalle') || 'Sí · detalle pendiente' : get('alergiaMedicamento') === 'No' ? 'No refiere' : 'Pendiente de preguntar'}</dd></div>
-        <div><dt>Medicación actual</dt><dd>{get('medicacionActual') === 'Sí' ? get('medicacionActualNombre') || 'Sí · nombre pendiente' : get('medicacionActual') === 'No' ? 'No refiere' : 'Pendiente de preguntar'}</dd></div>
+        <div><dt>Alergia a medicamentos</dt><dd>{resumenAlergiaMedicamentos(values, salud)}</dd></div>
+        <div><dt>Medicación actual</dt><dd>{resumenMedicacionActual(values)}</dd></div>
       </dl>
     </section>
     <CollapsibleSection title="Antecedentes personales · Generales" subtitle="Hábitos, vivienda, alimentación e inmunizaciones" defaultOpen status={blockStatus(values, ['vivienda','alimentacion','habitosNocivos','inmunizaciones'])}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { GraduationCap, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
 import { SECTION_STATUS } from '../logica/clinicalStatus.mjs';
 
@@ -45,7 +45,6 @@ export default function ClinicalMomentSidebar({ id, open, onNavigate, onToggle, 
             </button>;
           })}
         </nav>
-        <div className="clinical-moment-sidebar__footer"><GraduationCap size={22} aria-hidden="true" /><span><strong>Formación con impacto</strong><small>Clínica Odontológica UNDAC</small></span></div>
       </aside>
   );
 }

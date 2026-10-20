@@ -9,7 +9,7 @@ class ListarAuditoria
     public function __construct(private readonly RepositorioAuditoria $auditoria) {}
 
     /**
-     * @param  array{q?: string, accion?: string, limite?: int}  $filtros
+     * @param  array{q?: string, accion?: string, origen?: string, limite?: int}  $filtros
      * @return array<string, mixed>
      */
     public function ejecutar(array $filtros): array

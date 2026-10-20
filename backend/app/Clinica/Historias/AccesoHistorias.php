@@ -19,6 +19,15 @@ class AccesoHistorias
 
     public function puedeVer(Cuenta $actor, int $idHistoria): bool
     {
+        $vigente = DB::table('historia_clinica')
+            ->where('id_historia_clinica', $idHistoria)
+            ->whereNull('anulado_en')
+            ->exists();
+
+        if (! $vigente) {
+            return false;
+        }
+
         if (! $this->restringido($actor)) {
             return true;
         }

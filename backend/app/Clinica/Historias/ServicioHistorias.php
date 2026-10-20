@@ -11,6 +11,30 @@ use Illuminate\Support\Facades\DB;
 
 class ServicioHistorias
 {
+    /** Secciones de la historia clínica. El progreso se calcula sobre esta lista, no sobre un total fijo. */
+    private const SECCIONES_CLINICAS = [
+        'datos-paciente',
+        'anamnesis',
+        'cuestionario-salud',
+        'antecedentes',
+        'examen-clinico',
+        'examen-extraoral',
+        'examen-intraoral',
+        'odontograma',
+        'oclusion',
+        'examenes-auxiliares',
+        'diagnostico',
+        'modelos',
+        'plan-tratamiento',
+        'consentimiento',
+        'cirugia',
+        'reporte-operatorio',
+        'seguimiento',
+    ];
+
+    /** @var list<string> */
+    private const ESTADOS_COMPLETOS = ['complete', 'review', 'approved'];
+
     /** @var array<string, list<string>> */
     private const TRANSICIONES = [
         'BORRADOR' => ['EN_PROCESO', 'PENDIENTE_REVISION'],
@@ -169,6 +193,24 @@ class ServicioHistorias
         return $this->mostrar($id);
     }
 
+    /** Pasa la historia de activa a inactiva. El registro permanece en la base. */
+    public function inactivar(int $id, Cuenta $actor): void
+    {
+        if (! $this->eliminacionPermitida()) {
+            throw new OperacionNoPermitida('eliminacion', 'La eliminación clínica no está activada.');
+        }
+
+        $fila = $this->fila($id);
+        DB::table('historia_clinica')->where('id_historia_clinica', $id)->update([
+            'anulado_en' => now(),
+            'motivo_anulacion' => 'Inactiva',
+            'actualizado_por_tipo' => $actor->tipoCuenta(),
+            'actualizado_por_id' => $actor->id(),
+            'actualizado_en' => now(),
+        ]);
+        $this->refrescarEstadoPaciente((int) $fila->id_paciente);
+    }
+
     public function fila(int $id): object
     {
         $fila = $this->consulta()->where('h.id_historia_clinica', $id)->first();
@@ -275,7 +317,8 @@ class ServicioHistorias
 
         $completas = DB::table('historia_seccion_estado')
             ->where('id_historia_clinica', $fila->id_historia_clinica)
-            ->whereIn('estado', ['complete', 'review', 'approved', 'Completo'])
+            ->whereIn('codigo_seccion', self::SECCIONES_CLINICAS)
+            ->whereIn('estado', self::ESTADOS_COMPLETOS)
             ->count();
 
         $listaObservaciones = $observaciones ?? ($this->observacionesDeHistorias([(int) $fila->id_historia_clinica])[(int) $fila->id_historia_clinica] ?? []);
@@ -294,7 +337,7 @@ class ServicioHistorias
             'codigoEstado' => $fila->codigo_estado,
             'observacion' => $listaObservaciones[0]['texto'] ?? null,
             'observaciones' => $listaObservaciones,
-            'progreso' => (int) round(($completas / 18) * 100),
+            'progreso' => self::porcentaje($completas),
             'pacienteRegistro' => [
                 'id' => (int) $fila->id_paciente,
                 'nombres' => trim($fila->nombres.' '.$fila->apellidos),
@@ -306,6 +349,16 @@ class ServicioHistorias
                 'fechaNacimiento' => $fila->fecha_nacimiento,
             ],
         ];
+    }
+
+    public static function porcentaje(int $completas): int
+    {
+        $total = count(self::SECCIONES_CLINICAS);
+        if ($total === 0) {
+            return 0;
+        }
+
+        return (int) min(100, round(($completas / $total) * 100));
     }
 
     private function periodoVigente(): int
@@ -340,6 +393,31 @@ class ServicioHistorias
             'fecha_fin' => $segundo ? "{$anio}-12-15" : "{$anio}-07-31",
             'estado' => 1,
             'creado_en' => now(),
+        ]);
+    }
+
+    private function eliminacionPermitida(): bool
+    {
+        $valor = DB::table('configuracion_sistema')
+            ->where('clave', 'ELIMINACION_CLINICA_PERMITIDA')
+            ->where('estado', 1)
+            ->value('valor');
+
+        return filter_var($valor, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function refrescarEstadoPaciente(int $idPaciente): void
+    {
+        $nombre = DB::table('historia_clinica as h')
+            ->join('estado_historia_clinica as e', 'e.id_estado_historia', '=', 'h.id_estado_historia')
+            ->where('h.id_paciente', $idPaciente)
+            ->whereNull('h.anulado_en')
+            ->orderByDesc('h.fecha_apertura')
+            ->orderByDesc('h.id_historia_clinica')
+            ->value('e.nombre');
+
+        DB::table('paciente')->where('id_paciente', $idPaciente)->update([
+            'estado_atencion' => $nombre ?: 'Registrado',
         ]);
     }
 
