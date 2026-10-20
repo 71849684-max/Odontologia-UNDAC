@@ -5,8 +5,35 @@
          colors="true"
 >
     <testsuites>
-        <testsuite name="Feature">
-            <directory>tests/Feature</directory>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+        <testsuite name="Functional">
+            <directory>tests/Functional</directory>
+        </testsuite>
+        <testsuite name="E2E">
+            <directory>tests/E2E</directory>
+        </testsuite>
+        <testsuite name="Regression">
+            <directory>tests/Regression</directory>
+        </testsuite>
+        <testsuite name="Security">
+            <directory>tests/Security</directory>
+        </testsuite>
+        <testsuite name="Performance">
+            <directory>tests/Performance</directory>
+        </testsuite>
+        <testsuite name="Stress">
+            <directory>tests/Stress</directory>
+        </testsuite>
+        <testsuite name="Usability">
+            <directory>tests/Usability</directory>
+        </testsuite>
+        <testsuite name="Acceptance">
+            <directory>tests/Acceptance</directory>
         </testsuite>
     </testsuites>
     <source>

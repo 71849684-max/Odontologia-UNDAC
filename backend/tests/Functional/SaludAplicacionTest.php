@@ -1,12 +1,12 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Functional;
 
 use Tests\TestCase;
 
-class ExampleTest extends TestCase
+class SaludAplicacionTest extends TestCase
 {
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_el_backend_responde_en_la_raiz(): void
     {
         $response = $this->get('/');
 

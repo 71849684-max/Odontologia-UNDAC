@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Security;
 
 use App\Identidad\Dominio\Contratos\ConsultaAccesos;
 use Illuminate\Foundation\Testing\DatabaseTransactions;

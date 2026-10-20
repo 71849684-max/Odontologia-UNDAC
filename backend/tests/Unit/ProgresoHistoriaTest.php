@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Unit;
 
 use App\Clinica\Historias\ServicioHistorias;
 use Tests\TestCase;
@@ -11,6 +11,7 @@ class ProgresoHistoriaTest extends TestCase
     {
         $this->assertSame(100, ServicioHistorias::porcentaje(17));
         $this->assertSame(94, ServicioHistorias::porcentaje(16));
+        $this->assertSame(6, ServicioHistorias::porcentaje(1));
         $this->assertSame(0, ServicioHistorias::porcentaje(0));
     }
 }
