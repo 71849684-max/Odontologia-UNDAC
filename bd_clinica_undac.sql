@@ -1653,7 +1653,8 @@ INSERT INTO catalogo_hallazgo_dental (id_hallazgo_dental, codigo, nombre, catego
 (35,'SELLANTE','Sellante','TRATAMIENTO_EXISTENTE','SUPERFICIE',1,1,'S',NULL,1),
 (36,'DESGASTE','Superficie desgastada','PATOLOGIA','SUPERFICIE',1,0,'DES',NULL,1),
 (37,'ENDODONCIA','Tratamiento de conductos / pulpectomía','TRATAMIENTO_EXISTENTE','PIEZA',0,1,'TC',NULL,1),
-(38,'TRANSPOSICION','Transposición dentaria','POSICION','PAR',0,0,'⇄',NULL,1);
+(38,'TRANSPOSICION','Transposición dentaria','POSICION','PAR',0,0,'⇄',NULL,1),
+(39,'EXTRACCION_PROGRAMADA','Extracción programada','ESTADO','PIEZA',0,0,'EXP','Extracción indicada y aún no realizada; no marca la pieza como perdida.',1);
 
 -- =============================================================
 -- DATOS SEMILLA: CATALOGO DE TRATAMIENTOS

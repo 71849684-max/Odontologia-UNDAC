@@ -116,6 +116,7 @@ function ToothMark({ mark, number }) {
     case 'draw-fill': shape = <polygon points={points} fill={color} />; break;
     case 'draw-line': shape = <polyline points={points} />; break;
     case 'missing': shape = <path d="M8 10L92 95M92 10L8 95" />; break;
+    case 'extraction-scheduled': shape = <path d="M8 10L92 95M92 10L8 95" strokeDasharray="6 4" />; break;
     case 'crown': shape = <rect x="6" y="58" width="88" height="39" />; break;
     case 'root': shape = <path d="M50 16V79" />; break;
     case 'pulp': shape = <path d="M35 77H65" strokeWidth="7" />; break;
@@ -148,13 +149,14 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
   return <>
     <defs><clipPath id={clipId}><ellipse cx="50" cy="77.5" rx="42" ry="17.5" /></clipPath></defs>
     {regiones.map((raiz) => {
-      const finding = absence || tooth.surfaces?.[raiz.id]?.findings?.findLast((mark) => !mark.points.length);
+      // La ausencia se dibuja solo con el aspa: no rellena coronas ni raíces.
+      const finding = tooth.surfaces?.[raiz.id]?.findings?.findLast((mark) => !mark.points.length);
       const color = finding ? clinicalColor(finding) : undefined;
       return <polygon key={raiz.id} points={raiz.points}
         className={`nts-surface nts-root${selectedSurface === raiz.id ? ' is-selected' : ''}`}
         fill={color || 'white'} stroke="black" strokeWidth="1.6" strokeLinejoin="round"
         style={color ? { background: color } : undefined}
-        data-state={finding?.state || absence?.state || tooth.surfaces?.[raiz.id]?.findings?.at(-1)?.state || 'sin-registro'}
+        data-state={absence?.state || finding?.state || tooth.surfaces?.[raiz.id]?.findings?.at(-1)?.state || 'sin-registro'}
         role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined}
         aria-label={interactive ? `Pieza ${number}, ${raiz.label}` : undefined}
         aria-pressed={interactive ? selectedSurface === raiz.id : undefined}
@@ -166,14 +168,15 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
     <path d={roots} fill="none" stroke="black" strokeWidth="2.5" strokeLinejoin="round" pointerEvents="none"><title>Raíces de pieza {number}</title></path>
     <g clipPath={`url(#${clipId})`}>
       {toothSurfaces.map((s) => {
-        const finding = absence || tooth.surfaces[s.id].findings.findLast((mark) => !mark.points.length);
+        // Igual que en las raíces: la ausencia no colorea las superficies.
+        const finding = tooth.surfaces[s.id].findings.findLast((mark) => !mark.points.length);
         const color = finding ? clinicalColor(finding) : undefined;
         const incisal = position <= 3 && s.id === 'oclusal';
         const Element = incisal ? 'path' : 'polygon';
         return <Element key={s.id} points={incisal ? undefined : toothSurfacePolygon(number, s.id)} d={incisal ? 'M32 77.5H68' : undefined}
           className={`nts-surface${incisal ? ' nts-incisal' : ''}${selectedSurface === s.id ? ' is-selected' : ''}`}
           fill={incisal ? 'none' : color || 'white'} stroke={incisal ? color || 'transparent' : 'black'} strokeWidth={incisal ? 3 : 2.2}
-          style={color ? { background: color } : undefined} data-state={finding?.state || absence?.state || tooth.surfaces[s.id].findings.at(-1)?.state || 'sin-registro'}
+          style={color ? { background: color } : undefined} data-state={absence?.state || finding?.state || tooth.surfaces[s.id].findings.at(-1)?.state || 'sin-registro'}
           role={interactive ? 'button' : undefined} tabIndex={interactive ? 0 : undefined} aria-label={interactive ? `Pieza ${number}, ${s.label}` : undefined}
           aria-pressed={interactive ? selectedSurface === s.id : undefined}
           onClick={interactive ? activar(s.id) : undefined}

@@ -45,7 +45,7 @@ test('se conservan bloques institucionales de consentimiento, tejidos y laborato
 });
 
 test('el dashboard ofrece accesos KPI a los servicios clinicos', () => {
-  assert.equal(dashboardServices.length, 9);
+  assert.equal(dashboardServices.length, 8);
   assert.ok(dashboardServices.some((s) => s.target.section === 'odontograma'));
   assert.ok(dashboardServices.some((s) => s.target.section === 'examenes-auxiliares'));
   assert.ok(dashboardServices.some((s) => s.target.section === 'seguimiento'));

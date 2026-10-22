@@ -45,9 +45,9 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
           </div>
         </div>
 
-        <section className="clinical-care-summary" aria-label="Operador responsable">
+        <section className="clinical-care-summary" aria-label="Cirujano dentista responsable">
           <span className="clinical-care-summary__icon"><ShieldCheck size={18} aria-hidden="true" /></span>
-          <div><span>Operador responsable</span><strong>{operadorNombre}</strong></div>
+          <div><span>Cirujano dentista responsable</span><strong>{operadorNombre}</strong></div>
           <button ref={assignmentTriggerRef} type="button" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={abrirAsignacion}>Cambiar asignación</button>
         </section>
       </div>

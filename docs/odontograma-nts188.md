@@ -8,19 +8,20 @@ NTS N.° 188-MINSA/DGIESP-2022, aprobada por RM N.° 559-2022/MINSA.
 - Publicación oficial consultada: https://bvs.minsa.gob.pe/local/MINSA/5925.pdf
 - Numerales 5.4–5.18, catálogo 6.1.1–6.1.38 y anexo gráfico (página impresa 35).
 
-Se consultó también el PDF aportado por el usuario. No se copiaron sus convenciones antiguas cuando difieren de la edición de 2022: esta representa coronas con un cuadrado y siglas CM/CF/CMC/CV/CLM; movilidad y desgaste en rojo; ausencias con aspa azul y DNE/DEX/DAO.
+Se consultó también el PDF aportado por el usuario. No se copiaron sus convenciones antiguas cuando difieren de la edición de 2022: esta representa coronas con un cuadrado y siglas CM/CF/CMC/CV/CLM; movilidad y desgaste en rojo; ausencias con aspa azul y DNE/DEX/DAO. La extracción programada se conserva como estado operativo distinto, con aspa roja discontinua.
 
 ## Cambios implementados
 
 - 32 posiciones permanentes y 20 temporales, con filas superiores 18–11 / 21–28 y 55–51 / 61–65 e inferiores 85–81 / 71–75 y 48–41 / 31–38.
 - Gráfico SVG de coronas, raíces, numeración y recuadros; orientación de superficies por cuadrante y arcada. Las cuatro filas permanecen visibles: no se supone que las 52 piezas estén presentes.
-- Catálogo de los 38 tipos de hallazgo de 6.1. Opciones explícitas de clasificación/material y estado del tratamiento; rojo y azul para hallazgos.
+- Catálogo de los 38 tipos de hallazgo de 6.1 más el estado operativo de extracción programada. Opciones explícitas de clasificación/material y estado del tratamiento; rojo y azul para hallazgos.
 - Marcas por superficie, por pieza, entre piezas y por arcada. Las ausencias y coronas se dibujan sobre la pieza; las prótesis y aparatos abarcan un conjunto. Validación de arcada y adyacencia.
 - Dibujo de la forma observada para caries, restauraciones, fracturas, sellantes y desgaste, sin sustituirla por una letra o un relleno de toda la superficie.
 - Varios hallazgos simultáneos sin sobrescribir los anteriores; siglas en recuadros y registro detallado para consultar los que exceden el espacio.
 - Especificaciones y observaciones separadas. La fluorosis y clasificaciones adicionales pueden consignarse en especificaciones.
 - Evaluaciones independientes por motivo, fecha, profesional y COP; cierre de borrador y consulta posterior en solo lectura. Una nueva evaluación inicia un esquema vacío para registrar lo observado nuevamente.
-- Se retiró “extracción indicada” del catálogo: el plan de tratamiento corresponde a su sección.
+- La pieza ausente o extraída se representa solo con un aspa azul: no rellena coronas ni raíces y no oculta otros hallazgos.
+- “Extracción programada” vuelve como estado distinto de “ausente”: se dibuja con aspa roja discontinua, no marca la pieza como perdida y no se interpreta como extracción realizada. El catálogo del servidor la registra como `EXTRACCION_PROGRAMADA`.
 - Persistencia local por identidad de historia, con detección de fallos de almacenamiento, registros ilegibles y cambios de otra pestaña. No se presenta un fallo de escritura como guardado exitoso.
 
 ## Alcance y límites

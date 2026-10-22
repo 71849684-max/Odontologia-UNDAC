@@ -238,7 +238,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     setRevisionAviso('');
     if (!historiaServidor) {
       persistirLocal(siguientes);
-      setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al docente).');
+      setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al cirujano dentista supervisor).');
       return true;
     }
     try {
@@ -246,9 +246,9 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
       setAutosaveStatus('saved');
       setLastSavedAt(new Date().toISOString());
       if (cuerpo?.revisionNotificada) {
-        setRevisionAviso('Sección enviada; el docente fue notificado.');
+        setRevisionAviso('Sección enviada; el cirujano dentista supervisor fue notificado.');
       } else if ((cuerpo?.seccionesEnviadas ?? []).length) {
-        setRevisionAviso('Sección guardada en revisión. No hay docente asignado para avisar.');
+        setRevisionAviso('Sección guardada en revisión. No hay cirujano dentista supervisor asignado para avisar.');
       } else {
         setRevisionAviso('Sección en revisión.');
       }
@@ -256,7 +256,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     } catch (error) {
       if (esFalloDeRed(error)) {
         persistirLocal(siguientes);
-        setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al docente).');
+        setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al cirujano dentista supervisor).');
         return true;
       }
       setAutosaveStatus('error');

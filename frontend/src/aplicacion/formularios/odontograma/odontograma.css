@@ -33,10 +33,11 @@ body.nts-modal-open { overflow: hidden; }
 .nts-surface:hover, .nts-surface:focus-visible, .nts-surface.is-selected { outline: none; stroke: #475569; stroke-width: 3; }
 .nts-incisal { pointer-events: stroke; }
 .nts-incisal[role=button] { stroke-width: 5; }
+/* Las siglas clínicas quedan inmediatamente encima del número, en ambas arcadas. */
+.nts-tooth-codes { order: -1; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; min-height: 16px; max-width: 44px; font-size: 9px; font-weight: 750; overflow-wrap: anywhere; }
 .nts-tooth--lower .nts-tooth-map { order: 0; }
-.nts-tooth--lower .nts-tooth-number { order: 1; }
-.nts-tooth--lower .nts-tooth-codes { order: 2; }
-.nts-tooth-codes { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; min-height: 16px; max-width: 44px; font-size: 9px; font-weight: 750; overflow-wrap: anywhere; }
+.nts-tooth--lower .nts-tooth-codes { order: 1; }
+.nts-tooth--lower .nts-tooth-number { order: 2; }
 .nts-midline::before { content: ''; position: absolute; left: -1px; top: -8px; bottom: -4px; width: 1px; background: #475569; pointer-events: none; }
 .nts-range-overlay { position: absolute; inset: 0; width: 100%; height: 170px; overflow: visible; pointer-events: none; }
 .nts-compact-preview { --tooth-size: 170px; display: grid; justify-content: center; gap: 14px; padding: 20px; border: 1px solid #cbd5e1; border-radius: 8px; text-align: center; }
@@ -96,6 +97,7 @@ body.nts-modal-open { overflow: hidden; }
 .nts-tool--restoration { --tool-ink: #1d4ed8; --tool-bg: #eff6ff; --tool-border: #bfdbfe; }
 .nts-tool--absent { --tool-ink: #7e22ce; --tool-bg: #faf5ff; --tool-border: #e9d5ff; }
 .nts-tool--extracted { --tool-ink: #c2410c; --tool-bg: #fff7ed; --tool-border: #fed7aa; }
+.nts-tool--scheduled { --tool-ink: #b91c1c; --tool-bg: #fef2f2; --tool-border: #fecaca; }
 .nts-tool--fracture { --tool-ink: #92400e; --tool-bg: #fefce8; --tool-border: #fde68a; }
 .nts-tool--sealant { --tool-ink: #047857; --tool-bg: #ecfdf5; --tool-border: #a7f3d0; }
 .nts-tool--erase { --tool-ink: #a21caf; --tool-bg: #fdf4ff; --tool-border: #f5d0fe; }

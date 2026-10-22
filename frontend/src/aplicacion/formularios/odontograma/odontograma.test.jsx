@@ -68,7 +68,9 @@ describe('estructura NTS 188', () => {
     expect(clinicalColor({ state: 'desgaste' })).toBe('#dc2626');
     expect(clinicalColor({ state: 'restauracion', condition: 'bad' })).toBe('#dc2626');
     expect(clinicalColor({ state: 'ausente' })).toBe('#1d4ed8');
+    expect(clinicalColor({ state: 'extraccion-programada' })).toBe('#dc2626');
     expect(stateFor('endodoncia').options).toEqual(['TC','PC']);
+    expect(stateFor('extraccion-programada')).toMatchObject({ graphic: 'extraction-scheduled', color: 'red' });
     expect(stateFor('extraccion-indicada').id).toBe('sin-registro');
   });
   test('conserva varios hallazgos y retirar uno no borra el resto', () => {
@@ -297,7 +299,7 @@ test('marca directamente sin trazado y permite consultar y borrar sin duplicar h
   fireEvent.click(screen.getByRole('button', { name: 'Pieza 21, Mesial' }));
   expect(toothFindings(stored().teeth['21'])).toHaveLength(0);
   modal = screen.getByRole('dialog', { name: 'Acciones para pieza 21, Mesial' });
-  fireEvent.click(within(modal).getByRole('button', { name: 'Extraído', exact: true }));
+  fireEvent.click(within(modal).getByRole('button', { name: 'Extracción realizada', exact: true }));
   fireEvent.click(within(modal).getByRole('button', { name: 'Cancelar' }));
   fireEvent.click(vestibular);
   modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
@@ -317,7 +319,7 @@ test('marca directamente sin trazado y permite consultar y borrar sin duplicar h
 });
 
 test.each([['11', 'DEX'], ['41', 'DAO'], ['51', 'DAO'], ['81', 'DEX']])(
-  'la ausencia de %s cubre cinco superficies y quitarla restaura los hallazgos anteriores', (number, code) => {
+  'la ausencia de %s se dibuja con un aspa azul sin rellenar las superficies', (number, code) => {
     const original = addFinding(createRecord('a').examinations[0], mark({ tooth: number }));
     const absent = addFinding(original, mark({ tooth: number, state: 'ausente', code, points: [] }));
     const select = vi.fn();
@@ -326,8 +328,12 @@ test.each([['11', 'DEX'], ['41', 'DAO'], ['51', 'DAO'], ['81', 'DEX']])(
     expect(surfaces).toHaveLength(6);
     for (const button of surfaces) {
       expect(button).toHaveAttribute('data-state', 'ausente');
-      expect(button).toHaveStyle('background-color: rgb(29, 78, 216)');
+      expect(button.getAttribute('style')).toBeNull();
+      expect(['white', 'none']).toContain(button.getAttribute('fill'));
     }
+    const aspa = within(screen.getByLabelText(`Gráfico de pieza ${number}`)).getByText('Pieza dentaria ausente / extraída', { selector: 'title' }).parentElement;
+    expect(aspa).toHaveAttribute('stroke', '#1d4ed8');
+    expect(aspa.querySelector('path')).not.toHaveAttribute('stroke-dasharray');
     fireEvent.click(screen.getByRole('button', { name: `Pieza ${number}, Mesial` }));
     expect(select).toHaveBeenCalledWith('mesial');
     expect(toothFindings(absent.teeth[number])).toHaveLength(2);
@@ -338,6 +344,20 @@ test.each([['11', 'DEX'], ['41', 'DAO'], ['51', 'DAO'], ['81', 'DEX']])(
     expect(screen.getAllByRole('button').filter((button) => button.dataset.state === 'sin-registro')).toHaveLength(5);
   },
 );
+
+test('la extracción programada se dibuja en rojo y no se confunde con una pieza ausente', () => {
+  const exam = createRecord('a').examinations[0];
+  const programada = addFinding(exam, mark({ state: 'extraccion-programada', code: '', points: [] }));
+  render(<CompactTooth number="11" tooth={programada.teeth['11']} />);
+
+  const aspa = within(screen.getByLabelText('Gráfico de pieza 11')).getByText('Extracción programada', { selector: 'title' }).parentElement;
+  expect(aspa).toHaveAttribute('stroke', '#dc2626');
+  expect(aspa.querySelector('path')).toHaveAttribute('stroke-dasharray', '6 4');
+  for (const button of screen.getAllByRole('button')) {
+    expect(button).toHaveAttribute('data-state', 'sin-registro');
+    expect(button.getAttribute('style')).toBeNull();
+  }
+});
 
 test('una evaluación cerrada permanece en solo lectura después de recargar', () => {
   let record = createRecord('a'), examId = record.examinations[0].id;

@@ -20,7 +20,7 @@ export default function ConsentimientoSection({ values, onChange, patient, histo
         <Field label="Edad" value={age} readOnly /><Field label="Sexo" value={sex} readOnly />
         <Field label="DNI" value={dni} readOnly /><Field label="H.C. N.º" value={hc} readOnly />
         <Field label="Domicilio" value={get('domicilio')} onChange={set('domicilio')} className="undac-col-2" help="Se mantiene editable hasta enlazar este campo directamente con Filiación." />
-        <Field label="Fecha" type="date" value={get('fecha')} onChange={set('fecha')} /><Field label="Profesional que informa / Dr.(a)" value={get('doctor') || meta?.docente || history?.docente || ''} onChange={set('doctor')} />
+        <Field label="Fecha" type="date" value={get('fecha')} onChange={set('fecha')} /><Field label="Cirujano dentista que informa / Dr.(a)" value={get('doctor') || meta?.docente || history?.docente || ''} onChange={set('doctor')} />
       </div>
       <div className="undac-consent-list">
         {consentParagraphs.map((paragraph, index) => <label className="undac-consent-item" key={index}><input type="checkbox" checked={Boolean(get(`consent${index + 1}`, false))} onChange={(event) => set(`consent${index + 1}`)(event.target.checked)} /><span><b>{index + 1}.</b> {paragraph}</span></label>)}
@@ -36,7 +36,7 @@ export default function ConsentimientoSection({ values, onChange, patient, histo
           ['firmaPaciente', 'Firma del paciente'],
           ['huellaDactilar', 'Huella dactilar — dedo índice derecho'],
           ['firmaAcompanante', 'Firma del acompañante'],
-          ['firmaDocente', 'Firma del docente — autorización de cirugía'],
+          ['firmaDocente', 'Firma del cirujano dentista responsable — autorización de cirugía'],
         ].map(([key, label]) => <SlotConstancia key={key} campo={key} label={label} value={get(key)} onChange={set(key)} permitirDibujo={key !== 'huellaDactilar'} />)}
       </div>
       <Subheading>Familiar que lo acompaña</Subheading>

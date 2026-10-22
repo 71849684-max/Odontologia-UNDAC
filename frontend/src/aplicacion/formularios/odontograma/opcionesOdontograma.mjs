@@ -12,7 +12,8 @@ export const quickTools = [
   { label: 'Caries', state: 'caries', code: 'CE', icon: 'caries', description: 'CE · Caries en esmalte. Puede cambiar la clasificación.' },
   { label: 'Restauración', state: 'restauracion', code: 'R', icon: 'restoration', description: 'R · Resina. Puede cambiar el material y el estado.' },
   { label: 'Ausente', state: 'ausente', code: 'DAO', icon: 'absent', description: 'DAO · Ausente por otras razones.' },
-  { label: 'Extraído', state: 'ausente', code: 'DEX', icon: 'extracted', description: 'DEX · Extraído por caries. Para otras razones, use DAO.' },
+  { label: 'Extracción realizada', state: 'ausente', code: 'DEX', icon: 'extracted', description: 'DEX · Extracción realizada por caries. Para otras razones, use DAO.' },
+  { label: 'Extracción programada', state: 'extraccion-programada', code: '', icon: 'scheduled', description: 'EXP · Extracción indicada y aún no realizada. Se dibuja en rojo, sin marcar la pieza como perdida.' },
   { label: 'Fractura', state: 'fractura', code: '', icon: 'fracture', description: 'Fractura dental.' },
   { label: 'Sellante', state: 'sellante', code: '', icon: 'sealant', description: 'Sellante observado.' },
 ];

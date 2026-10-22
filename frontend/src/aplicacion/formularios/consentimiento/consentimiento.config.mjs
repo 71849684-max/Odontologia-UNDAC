@@ -7,5 +7,5 @@ export const consentParagraphs = [
   'He comprendido las explicaciones brindadas, he podido realizar observaciones y mis dudas han sido aclaradas.',
   'Autorizo los exámenes y análisis auxiliares necesarios antes de la intervención quirúrgica y para su programación.',
   'Comprendo que puedo revocar esta autorización en cualquier momento sin necesidad de brindar una explicación.',
-  'Me comprometo a pagar el derecho de clínica por la cirugía a realizarme. Declaro estar seguro y satisfecho con la información recibida y autorizo la intervención quirúrgica indicada bajo anestesia local, así como las actuaciones necesarias ante una situación urgente imprevista por el equipo docente y alumno de pregrado.'
+  'Me comprometo a pagar el derecho de clínica por la cirugía a realizarme. Declaro estar seguro y satisfecho con la información recibida y autorizo la intervención quirúrgica indicada bajo anestesia local, así como las actuaciones necesarias ante una situación urgente imprevista por el equipo de cirujanos dentistas y asistentes.'
 ];

@@ -10,6 +10,9 @@ export default function IconoHerramienta({ type }) {
     {type === 'extracted' ? <>
       <path d="M5 10c0 3 1 4 2 7 .5 3 1 4 2.5 4S10 16 12 16s1 5 2.5 5S17 20 17 17c1-3 2-4 2-7" />
       <path d="M12 12V2m-4 4 4-4 4 4" />
+    </> : type === 'scheduled' ? <>
+      <path d={tooth} />
+      <path d="m7 7 10 10M17 7 7 17" strokeDasharray="2 2" />
     </> : <>
       <path d={tooth} strokeDasharray={type === 'absent' ? '2 3' : undefined} />
       {type === 'caries' && <circle cx="12" cy="9" r="2.3" fill="currentColor" stroke="none" />}

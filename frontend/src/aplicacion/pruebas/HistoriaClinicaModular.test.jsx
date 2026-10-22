@@ -129,10 +129,10 @@ test('el selector de operador cierra con Escape y devuelve el foco al botón que
   const trigger = screen.getByRole('button', { name: 'Cambiar asignación' });
   trigger.focus();
   fireEvent.click(trigger);
-  expect(screen.getByRole('dialog', { name: 'Cambiar operador responsable' })).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Cambiar cirujano dentista responsable' })).toBeInTheDocument();
   fireEvent.keyDown(window, { key: 'Escape' });
 
-  expect(screen.queryByRole('dialog', { name: 'Cambiar operador responsable' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Cambiar cirujano dentista responsable' })).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
 });
 
@@ -140,7 +140,7 @@ test('el selector de operador se monta fuera de la cabecera fija', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Cambiar asignación' }));
-  const dialog = screen.getByRole('dialog', { name: 'Cambiar operador responsable' });
+  const dialog = screen.getByRole('dialog', { name: 'Cambiar cirujano dentista responsable' });
 
   expect(dialog.parentElement).toHaveClass('clinical-operator-modal-overlay');
   expect(dialog.parentElement?.parentElement).toBe(document.body);

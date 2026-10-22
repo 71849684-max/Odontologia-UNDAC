@@ -150,11 +150,11 @@ class EquipoClinicoTest extends TestCase
             'campo' => 'firmaPaciente',
             'archivo' => UploadedFile::fake()->image('firma.png', 40, 20),
         ], ['Accept' => 'application/json'])->assertUnprocessable()
-            ->assertJsonPath('errors.archivo.0', 'La sección ya fue aprobada por el docente y no admite cambios.');
+            ->assertJsonPath('errors.archivo.0', 'La sección ya fue aprobada por el cirujano dentista supervisor y no admite cambios.');
 
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => ['version' => 1]])
             ->assertUnprocessable()
-            ->assertJsonPath('errors.registro.0', 'El odontograma ya fue aprobado por el docente y no admite cambios.');
+            ->assertJsonPath('errors.registro.0', 'El odontograma ya fue aprobado por el cirujano dentista supervisor y no admite cambios.');
 
         $guardar($docente, ['anamnesis' => ['motivoConsulta' => 'Corregido por docente']])->assertOk();
         $this->assertSame('Corregido por docente', $motivo());

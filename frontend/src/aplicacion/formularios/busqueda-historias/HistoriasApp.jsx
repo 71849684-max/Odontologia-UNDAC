@@ -17,6 +17,12 @@ const CODIGO_ESTADO = {
     Validada: 'VALIDADA',
 };
 
+const PERFIL_CLINICO = {
+    alumno: 'asistente odontológico',
+    docente: 'cirujano dentista',
+    administrador: 'administrador',
+};
+
 /** Acciones disponibles según el estado actual; el backend vuelve a validar cada transición. */
 export function accionesDeEstado(historia, rol) {
     const codigo = historia.codigoEstado;
@@ -145,23 +151,23 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
             <div>
                 <p className="hc-kicker">Gestión clínica</p>
                 <h1 className="hc-page-title">Historias clínicas</h1>
-                <p className="hc-page-subtitle">Seguimiento de historias para el perfil {rol === 'alumno' ? 'alumno operador' : rol}: borradores, revisión docente, observaciones y validación.</p>
+                <p className="hc-page-subtitle">Seguimiento de historias para el perfil {PERFIL_CLINICO[rol] ?? rol}: borradores, revisión clínica, observaciones y validación.</p>
             </div>
             <button type="button" className="hc-button hc-button--primary" onClick={() => { setPacienteModal(null); setModalNueva(true); }}>
                 <Plus size={17} /> Nueva historia clínica
             </button>
         </header>
         <section className="hc-compact-stats" aria-label="Resumen de historias">{indicadores.map(([etiqueta, valor]) => <article key={etiqueta}><strong>{valor}</strong><small>{etiqueta}</small></article>)}</section>
-        <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, alumno o docente..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
+        <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, cirujano dentista o asistente..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
         {aviso && <p className="hc-inline-callout" role="status">{aviso}</p>}
         {filtered.length ? <div className="hc-table-card"><table className="hc-table">
-            <thead><tr><th>N.º historia</th><th>Paciente</th><th>Operador</th><th>Docente</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>N.º historia</th><th>Paciente</th><th>Cirujano dentista responsable</th><th>Supervisor clínico</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
             <tbody>{filtered.map((history) => <tr key={history.id}>
                 <td data-label="N.º historia"><strong>{history.codigo}</strong></td>
                 <td data-label="Paciente"><div className="hc-person"><span className="hc-avatar">{history.paciente.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span><span><strong>{history.paciente}</strong><small>DNI {history.dni}</small></span></div></td>
-                <td data-label="Operador">{history.operador}</td>
-                <td data-label="Docente">{history.docente}</td>
+                <td data-label="Cirujano dentista responsable">{history.operador}</td>
+                <td data-label="Supervisor clínico">{history.docente}</td>
                 <td data-label="Progreso"><ProgressBar value={history.progreso} /></td>
                 <td data-label="Estado"><StatusBadge status={history.estado} /></td>
                 <td data-label="Fecha">{formatearFecha(history.fecha) || '—'}</td>
@@ -176,7 +182,7 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
         {observando && <div className="admin-dialogo-fondo" role="presentation" onClick={() => !enviando && setObservando(null)}>
             <form className="admin-dialogo" role="dialog" aria-modal="true" aria-labelledby="titulo-observar" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (observando.texto.trim()) ejecutar(observando.historia, observando.accion, observando.texto.trim()); }}>
                 <header className="admin-dialogo__cabecera"><h2 id="titulo-observar">Observar {observando.historia.codigo}</h2><button type="button" className="hc-mini-button" aria-label="Cerrar" disabled={enviando} onClick={() => setObservando(null)}><X size={16} /></button></header>
-                <label className="undac-field"><span>Observación para el alumno</span><textarea required maxLength={500} rows={4} value={observando.texto} onChange={(e) => setObservando((actual) => ({ ...actual, texto: e.target.value }))} /></label>
+                <label className="undac-field"><span>Observación clínica para el asistente</span><textarea required maxLength={500} rows={4} value={observando.texto} onChange={(e) => setObservando((actual) => ({ ...actual, texto: e.target.value }))} /></label>
                 <footer className="admin-dialogo__acciones"><button type="button" className="hc-button hc-button--ghost" disabled={enviando} onClick={() => setObservando(null)}>Cancelar</button><button type="submit" className="hc-button hc-button--primary" disabled={enviando || !observando.texto.trim()}>Registrar observación</button></footer>
             </form>
         </div>}

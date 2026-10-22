@@ -160,7 +160,7 @@ class ServicioArchivoClinico
     private function exigirEditable(Cuenta $actor, int $idHistoria, string $seccion): void
     {
         if (! $this->acceso->seccionEditable($actor, $idHistoria, $seccion)) {
-            throw new OperacionNoPermitida('archivo', 'La sección ya fue aprobada por el docente y no admite cambios.');
+            throw new OperacionNoPermitida('archivo', 'La sección ya fue aprobada por el cirujano dentista supervisor y no admite cambios.');
         }
     }
 

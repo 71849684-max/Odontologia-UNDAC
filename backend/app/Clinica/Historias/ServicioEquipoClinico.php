@@ -4,6 +4,7 @@ namespace App\Clinica\Historias;
 
 use App\Identidad\Dominio\Cuenta;
 use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -43,7 +44,7 @@ class ServicioEquipoClinico
                 'nombre' => trim($fila->nombres.' '.$fila->apellidos),
                 'dni' => $fila->numero_documento,
                 'codigo' => $fila->codigo_alumno,
-                'rol' => 'Alumno operador',
+                'rol' => 'Asistente odontológico',
                 'cop' => '',
             ]);
 
@@ -56,7 +57,7 @@ class ServicioEquipoClinico
                 'nombre' => trim($fila->nombres.' '.$fila->apellidos),
                 'dni' => $fila->numero_documento,
                 'codigo' => $fila->codigo_docente,
-                'rol' => $fila->especialidad ? 'Docente · '.$fila->especialidad : 'Docente',
+                'rol' => $fila->especialidad ? 'Cirujano dentista · '.$fila->especialidad : 'Cirujano dentista',
                 'cop' => $fila->numero_colegiatura ?? '',
             ]);
 
@@ -64,7 +65,7 @@ class ServicioEquipoClinico
     }
 
     /**
-     * Reemplaza al operador (alumno) o al docente encargado de la historia.
+     * Reemplaza al responsable clínico o al supervisor de la historia.
      *
      * @return array<string, mixed>
      */
@@ -73,7 +74,7 @@ class ServicioEquipoClinico
         $this->historias->fila($idHistoria);
 
         if ($actor->tipoCuenta() !== 'DOCENTE') {
-            throw new OperacionNoPermitida('personal', 'Solo un docente puede cambiar la asignación de la historia.');
+            throw new OperacionNoPermitida('personal', 'Solo un cirujano dentista puede cambiar la asignación de la historia.');
         }
 
         if (! preg_match('/^(ALUMNO|DOCENTE)-(\d{1,18})$/', $personal, $partes)) {
@@ -181,7 +182,7 @@ class ServicioEquipoClinico
     public function crearControl(int $idHistoria, array $datos, Cuenta $actor): array
     {
         if (! $this->acceso->puedeVer($actor, $idHistoria)) {
-            throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel('historia_clinica', [$idHistoria]);
+            throw (new ModelNotFoundException)->setModel('historia_clinica', [$idHistoria]);
         }
         $this->historias->fila($idHistoria);
 
@@ -241,7 +242,7 @@ class ServicioEquipoClinico
             ->where('s.id_seguimiento_quirurgico', $idControl)
             ->first(['s.*', 'pq.id_historia_clinica']);
         if ($fila === null || ! $this->acceso->puedeVer($actor, (int) $fila->id_historia_clinica)) {
-            throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel('seguimiento_quirurgico', [$idControl]);
+            throw (new ModelNotFoundException)->setModel('seguimiento_quirurgico', [$idControl]);
         }
 
         $cambios = [];
@@ -283,7 +284,7 @@ class ServicioEquipoClinico
             ->where('pc.id_programacion_cirugia', $idProgramacion)
             ->first(['pc.*', 'pq.id_historia_clinica', 'pq.procedimiento']);
         if ($fila === null || ! $this->acceso->puedeVer($actor, (int) $fila->id_historia_clinica)) {
-            throw (new \Illuminate\Database\Eloquent\ModelNotFoundException)->setModel('programacion_cirugia', [$idProgramacion]);
+            throw (new ModelNotFoundException)->setModel('programacion_cirugia', [$idProgramacion]);
         }
 
         $cambios = [];

@@ -2,7 +2,7 @@
 
 La implementación frontend representa los formularios del documento institucional sin persistencia real.
 
-1. Datos del paciente / filiación: operador, semestre, año académico, fecha, docente, C.O.P., DNI, filiación, domicilio, contacto, procedencia, residencia, instrucción, estado civil, ocupación, idioma, religión, informante, acompañante, padres y tutor.
+1. Datos del paciente / filiación: cirujano dentista responsable, semestre, año académico, fecha, cirujano dentista supervisor, C.O.P., DNI, filiación, domicilio, contacto, procedencia, residencia, instrucción, estado civil, ocupación, idioma, religión, informante, acompañante, padres y tutor.
 2. Anamnesis: motivo de consulta, tipo de atención, historia de la enfermedad, estado general, ectoscopía y datos psicológicos.
 3. Cuestionario de salud: 24 preguntas de antecedentes médicos con Sí/No y detalle condicional.
 4. Antecedentes: generales, fisiológicos, terapéuticos, actos quirúrgicos y familiares.
@@ -17,7 +17,7 @@ La implementación frontend representa los formularios del documento institucion
 13. Plan de tratamiento: planificación integral por fases.
 14. Consentimiento informado: datos del paciente, nueve bloques de autorización, intervención, fecha, familiar, firmas/huella mock y programación de cirugía.
 15. Cirugía: plan preoperatorio, intraoperatorio y postoperatorio.
-16. Reporte operatorio: paciente, operador, asistente, lugar, caso, anestesia, diagnóstico, tratamiento, signos vitales pre/intra/post, pronóstico, horas, prescripción, alta, epicrisis y firmas mock.
-17. Seguimiento: evolución quirúrgica y ficha con fecha, procedimiento, firma del operador y firma del supervisor.
+16. Reporte operatorio: paciente, cirujano dentista responsable, asistente, lugar, caso, anestesia, diagnóstico, tratamiento, signos vitales pre/intra/post, pronóstico, horas, prescripción, alta, epicrisis y firmas mock.
+17. Seguimiento: evolución quirúrgica y ficha con fecha, procedimiento, firma del cirujano dentista responsable y firma del cirujano dentista supervisor.
 
 Los espacios de fotografías, radiografías, firmas y huella son deliberadamente visuales/mock hasta la fase de backend.

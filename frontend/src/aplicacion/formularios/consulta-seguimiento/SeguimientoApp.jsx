@@ -137,10 +137,10 @@ export default function SeguimientoApp({ tipo = 'seguimiento', rol = 'alumno', o
     return <div className="hc-page space-y-5">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-                <p className="hc-kicker">{esPendientes ? 'Supervisión docente' : 'Continuidad clínica'}</p>
+                <p className="hc-kicker">{esPendientes ? 'Supervisión clínica' : 'Continuidad clínica'}</p>
                 <h1 className="hc-page-title">{esPendientes ? 'Pendientes de revisión' : rol === 'alumno' ? 'Mis seguimientos' : 'Seguimiento'}</h1>
                 <p className="hc-page-subtitle">{esPendientes
-                    ? 'Historias enviadas a revisión y secciones marcadas por el alumno para evaluación docente.'
+                    ? 'Historias enviadas a revisión y secciones marcadas por el asistente para evaluación del cirujano dentista.'
                     : 'Agenda de controles y cirugías programadas. Cree, reprogramme o marque realizados/cancelados.'}</p>
             </div>
             {!esPendientes ? <button type="button" className="hc-button hc-button--primary" onClick={abrirNuevo}><Plus size={17} /> Nuevo control</button> : null}
@@ -155,14 +155,14 @@ export default function SeguimientoApp({ tipo = 'seguimiento', rol = 'alumno', o
                 <article><span><CheckCircle2 size={17} /></span><strong>{validadas}</strong><small>Validadas</small></article>
                 <article><span><CalendarClock size={17} /></span><strong>{historias.filter((item) => item.estado === 'Observada').length}</strong><small>Observadas</small></article>
             </section>
-            {pendientes.length ? <div className="hc-table-card"><table className="hc-table"><thead><tr><th>Historia</th><th>Paciente</th><th>Operador</th><th>Estado</th><th>Secciones</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>
+            {pendientes.length ? <div className="hc-table-card"><table className="hc-table"><thead><tr><th>Historia</th><th>Paciente</th><th>Cirujano dentista responsable</th><th>Estado</th><th>Secciones</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>
                 {pendientes.map((historia) => {
                     const secciones = historia.seccionesRevision ?? [];
                     const seccionDestino = secciones[0] || 'diagnostico';
                     return <tr key={historia.id}>
                         <td data-label="Historia"><strong>{historia.codigo}</strong></td>
                         <td data-label="Paciente">{historia.paciente}</td>
-                        <td data-label="Operador">{historia.operador}</td>
+                        <td data-label="Cirujano dentista responsable">{historia.operador}</td>
                         <td data-label="Estado"><StatusBadge status={historia.estado} /></td>
                         <td data-label="Secciones">{secciones.length ? secciones.join(', ') : '—'}</td>
                         <td data-label="Progreso"><ProgressBar value={historia.progreso} /></td>

@@ -201,8 +201,8 @@ test('el rol lo entrega el backend y permite cerrar sesión', async () => {
         contrasena: 'clave-de-prueba',
     });
     expect(await screen.findByRole('heading', { name: /elena/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /actividad reciente/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /ver pendientes/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /historias recientes/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ver todas/i })).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: /cerrar sesión/i }));
 

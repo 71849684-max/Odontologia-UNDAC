@@ -193,7 +193,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
         {dentition !== 'permanent' && <OdontogramRow title="Temporales inferiores" teeth={temporaryArches.inferior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
         {dentition !== 'temporary' && <OdontogramRow title="Permanentes inferiores" teeth={arches.inferior} exam={exam} selectedTooth={selectedTooth} selectedSurface={surface} onSelect={select} />}
       </div></div>
-      <div className="nts-legend"><span><i className="nts-blue" />Azul: buen estado / característica no patológica</span><span><i className="nts-red" />Rojo: patología / mal estado / temporal</span><span>Sin marca: sin hallazgo registrado; no equivale a pieza sana.</span></div>
+      <div className="nts-legend"><span><i className="nts-blue" />Azul: buen estado / característica no patológica</span><span><i className="nts-red" />Rojo: patología / mal estado / temporal</span><span>Aspa azul: extracción realizada o pieza ausente.</span><span>Aspa roja discontinua: extracción programada, aún no realizada.</span><span>Sin marca: sin hallazgo registrado; no equivale a pieza sana.</span></div>
       <LeyendaSuperficies />
       <GuiaSuperficies molar={exam.teeth['16']} incisivo={exam.teeth['11']} />
     </SectionCard>

@@ -20,7 +20,7 @@ export default function SeguimientoSection({ values, onChange, patient, history 
     <CollapsibleSection title="Seguimiento clínico" subtitle="Registre la evolución global y añada controles únicamente cuando ocurran." defaultOpen status={seguimientoEnProgreso ? 'progress' : 'pending'}>
       <div className="undac-form-grid">
         <Field label="Apellidos y nombres del paciente" value={patient?.nombres || get('paciente')} readOnly className="undac-col-2" />
-        <Field label="Operador" value={history?.operador || get('operador')} readOnly />
+        <Field label="Cirujano dentista responsable" value={history?.operador || get('operador')} readOnly />
         <Field label="Fecha de referencia" type="date" value={get('fecha')} onChange={set('fecha')} />
         <TextAreaField label="Evolución / seguimiento" value={get('evolucion')} onChange={set('evolucion')} className="undac-col-2" rows={6} />
       </div>
@@ -38,8 +38,8 @@ export default function SeguimientoSection({ values, onChange, patient, history 
               <Field label={`Fecha procedimiento ${index + 1}`} type="date" value={row.fecha} onChange={(value) => updateRow(index, 'fecha', value)} />
               <Field label={`Procedimiento ${index + 1}`} value={row.procedimiento} onChange={(value) => updateRow(index, 'procedimiento', value)} />
               <TextAreaField label={`Evolución del control ${index + 1}`} value={row.evolucion || ''} onChange={(value) => updateRow(index, 'evolucion', value)} className="undac-col-2" rows={3} />
-              <Field label={`Firma operador ${index + 1}`} value={row.firmaOperador} onChange={(value) => updateRow(index, 'firmaOperador', value)} />
-              <Field label={`Firma supervisor ${index + 1}`} value={row.firmaSupervisor} onChange={(value) => updateRow(index, 'firmaSupervisor', value)} />
+              <Field label={`Firma del cirujano dentista responsable ${index + 1}`} value={row.firmaOperador} onChange={(value) => updateRow(index, 'firmaOperador', value)} />
+              <Field label={`Firma del cirujano dentista supervisor ${index + 1}`} value={row.firmaSupervisor} onChange={(value) => updateRow(index, 'firmaSupervisor', value)} />
             </div>
           </div>
         </article>)}

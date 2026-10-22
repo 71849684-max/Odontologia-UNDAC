@@ -135,7 +135,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
             </div> : null}
             {revisionAviso ? <p className="clinical-revision-aviso" role="status">{revisionAviso}</p> : null}
             {autosaveStatus === 'local' ? <p className="clinical-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
-            {soloLectura ? <p className="clinical-readonly-note" role="note">Sección aprobada por el docente: solo lectura. Pida que la reabra si necesita corregirla.</p> : null}
+            {soloLectura ? <p className="clinical-readonly-note" role="note">Sección aprobada por el cirujano dentista supervisor: solo lectura. Pida que la reabra si necesita corregirla.</p> : null}
             <fieldset className="clinical-active-section__content" disabled={soloLectura}>
               {ActiveComponent ? <ActiveComponent
                 key={`${history.codigo}-${active.id}`}

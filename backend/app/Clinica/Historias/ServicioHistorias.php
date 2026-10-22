@@ -167,7 +167,7 @@ class ServicioHistorias
         }
 
         if (in_array($codigo, ['VALIDADA', 'OBSERVADA'], true) && $actor->tipoCuenta() !== 'DOCENTE') {
-            throw new OperacionNoPermitida('estado', 'Solo un docente puede observar o validar la historia.');
+            throw new OperacionNoPermitida('estado', 'Solo un cirujano dentista puede observar o validar la historia.');
         }
 
         DB::table('historia_clinica')->where('id_historia_clinica', $id)->update([
@@ -285,7 +285,7 @@ class ServicioHistorias
             $idHistoria = (int) $fila->id_historia_clinica;
             $docente = '';
             if ($fila->tipo_usuario === 'DOCENTE' && $fila->id_usuario) {
-                $docente = (string) ($nombresDocente->get((int) $fila->id_usuario) ?: 'Docente');
+                $docente = (string) ($nombresDocente->get((int) $fila->id_usuario) ?: 'Cirujano dentista');
             }
             $porHistoria[$idHistoria][] = [
                 'id' => (int) $fila->id_historial_estado,

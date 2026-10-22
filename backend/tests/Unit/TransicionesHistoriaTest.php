@@ -58,7 +58,7 @@ class TransicionesHistoriaTest extends TestCase
             $servicio->cambiarEstado($id, 'VALIDADA', $alumno);
             $this->fail('El alumno no debe validar.');
         } catch (OperacionNoPermitida $excepcion) {
-            $this->assertStringContainsString('Solo un docente', $excepcion->getMessage());
+            $this->assertStringContainsString('Solo un cirujano dentista', $excepcion->getMessage());
         }
 
         $servicio->cambiarEstado($id, 'VALIDADA', $docente);

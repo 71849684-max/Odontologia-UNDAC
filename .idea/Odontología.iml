@@ -16,6 +16,15 @@
       <sourceFolder url="file://$MODULE_DIR$/.superpowers/worktrees/admin-views-refresh/backend/tests" isTestSource="true" packagePrefix="Tests\" />
       <sourceFolder url="file://$MODULE_DIR$/.superpowers/worktrees/admin-views-refresh/backend/tests/Feature" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/.superpowers/worktrees/admin-views-refresh/backend/tests/Unit" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Acceptance" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/E2E" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Functional" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Integration" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Performance" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Regression" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Security" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Stress" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/backend/tests/Usability" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/brick/math" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/carbonphp/carbon-doctrine-types" />
       <excludeFolder url="file://$MODULE_DIR$/backend/vendor/composer" />

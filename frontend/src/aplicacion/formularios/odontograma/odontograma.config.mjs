@@ -90,6 +90,7 @@ export const odontogramStates = [
   finding('microdoncia', 'Microdoncia', 'MIC', 'tooth', 'code'),
   finding('movilidad', 'Movilidad patológica', 'M', 'tooth', 'code', 'red', ['M1','M2','M3']),
   finding('ausente', 'Pieza dentaria ausente / extraída', 'DAO', 'tooth', 'missing', 'blue', ['DNE','DEX','DAO']),
+  finding('extraccion-programada', 'Extracción programada', 'EXP', 'tooth', 'extraction-scheduled', 'red'),
   finding('clavija', 'Pieza dentaria en clavija', '△', 'tooth', 'triangle'),
   finding('ectopico', 'Pieza dentaria ectópica', 'E', 'tooth', 'code'),
   finding('erupcion', 'Pieza dentaria en erupción', '↯', 'tooth', 'eruption'),
@@ -119,7 +120,7 @@ export const clinicalColor = (mark) => mark.condition === 'bad' || odontogramSta
 export const stateFor = (id) => odontogramStates.find((s) => s.id === id) || odontogramStates[0];
 export function markCode(mark) {
   const state = stateFor(mark.state);
-  return ['code','crown','missing','pulp','root','draw-fill'].includes(state.graphic) || ['sellante','desgaste'].includes(mark.state) ? mark.code || state.symbol : '';
+  return ['code','crown','missing','extraction-scheduled','pulp','root','draw-fill'].includes(state.graphic) || ['sellante','desgaste'].includes(mark.state) ? mark.code || state.symbol : '';
 }
 
 function emptySurface() {

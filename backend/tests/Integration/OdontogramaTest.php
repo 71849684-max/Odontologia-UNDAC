@@ -75,6 +75,30 @@ class OdontogramaTest extends TestCase
             ->count());
     }
 
+    public function test_la_extraccion_programada_no_marca_la_pieza_como_perdida(): void
+    {
+        $alumno = $this->crearUsuario('alumno.programada', self::CLAVE, 'ALUMNO');
+        $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', ['dni' => '70000204', 'nombres' => 'Paciente Programada', 'sexo' => 'F'])->json('id');
+
+        $registro = $this->registro();
+        $registro['examinations'][0]['teeth']['12'] = ['findings' => [$this->marca('extraccion-programada', '', ['12'])], 'surfaces' => []];
+        $registro['examinations'][0]['teeth']['11'] = ['findings' => [$this->marca('ausente', 'DEX', ['11'])], 'surfaces' => []];
+
+        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $registro])->assertOk();
+
+        $odontograma = DB::table('odontograma')->where('id_historia_clinica', $id)->first();
+        $perdida = fn (string $codigo): int => (int) DB::table('odontograma_hallazgo as h')
+            ->join('catalogo_hallazgo_dental as c', 'c.id_hallazgo_dental', '=', 'h.id_hallazgo_dental')
+            ->join('odontograma_hallazgo_pieza as hp', 'hp.id_odontograma_hallazgo', '=', 'h.id_odontograma_hallazgo')
+            ->join('odontograma_pieza as p', 'p.id_odontograma_pieza', '=', 'hp.id_odontograma_pieza')
+            ->where('h.id_odontograma', $odontograma->id_odontograma)
+            ->where('c.codigo', $codigo)
+            ->value('p.perdida');
+
+        $this->assertSame(0, $perdida('EXTRACCION_PROGRAMADA'));
+        $this->assertSame(1, $perdida('AUSENTE'));
+    }
+
     public function test_una_evaluacion_cerrada_no_se_puede_modificar(): void
     {
         $alumno = $this->crearUsuario('alumno.cerrado', self::CLAVE, 'ALUMNO');

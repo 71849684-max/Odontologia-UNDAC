@@ -254,7 +254,7 @@ class ControladorHistorias extends Controller
         return response()->json([
             'registro' => $this->operacion(function () use ($idHistoria, $registro, $actor) {
                 if (! $this->acceso->seccionEditable($actor, $idHistoria, 'odontograma')) {
-                    throw new OperacionNoPermitida('registro', 'El odontograma ya fue aprobado por el docente y no admite cambios.');
+                    throw new OperacionNoPermitida('registro', 'El odontograma ya fue aprobado por el cirujano dentista supervisor y no admite cambios.');
                 }
 
                 return $this->odontograma->guardar($idHistoria, $registro, $actor);

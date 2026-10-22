@@ -21,11 +21,11 @@ export default function ReporteOperatorioSection({ values, onChange, patient, hi
   const prognosis = diagnosisData.pronosticoEstructurado || diagnosisData.pronostico || get('pronostico');
 
   return <div className="undac-section-stack clinical-operative-report">
-    <SectionCard title="Reporte operatorio" subtitle="Los datos ya existentes se recuperan de la historia clínica para que el operador se concentre en el procedimiento realizado.">
-      <div className="clinical-context-note"><Info size={17} /><span>Paciente, operador, diagnóstico y pronóstico se precargan desde las secciones previas cuando están disponibles.</span></div>
+    <SectionCard title="Reporte operatorio" subtitle="Los datos ya existentes se recuperan de la historia clínica para que el cirujano dentista responsable se concentre en el procedimiento realizado.">
+      <div className="clinical-context-note"><Info size={17} /><span>Paciente, cirujano dentista responsable, diagnóstico y pronóstico se precargan desde las secciones previas cuando están disponibles.</span></div>
       <div className="undac-form-grid">
         <Field label="Paciente — apellidos y nombres" value={patientName} readOnly className="undac-col-2" /><Field label="Edad" value={patient?.edad ?? get('edad')} readOnly /><Field label="Sexo" value={sex} readOnly />
-        <Field label="Domicilio" value={patientData.domicilio || get('domicilio')} readOnly className="undac-col-2" /><Field label="Alumno de pregrado — apellidos y nombres" value={history?.operador || get('alumno')} readOnly /><Field label="Asistente" value={get('asistente')} onChange={set('asistente')} />
+        <Field label="Domicilio" value={patientData.domicilio || get('domicilio')} readOnly className="undac-col-2" /><Field label="Cirujano dentista responsable — apellidos y nombres" value={history?.operador || get('alumno')} readOnly /><Field label="Asistente" value={get('asistente')} onChange={set('asistente')} />
         <Field label="1. Lugar (sala de cirugía)" value={get('lugar')} onChange={set('lugar')} /><Field label="2. Caso clínico" value={get('casoClinico')} onChange={set('casoClinico')} />
         <Field label="3. Tipo de anestesia" value={get('tipoAnestesia')} onChange={set('tipoAnestesia')} /><Field label="4. Técnica de anestesia" value={get('tecnicaAnestesia')} onChange={set('tecnicaAnestesia')} />
         <TextAreaField label="5. Diagnóstico definitivo" value={definitiveDiagnosis} onChange={set('diagnosticoDefinitivo')} className="undac-col-2" rows={3} /><TextAreaField label="6. Tipo de tratamiento" value={get('tipoTratamiento')} onChange={set('tipoTratamiento')} className="undac-col-2" rows={3} />
@@ -41,8 +41,8 @@ export default function ReporteOperatorioSection({ values, onChange, patient, hi
         <Field label="Fecha" type="date" value={get('fecha')} onChange={set('fecha')} />
       </div>
       <div className="undac-signature-grid undac-signature-grid--2">
-        <SlotConstancia campo="firmaDocenteReporte" label="Firma del docente" textoPendiente="Área reservada" value={get('firmaDocenteReporte')} onChange={set('firmaDocenteReporte')} />
-        <SlotConstancia campo="firmaAlumnoReporte" label="Firma del alumno" textoPendiente="Área reservada" value={get('firmaAlumnoReporte')} onChange={set('firmaAlumnoReporte')} />
+        <SlotConstancia campo="firmaDocenteReporte" label="Firma del cirujano dentista responsable" textoPendiente="Área reservada" value={get('firmaDocenteReporte')} onChange={set('firmaDocenteReporte')} />
+        <SlotConstancia campo="firmaAlumnoReporte" label="Firma del asistente" textoPendiente="Área reservada" value={get('firmaAlumnoReporte')} onChange={set('firmaAlumnoReporte')} />
       </div>
     </SectionCard>
   </div>;
