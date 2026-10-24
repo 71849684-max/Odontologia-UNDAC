@@ -1,6 +1,6 @@
 import React from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import HistoriaClinica from '../componentes/clinica/HistoriaClinica.jsx';
 import { clinicalMoments, clinicalSections } from '../configuracion/historiaClinica.config.mjs';
 import { componentesSeccion } from '../formularios/registroFormularios.js';
@@ -129,10 +129,10 @@ test('el selector de operador cierra con Escape y devuelve el foco al botón que
   const trigger = screen.getByRole('button', { name: 'Cambiar asignación' });
   trigger.focus();
   fireEvent.click(trigger);
-  expect(screen.getByRole('dialog', { name: 'Cambiar cirujano dentista responsable' })).toBeInTheDocument();
+  expect(screen.getByRole('dialog', { name: 'Cambiar asistente responsable' })).toBeInTheDocument();
   fireEvent.keyDown(window, { key: 'Escape' });
 
-  expect(screen.queryByRole('dialog', { name: 'Cambiar cirujano dentista responsable' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Cambiar asistente responsable' })).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
 });
 
@@ -140,7 +140,7 @@ test('el selector de operador se monta fuera de la cabecera fija', () => {
   render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Cambiar asignación' }));
-  const dialog = screen.getByRole('dialog', { name: 'Cambiar cirujano dentista responsable' });
+  const dialog = screen.getByRole('dialog', { name: 'Cambiar asistente responsable' });
 
   expect(dialog.parentElement).toHaveClass('clinical-operator-modal-overlay');
   expect(dialog.parentElement?.parentElement).toBe(document.body);
@@ -316,7 +316,9 @@ test('muestra el estado real del autoguardado y permite imprimir', async () => {
   fireEvent.change(screen.getByLabelText('Motivo de consulta'), { target: { value: 'Control' } });
   expect(await screen.findByText('Guardado solo en este equipo', {}, { timeout: 2000 })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }));
-  expect(imprimir).toHaveBeenCalled();
+  expect(screen.getByRole('dialog', { name: /Vista previa de impresión/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Imprimir documento' }));
+  await waitFor(() => expect(imprimir).toHaveBeenCalled());
 });
 
 test('al continuar enfoca y muestra el inicio de la nueva sección', () => {

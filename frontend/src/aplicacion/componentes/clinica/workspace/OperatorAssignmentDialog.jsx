@@ -21,8 +21,8 @@ export default function OperatorAssignmentDialog({ open, value, meta, fecha, tri
       >
         <header className="clinical-operator-modal__header">
           <div>
-            <h3 id="titulo-cambiar-responsable">Cambiar cirujano dentista responsable</h3>
-            <p>Busque y seleccione al cirujano dentista responsable de esta historia clínica.</p>
+            <h3 id="titulo-cambiar-responsable">Cambiar asistente responsable</h3>
+            <p>Busque y seleccione al asistente responsable de esta historia clínica.</p>
           </div>
           <button type="button" className="hc-mini-button" onClick={onClose} aria-label="Cerrar"><X size={16} /></button>
         </header>

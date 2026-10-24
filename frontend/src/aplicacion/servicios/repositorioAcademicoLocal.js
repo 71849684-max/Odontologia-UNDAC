@@ -287,7 +287,7 @@ export function guardarDocentesRotacion(rotacionId, docentes = []) {
 
     for (const assignment of prepared) {
       if (candidates.some((existing) => existing.rotacionId === rotacionId && existing.personaId === assignment.personaId)) {
-        throw new ErrorAcademico('ASIGNACION_DUPLICADA', 'El docente ya está asignado a esta rotación.');
+        throw new ErrorAcademico('ASIGNACION_DUPLICADA', 'El profesional encargado ya está asignado a esta rotación.');
       }
       candidates.push(assignment);
     }

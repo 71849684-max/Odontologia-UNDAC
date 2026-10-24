@@ -4,7 +4,7 @@ export default function ListaRolesPermisos({ roles, seleccionado, onSelect }) {
     return (
         <aside className="usuarios-card permisos-users" aria-label="Roles con permisos">
             <div className="permisos-users__filters">
-                <p className="permisos-roles-nota">Elige la plantilla. Después puedes personalizar a cada alumno o docente.</p>
+                <p className="permisos-roles-nota">Elige la plantilla. Después puedes personalizar a cada asistente o profesional encargado.</p>
             </div>
             <div className="usuarios-lista">
                 {roles.map((rol) => (

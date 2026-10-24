@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { KeyRound, Search, UserPlus, UsersRound, X } from 'lucide-react';
+import { etiquetaCodigoRol, etiquetaRol } from '../../configuracion/etiquetasRoles.js';
 import { StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 import {
@@ -30,6 +31,11 @@ const FORMULARIO_VACIO = {
 function formatearFecha(iso) {
     if (!iso) return 'Sin registros';
     return formatearFechaHora(iso) || iso;
+}
+
+function nombreRol(item) {
+    if (!item) return 'Sin rol';
+    return etiquetaCodigoRol(item.codigo_rol ?? item.codigo, etiquetaRol(item.rol ?? item.nombre, item.rol ?? item.nombre ?? 'Sin rol'));
 }
 
 export default function UsuariosApp() {
@@ -162,8 +168,8 @@ export default function UsuariosApp() {
 
     const tarjetas = [
         ['Usuarios activos', indicadores?.activos ?? '—'],
-        ['Alumnos', indicadores?.alumnos ?? '—'],
-        ['Docentes', indicadores?.docentes ?? '—'],
+        ['Asistentes', indicadores?.alumnos ?? '—'],
+        ['Profesionales encargados', indicadores?.docentes ?? '—'],
         ['Administradores', indicadores?.administradores ?? '—'],
     ];
 
@@ -173,7 +179,7 @@ export default function UsuariosApp() {
                 <div>
                     <p className="hc-kicker">Administración</p>
                     <h1 className="hc-page-title">Usuarios</h1>
-                    <p className="hc-page-subtitle">Gestión de estudiantes, docentes y personal administrativo de la clínica.</p>
+                    <p className="hc-page-subtitle">Gestión de asistentes, profesionales encargados y personal administrativo de la clínica.</p>
                 </div>
                 <button type="button" className="hc-button hc-button--primary" onClick={abrirCrear}>
                     <UserPlus size={17} /> Registrar usuario
@@ -205,7 +211,7 @@ export default function UsuariosApp() {
                     <select value={rol} onChange={(evento) => setRol(evento.target.value)}>
                         <option value="">Todos</option>
                         {roles.map((item) => (
-                            <option key={item.codigo} value={item.codigo}>{item.nombre}</option>
+                            <option key={item.codigo} value={item.codigo}>{nombreRol(item)}</option>
                         ))}
                     </select>
                 </label>
@@ -247,7 +253,7 @@ export default function UsuariosApp() {
                                         </div>
                                     </td>
                                     <td data-label="Documento">{item.numero_documento || '—'}</td>
-                                    <td data-label="Rol">{item.rol || 'Sin rol'}</td>
+                                    <td data-label="Rol">{nombreRol(item) || 'Sin rol'}</td>
                                     <td data-label="Estado">
                                         <StatusBadge status={item.bloqueado ? 'Bloqueado' : item.estado ? 'Activo' : 'Inactivo'} />
                                     </td>
@@ -319,7 +325,7 @@ export default function UsuariosApp() {
                                 <span>Rol</span>
                                 <select value={formulario.codigo_rol} onChange={(evento) => actualizarCampo('codigo_rol', evento.target.value)} required>
                                     {roles.map((item) => (
-                                        <option key={item.codigo} value={item.codigo}>{item.nombre}</option>
+                                        <option key={item.codigo} value={item.codigo}>{nombreRol(item)}</option>
                                     ))}
                                 </select>
                                 {erroresFormulario.codigo_rol && <small className="admin-error">{erroresFormulario.codigo_rol[0]}</small>}

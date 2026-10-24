@@ -1,4 +1,5 @@
 import { ChevronDown, RotateCcw, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { etiquetaCodigoRol, etiquetaRol } from '../../configuracion/etiquetasRoles.js';
 
 export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efectivos, grupoAbierto, guardando, mensaje, onToggleGroup, onTogglePermission, onRestore, onSave, onViewProfile, alcance = 'usuario' }) {
   const grupos = [...new Set(catalogo.map((item) => item.modulo))];
@@ -8,7 +9,7 @@ export default function EditorPermisosUsuario({ usuario, catalogo, delRol, efect
     <header className="permisos-user-head">
       <div className="permisos-user-main">
         <span className="usuario-avatar grande">{esRol ? <ShieldCheck size={22} /> : <UserRound size={22} />}</span>
-        <div><h2>{usuario.nombre}</h2><p>{esRol ? 'Plantilla del rol' : ((usuario.roles ?? []).join(', ') || 'Sin rol')} {!esRol && <span className={`permisos-user-state ${usuario.estado ? 'is-active' : ''}`}>{usuario.estado ? 'Activo' : 'Inactivo'}</span>}</p><small>{usuario.correo || usuario.nombre_usuario}</small></div>
+        <div><h2>{usuario.nombre}</h2><p>{esRol ? 'Plantilla del rol' : (((usuario.roles ?? []).map((codigo) => etiquetaCodigoRol(codigo, codigo)).join(', ')) || etiquetaRol(usuario.rol, 'Sin rol'))} {!esRol && <span className={`permisos-user-state ${usuario.estado ? 'is-active' : ''}`}>{usuario.estado ? 'Activo' : 'Inactivo'}</span>}</p><small>{usuario.correo || usuario.nombre_usuario}</small></div>
       </div>
       {!esRol && <button type="button" className="btn-secundario" onClick={onViewProfile}><UserRound size={16} /> Ver perfil</button>}
     </header>

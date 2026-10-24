@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { listarConfiguracion } from '../../../servicios/servicioAdministracion.js';
 import { idHistoria } from '../../../servicios/servicioClinico.js';
 import BotonEliminacionClinica from '../../../formularios/busqueda-historias/BotonEliminacionClinica.jsx';
@@ -10,6 +10,7 @@ import AutoSaveIndicator from './AutoSaveIndicator.jsx';
 import PatientContextBar from './PatientContextBar.jsx';
 import ClinicalMomentSidebar from './ClinicalMomentSidebar.jsx';
 import ClinicalSectionTabs from './ClinicalSectionTabs.jsx';
+import VistaPreviaImpresion from '../impresion/VistaPreviaImpresion.jsx';
 
 const DESKTOP_NAVIGATION_QUERY = '(min-width: 992px)';
 
@@ -36,6 +37,9 @@ export default function ClinicalWorkspace({ onExit, rol }) {
   const [desktopNavigation, setDesktopNavigation] = useState(desktopNavigationMatches);
   const [navigationOpen, setNavigationOpen] = useState(desktopNavigationMatches);
   const [eliminacionActiva, setEliminacionActiva] = useState(false);
+  const [impresionAbierta, setImpresionAbierta] = useState(false);
+  const abrirImpresion = useCallback(() => setImpresionAbierta(true), []);
+  const cerrarImpresion = useCallback(() => setImpresionAbierta(false), []);
   const previousNavigationOpen = useRef(navigationOpen);
   const previousSection = useRef(activeSection);
   useEffect(() => {
@@ -126,7 +130,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
               <div><span className="clinical-kicker">Sección {index + 1} de {sections.length}</span><h2 id="clinical-active-title">{active.label}</h2><p>Complete únicamente la información clínica necesaria. Los cambios se conservan automáticamente.</p></div>
               <div className="clinical-active-section__meta">
                 <span className={`clinical-active-section__state is-${estadoActual}`}>{statusLabel(estadoActual)}</span>
-                <button type="button" className="undac-btn undac-btn--ghost clinical-print-hide" onClick={() => window.print()}><Printer size={16} aria-hidden="true" />Imprimir</button>
+                <button type="button" className="undac-btn undac-btn--ghost clinical-print-hide" onClick={abrirImpresion}><Printer size={16} aria-hidden="true" />Imprimir</button>
               </div>
             </div>
             {validationErrors.length ? <div className="clinical-validation-summary" role="alert">
@@ -135,7 +139,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
             </div> : null}
             {revisionAviso ? <p className="clinical-revision-aviso" role="status">{revisionAviso}</p> : null}
             {autosaveStatus === 'local' ? <p className="clinical-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
-            {soloLectura ? <p className="clinical-readonly-note" role="note">Sección aprobada por el cirujano dentista supervisor: solo lectura. Pida que la reabra si necesita corregirla.</p> : null}
+            {soloLectura ? <p className="clinical-readonly-note" role="note">Sección aprobada por el profesional encargado: solo lectura. Pida que la reabra si necesita corregirla.</p> : null}
             <fieldset className="clinical-active-section__content" disabled={soloLectura}>
               {ActiveComponent ? <ActiveComponent
                 key={`${history.codigo}-${active.id}`}
@@ -172,6 +176,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
           </footer>
         </main>
       </div>
+      {impresionAbierta ? <VistaPreviaImpresion seccionId={active.id} onClose={cerrarImpresion} /> : null}
     </div>
   );
 }

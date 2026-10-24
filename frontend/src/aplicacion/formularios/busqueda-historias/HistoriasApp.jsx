@@ -18,8 +18,8 @@ const CODIGO_ESTADO = {
 };
 
 const PERFIL_CLINICO = {
-    alumno: 'asistente odontológico',
-    docente: 'cirujano dentista',
+    alumno: 'asistente',
+    docente: 'profesional encargado',
     administrador: 'administrador',
 };
 
@@ -158,16 +158,16 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
             </button>
         </header>
         <section className="hc-compact-stats" aria-label="Resumen de historias">{indicadores.map(([etiqueta, valor]) => <article key={etiqueta}><strong>{valor}</strong><small>{etiqueta}</small></article>)}</section>
-        <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, cirujano dentista o asistente..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
+        <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, asistente o profesional encargado..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
         {aviso && <p className="hc-inline-callout" role="status">{aviso}</p>}
         {filtered.length ? <div className="hc-table-card"><table className="hc-table">
-            <thead><tr><th>N.º historia</th><th>Paciente</th><th>Cirujano dentista responsable</th><th>Supervisor clínico</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>N.º historia</th><th>Paciente</th><th>Asistente responsable</th><th>Profesional encargado</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
             <tbody>{filtered.map((history) => <tr key={history.id}>
                 <td data-label="N.º historia"><strong>{history.codigo}</strong></td>
                 <td data-label="Paciente"><div className="hc-person"><span className="hc-avatar">{history.paciente.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span><span><strong>{history.paciente}</strong><small>DNI {history.dni}</small></span></div></td>
-                <td data-label="Cirujano dentista responsable">{history.operador}</td>
-                <td data-label="Supervisor clínico">{history.docente}</td>
+                <td data-label="Asistente responsable">{history.operador}</td>
+                <td data-label="Profesional encargado">{history.docente}</td>
                 <td data-label="Progreso"><ProgressBar value={history.progreso} /></td>
                 <td data-label="Estado"><StatusBadge status={history.estado} /></td>
                 <td data-label="Fecha">{formatearFecha(history.fecha) || '—'}</td>

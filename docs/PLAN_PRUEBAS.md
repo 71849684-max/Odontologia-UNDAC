@@ -72,7 +72,7 @@ Se usa una pirámide de pruebas. Lo barato y estable se automatiza; lo clínico 
 
 | Entorno | Uso | Base | URL típica |
 | --- | --- | --- | --- |
-| Local | Desarrollo y unitarias | `bd_clinica_undac` | frontend `127.0.0.1:5173`, API `127.0.0.1:8001` |
+| Local | Desarrollo y unitarias | `bd_clinica_undac` | frontend `127.0.0.1:5173`, API `127.0.0.1:8000` |
 | Test | PHPUnit | `bd_clinica_undac_test` (copia importada del SQL) | sin UI |
 | Staging | E2E, rendimiento, UAT | Copia anonimizada | a definir en Laragon / servidor de clínica |
 | Producción | Solo humo post-despliegue | `bd_clinica_undac` | clínica UNDAC |
@@ -289,7 +289,7 @@ Ejercitar el sistema **como en consultorio**: navegador real + API real + MySQL 
 
 - Playwright (Chromium + un pases en Firefox).
 - Proyecto: `frontend/e2e/`.
-- Arranque: API Laravel en `8001` + Vite preview o `vite dev`.
+- Arranque: API Laravel en `8000` + Vite preview o `vite dev`.
 - Datos: seeder de laboratorio o el mismo `CreaUsuarios` vía artisan.
 
 ### 8.3 Escenarios E2E (caminos críticos)

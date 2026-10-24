@@ -173,7 +173,7 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
       </div>
       <div className="nts-metadata">
         <label className="undac-field"><span>Fecha de evaluación</span><InputFecha max={localDate()} value={exam.date} disabled={locked} onChange={(date) => change({ date })} /></label>
-        <label className="undac-field"><span>Cirujano dentista responsable</span><input value={exam.professional} disabled={locked} onChange={(e) => change({ professional: e.target.value })} /></label>
+        <label className="undac-field"><span>Asistente</span><input value={exam.professional} disabled={locked} onChange={(e) => change({ professional: e.target.value })} /></label>
         <label className="undac-field"><span>N.° COP</span><input value={exam.cop} inputMode="numeric" maxLength={8} disabled={locked} onChange={(e) => change({ cop: e.target.value })} /></label>
       </div>
       </details>

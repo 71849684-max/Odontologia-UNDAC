@@ -48,7 +48,7 @@ export default function SidebarHC({ menu = [], activo, onSelect, onItemSelected,
         <aside className="barra-lateral--hc" aria-label="Navegación principal">
             <div className="marca-hc">
                 <span className="marca-hc__icon"><Stethoscope size={20} aria-hidden="true" /></span>
-                <span className="marca-hc__text">Historia Clínica<small>Odontología UNDAC</small></span>
+                <span className="marca-hc__text">Historia Clínica<small>Clínica Odontológica</small></span>
                 {mostrarToggle ? (
                     <button type="button" className="barra-lateral__toggle" aria-label="Ocultar menú de navegación" aria-expanded="true" onClick={onToggle}>
                         <Menu size={18} aria-hidden="true" />

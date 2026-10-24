@@ -1,0 +1,681 @@
+.doc-impresion-portal {
+  --doc-ink: #111827;
+  --doc-muted: #4b5563;
+  --doc-line: #6b7280;
+  --doc-line-soft: #d1d5db;
+  --doc-paper: #ffffff;
+  --doc-canvas: #e5e7eb;
+  --doc-soft: #f3f4f6;
+  position: fixed;
+  inset: 0;
+  z-index: var(--ou-z-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--doc-ink);
+  background: var(--doc-canvas);
+}
+
+.doc-impresion__barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.doc-impresion__barra-titulo {
+  display: grid;
+  gap: 2px;
+}
+
+.doc-impresion__barra-titulo strong {
+  font-size: 14px;
+}
+
+.doc-impresion__barra-titulo span {
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.doc-impresion__barra-acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-impresion__lienzo {
+  flex: 1;
+  overflow: auto;
+  padding: 18px;
+}
+
+.doc-impresion__aviso {
+  max-width: 210mm;
+  margin: 0 auto 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--ou-radius-sm);
+  color: var(--doc-muted);
+  background: var(--color-surface);
+  font-size: 12px;
+}
+
+.doc-impresion__nota {
+  max-width: 210mm;
+  margin: 0 auto 24px;
+  color: var(--doc-muted);
+  font-size: 11px;
+  text-align: center;
+}
+
+.doc-hoja {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 18px;
+  padding: 12mm 12mm 14mm;
+  color: var(--doc-ink);
+  background: var(--doc-paper);
+  box-shadow: var(--ou-shadow);
+  font-size: 10.5pt;
+  line-height: 1.35;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.doc-encabezado {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 4px 16px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--doc-ink);
+}
+
+.doc-encabezado__marca {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.doc-encabezado__marca span {
+  color: var(--doc-muted);
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.doc-encabezado__marca strong {
+  font-size: 13pt;
+  letter-spacing: -.01em;
+}
+
+.doc-encabezado__codigo {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.doc-encabezado__codigo span {
+  color: var(--doc-muted);
+  font-size: 7.5pt;
+  text-transform: uppercase;
+}
+
+.doc-encabezado__codigo strong {
+  font-size: 10pt;
+}
+
+.doc-encabezado__titulo {
+  grid-column: 1 / -1;
+  margin-top: 3px;
+  padding-top: 5px;
+  border-top: 1px solid var(--doc-line-soft);
+  text-align: center;
+}
+
+.doc-encabezado__titulo h2 {
+  margin: 0;
+  font-size: 11.5pt;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.doc-identificacion {
+  display: grid;
+  grid-template-columns: 2fr repeat(5, minmax(0, 1fr));
+  margin: 8px 0 12px;
+  border: 1px solid var(--doc-line);
+  font-size: 8.5pt;
+}
+
+.doc-identificacion > div {
+  min-width: 0;
+  padding: 4px 6px;
+  border-right: 1px solid var(--doc-line-soft);
+}
+
+.doc-identificacion > div:last-child {
+  border-right: 0;
+}
+
+.doc-identificacion span,
+.doc-campo > span,
+.doc-texto-campo > span,
+.doc-lista > span,
+.doc-galeria__titulo {
+  display: block;
+  color: var(--doc-muted);
+  font-size: 7.2pt;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.doc-identificacion strong {
+  display: block;
+  margin-top: 1px;
+  overflow: hidden;
+  font-size: 8.8pt;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-identificacion__nombre strong {
+  font-size: 9.5pt;
+}
+
+.doc-cuerpo {
+  display: grid;
+  gap: 10px;
+}
+
+.doc-bloque {
+  break-inside: avoid;
+}
+
+.doc-bloque > h3 {
+  margin: 0 0 5px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--doc-line);
+  font-size: 9.5pt;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.doc-bloque__subtitulo {
+  margin: -2px 0 6px;
+  color: var(--doc-muted);
+  font-size: 8pt;
+}
+
+.doc-subbloque {
+  margin-top: 6px;
+}
+
+.doc-subbloque > h4 {
+  margin: 0 0 4px;
+  font-size: 8.5pt;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.doc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 12px;
+}
+
+.doc-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.doc-campo {
+  min-width: 0;
+  padding: 2px 0;
+}
+
+.doc-campo--amplio {
+  grid-column: span 2;
+}
+
+.doc-grid--3 .doc-campo--amplio {
+  grid-column: span 3;
+}
+
+.doc-campo strong {
+  display: block;
+  min-height: 1.25em;
+  overflow-wrap: anywhere;
+  font-size: 9.5pt;
+  font-weight: 600;
+}
+
+.doc-campo--opciones {
+  grid-column: span 2;
+}
+
+.doc-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  margin-top: 2px;
+  font-size: 9pt;
+}
+
+.doc-opciones span {
+  white-space: nowrap;
+}
+
+.doc-opciones i {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.doc-opciones .is-marcado {
+  font-weight: 700;
+}
+
+.doc-texto-campo {
+  margin-top: 5px;
+}
+
+.doc-texto {
+  margin-top: 2px;
+  padding: 5px 7px;
+  border: 1px solid var(--doc-line-soft);
+  background: var(--doc-paper);
+}
+
+.doc-texto p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 9.5pt;
+}
+
+.doc-texto em {
+  color: var(--doc-muted);
+  font-size: 8.5pt;
+}
+
+.doc-tabla-wrap {
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.doc-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.2pt;
+}
+
+.doc-tabla th,
+.doc-tabla td {
+  padding: 3px 5px;
+  border: 1px solid var(--doc-line-soft);
+  text-align: left;
+  vertical-align: top;
+}
+
+.doc-tabla th {
+  color: var(--doc-ink);
+  font-size: 7.6pt;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+}
+
+.doc-tabla__vacia {
+  color: var(--doc-muted);
+  text-align: center !important;
+  font-style: italic;
+}
+
+.doc-firmas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 24px;
+  margin-top: 10px;
+}
+
+.doc-firmas--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.doc-firma {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  break-inside: avoid;
+  text-align: center;
+  font-size: 8pt;
+}
+
+.doc-firma__espacio {
+  width: 100%;
+  height: 18mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 1px solid var(--doc-line);
+}
+
+.doc-firma__espacio img {
+  max-width: 100%;
+  max-height: 17mm;
+  object-fit: contain;
+}
+
+.doc-firma span {
+  font-weight: 600;
+}
+
+.doc-firma small {
+  color: var(--doc-muted);
+  font-size: 7.5pt;
+}
+
+.doc-galeria-bloque {
+  margin-top: 5px;
+}
+
+.doc-galeria {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.doc-galeria figure {
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--doc-line-soft);
+  break-inside: avoid;
+}
+
+.doc-galeria img {
+  width: 100%;
+  height: 40mm;
+  object-fit: contain;
+  background: var(--doc-soft);
+}
+
+.doc-galeria figcaption {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--doc-muted);
+  font-size: 7pt;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-galeria__vacia {
+  height: 40mm;
+  display: grid;
+  place-items: center;
+  color: var(--doc-muted);
+  background: var(--doc-soft);
+  font-size: 8pt;
+}
+
+.doc-lista-adjuntos ul,
+.doc-lista ul {
+  margin: 3px 0 0;
+  padding-left: 16px;
+  font-size: 9pt;
+}
+
+.doc-lista-adjuntos li,
+.doc-lista li {
+  margin-bottom: 1px;
+}
+
+.doc-vacio,
+.doc-nota {
+  margin: 3px 0 0;
+  color: var(--doc-muted);
+  font-size: 8.5pt;
+  font-style: italic;
+}
+
+.doc-pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  margin-top: 14px;
+  padding-top: 4px;
+  border-top: 1px solid var(--doc-line-soft);
+  color: var(--doc-muted);
+  font-size: 7.2pt;
+  break-inside: avoid;
+}
+
+.doc-consentimiento-encabezado {
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.doc-consentimiento-encabezado h3 {
+  margin: 0;
+  font-size: 12pt;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.doc-consentimiento-encabezado p {
+  margin: 3px 0 0;
+  color: var(--doc-muted);
+  font-size: 8.5pt;
+}
+
+.doc-parrafo {
+  margin: 0 0 6px;
+  font-size: 9.2pt;
+  text-align: justify;
+}
+
+.doc-clausulas {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 8.2pt;
+}
+
+.doc-clausulas li {
+  margin-bottom: 3px;
+  break-inside: avoid;
+}
+
+.doc-clausula-texto {
+  text-align: justify;
+}
+
+.doc-clausula-estado {
+  margin-top: 1px;
+  font-size: 8pt;
+  font-weight: 700;
+}
+
+.doc-odontograma-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px 12px;
+  margin-bottom: 8px;
+}
+
+.doc-odontograma-meta span {
+  display: block;
+  color: var(--doc-muted);
+  font-size: 7.2pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.doc-odontograma-meta strong {
+  font-size: 9pt;
+}
+
+.doc-odontograma-arcada {
+  margin-top: 6px;
+}
+
+.doc-odontograma-arcada h4 {
+  margin: 0 0 3px;
+  font-size: 8pt;
+  text-align: center;
+}
+
+.doc-odontograma-fila {
+  display: flex;
+  justify-content: center;
+  border: 1px solid var(--doc-line);
+  break-inside: avoid;
+}
+
+.doc-odontograma-pieza {
+  width: 8.4mm;
+  padding: 2px 0;
+  border-right: 1px solid var(--doc-line-soft);
+  text-align: center;
+}
+
+.doc-odontograma-pieza:last-child {
+  border-right: 0;
+}
+
+.doc-odontograma-pieza > strong {
+  display: block;
+  font-size: 6.5pt;
+  line-height: 1;
+}
+
+.doc-odontograma-pieza svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.doc-odontograma-codigos {
+  min-height: 7px;
+  font-size: 5.5pt;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.doc-odontograma-codigos span {
+  display: inline-block;
+  margin: 0 1px;
+}
+
+.doc-odontograma-leyenda {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px 10px;
+  font-size: 7.2pt;
+}
+
+.doc-odontograma-leyenda span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-odontograma-leyenda b {
+  display: inline-block;
+  min-width: 12px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .doc-impresion__lienzo {
+    padding: 10px;
+  }
+
+  .doc-hoja {
+    width: 100%;
+    min-height: auto;
+    padding: 16px;
+  }
+
+  .doc-identificacion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .doc-identificacion > div {
+    border-bottom: 1px solid var(--doc-line-soft);
+  }
+
+  .doc-grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .doc-odontograma-fila {
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  body.doc-impresion-abierta > #odontologia-app {
+    display: none !important;
+  }
+
+  body.doc-impresion-abierta {
+    background: var(--doc-paper);
+  }
+
+  .doc-impresion-portal {
+    position: static;
+    display: block;
+    overflow: visible;
+    background: var(--doc-paper);
+  }
+
+  .doc-impresion__barra,
+  .doc-impresion__nota,
+  .doc-impresion__aviso {
+    display: none !important;
+  }
+
+  .doc-impresion__lienzo {
+    overflow: visible;
+    padding: 0;
+  }
+
+  .doc-hoja {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .doc-bloque,
+  .doc-subbloque,
+  .doc-firma,
+  .doc-galeria figure,
+  .doc-tabla tr,
+  .doc-clausulas li,
+  .doc-odontograma-fila {
+    break-inside: avoid;
+  }
+
+  .doc-tabla thead {
+    display: table-header-group;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

@@ -163,7 +163,7 @@ test('crea un grupo sin precargar estudiantes, docentes ni rotaciones', async ()
 
     expect(screen.getByRole('heading', { name: 'Rotación clínica A' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Paginación de grupos' })).toBeInTheDocument();
-    expect(screen.getAllByText(/0 estudiantes/)).toHaveLength(2);
+    expect(screen.getAllByText(/0 asistentes/)).toHaveLength(2);
     expect(screen.getAllByText(/0 rotaciones/)).toHaveLength(2);
 });
 

@@ -4,6 +4,7 @@ import { actualizarPerfil, obtenerEstadoAcademico, sincronizarAcademico } from '
 import { mensajeError } from '../../servicios/servicioClinico.js';
 import { cambiarMiContrasena, guardarMiPerfil, obtenerMiPerfil, problemaContrasena } from '../../servicios/servicioCuenta.js';
 import { formatearFecha } from '../../utilidades/fechas.mjs';
+import { etiquetaCodigoRol } from '../../configuracion/etiquetasRoles.js';
 
 function nombreSesion(usuario) {
   const partes = String(usuario?.nombre || '').replace(/^(Dr|Dra)\.\s*/i, '').trim().split(/\s+/).filter(Boolean);
@@ -190,7 +191,7 @@ export default function PerfilApp({ usuario, rol }) {
         <span><UserRound size={24} aria-hidden="true" /></span>
         <div>
           <strong>{formulario.nombres} {formulario.apellidos}</strong>
-          <small>{(formulario.roles || [rol]).join(' · ')}</small>
+          <small>{(formulario.roles || [rol]).map((codigo) => etiquetaCodigoRol(codigo, codigo)).join(' · ')}</small>
           <small>{formulario.documento || 'Documento no registrado'}</small>
         </div>
       </div>

@@ -16,7 +16,7 @@ export default function ListaGrupos({ estado, grupos, grupoId, busqueda, periodo
           <span className="hc-group-list__status">{item.estado === 'activo' ? 'Activo' : 'Inactivo'}</span>
           <strong>{item.codigo}</strong>
           <em>{item.nombre}</em>
-          <small>{item.semestre} · {integrantes} estudiantes · {rotaciones.length} rotaciones</small>
+          <small>{item.semestre} · {integrantes} asistentes · {rotaciones.length} rotaciones</small>
         </button>;
       })}</div>}
     </Paginacion>

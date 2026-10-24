@@ -108,6 +108,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   });
   const [explicitStatus, setExplicitStatus] = useState(() => initialLocal.sectionStatus ?? {});
   const historiaServidor = idHistoria(selectedHistory.id);
+  const [cargandoExpediente, setCargandoExpediente] = useState(Boolean(historiaServidor));
   const [autosaveStatus, setAutosaveStatus] = useState(historiaServidor ? 'saved' : 'local');
   const [lastSavedAt, setLastSavedAt] = useState(() => initialLocal.lastSavedAt ?? null);
   const [validation, setValidation] = useState({ sectionId: null, errors: [] });
@@ -115,8 +116,12 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   const hydrated = useRef(false);
 
   useEffect(() => {
-    if (!historiaServidor) return undefined;
+    if (!historiaServidor) {
+      setCargandoExpediente(false);
+      return undefined;
+    }
     let vigente = true;
+    setCargandoExpediente(true);
     obtenerExpediente(historiaServidor).then((cuerpo) => {
       if (!vigente || !cuerpo?.formData) return;
       setExpediente(cuerpo);
@@ -125,7 +130,9 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
       if (cuerpo.sectionStatus && typeof cuerpo.sectionStatus === 'object') {
         setExplicitStatus((actual) => ({ ...actual, ...cuerpo.sectionStatus }));
       }
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => {
+      if (vigente) setCargandoExpediente(false);
+    });
     return () => { vigente = false; };
   }, [historiaServidor]);
 
@@ -238,7 +245,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     setRevisionAviso('');
     if (!historiaServidor) {
       persistirLocal(siguientes);
-      setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al cirujano dentista supervisor).');
+      setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al profesional encargado).');
       return true;
     }
     try {
@@ -246,9 +253,9 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
       setAutosaveStatus('saved');
       setLastSavedAt(new Date().toISOString());
       if (cuerpo?.revisionNotificada) {
-        setRevisionAviso('Sección enviada; el cirujano dentista supervisor fue notificado.');
+        setRevisionAviso('Sección enviada; el profesional encargado fue notificado.');
       } else if ((cuerpo?.seccionesEnviadas ?? []).length) {
-        setRevisionAviso('Sección guardada en revisión. No hay cirujano dentista supervisor asignado para avisar.');
+        setRevisionAviso('Sección guardada en revisión. No hay profesional encargado asignado para avisar.');
       } else {
         setRevisionAviso('Sección en revisión.');
       }
@@ -256,7 +263,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     } catch (error) {
       if (esFalloDeRed(error)) {
         persistirLocal(siguientes);
-        setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al cirujano dentista supervisor).');
+        setRevisionAviso('Sección marcada para revisión (solo en este equipo; sin servidor no se notifica al profesional encargado).');
         return true;
       }
       setAutosaveStatus('error');
@@ -326,8 +333,9 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     navigateRelative,
     alerts,
     autosaveStatus,
+    cargandoExpediente,
     lastSavedAt,
-  }), [selectedPatient, selectedHistory, seccionesVisibles, momentosVisibles, activeSection, activeMoment, formData, updateSection, updateActiveSection, sectionStatuses, setSectionStatus, markCurrentComplete, sendCurrentToReview, approveCurrent, returnCurrentToEdit, validation, revisionAviso, momentProgress, navigateToMoment, navigateRelative, alerts, autosaveStatus, lastSavedAt]);
+  }), [selectedPatient, selectedHistory, seccionesVisibles, momentosVisibles, activeSection, activeMoment, formData, updateSection, updateActiveSection, sectionStatuses, setSectionStatus, markCurrentComplete, sendCurrentToReview, approveCurrent, returnCurrentToEdit, validation, revisionAviso, momentProgress, navigateToMoment, navigateRelative, alerts, autosaveStatus, cargandoExpediente, lastSavedAt]);
 
   const enServidor = Boolean(historiaServidor && expediente);
   const archivos = useMemo(() => (enServidor ? {

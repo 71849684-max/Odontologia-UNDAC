@@ -13,10 +13,11 @@ import {
 } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
 import { useSesion } from '../../autenticacion/ContextoSesion.jsx';
+import { etiquetaCodigoRol } from '../../configuracion/etiquetasRoles.js';
 
 const ROLES_BASE = [
-    { codigo: 'ALUMNO', nombre: 'Alumno', detalle: 'Plantilla de todos los alumnos' },
-    { codigo: 'DOCENTE', nombre: 'Docente', detalle: 'Plantilla de todos los docentes' },
+    { codigo: 'ALUMNO', nombre: 'Asistente', detalle: 'Plantilla de todos los asistentes' },
+    { codigo: 'DOCENTE', nombre: 'Profesional encargado', detalle: 'Plantilla de todos los profesionales encargados' },
 ];
 
 export default function PermisosUsuariosApp({ onNavigate }) {
@@ -55,7 +56,7 @@ export default function PermisosUsuariosApp({ onNavigate }) {
 
     async function cargarPermisosRol(codigo) {
         const respuesta = await obtenerPermisosRol(codigo);
-        setRolActual(respuesta.rol ?? ROLES_BASE.find((item) => item.codigo === codigo));
+        setRolActual(respuesta.rol ? { ...respuesta.rol, nombre: etiquetaCodigoRol(respuesta.rol.codigo, respuesta.rol.nombre) } : ROLES_BASE.find((item) => item.codigo === codigo));
         setCatalogo(respuesta.catalogo ?? []);
         setDelRol(new Set(respuesta.efectivos ?? []));
         setEfectivos(new Set(respuesta.efectivos ?? []));
@@ -197,7 +198,7 @@ export default function PermisosUsuariosApp({ onNavigate }) {
             <div className="permisos-hero">
                 <div>
                     <h1>Permisos por usuario</h1>
-                    <p>Primero define qué módulos ven alumno y docente. Después puedes personalizar a cada persona.</p>
+                    <p>Primero define qué módulos ven el asistente y el profesional encargado. Después puedes personalizar a cada persona.</p>
                 </div>
                 <div className="permisos-modo" role="tablist" aria-label="Alcance de los permisos">
                     <button type="button" role="tab" aria-selected={modo === 'roles'} onClick={() => cambiarModo('roles')}>Por rol</button>

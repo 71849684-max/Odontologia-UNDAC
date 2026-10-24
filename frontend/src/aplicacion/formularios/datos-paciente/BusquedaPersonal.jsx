@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Search, UserRound } from 'lucide-react';
 import { Field } from '../compartidos/ControlesClinicos.jsx';
 import { listarPersonal } from '../../servicios/servicioClinico.js';
+import { etiquetaRol } from '../../configuracion/etiquetasRoles.js';
 import { formatearFecha, formatearFechaHora, partesFecha } from '../../utilidades/fechas.mjs';
 
 const normalizar = (texto) => String(texto ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -44,12 +45,12 @@ export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
     </div>
     {terminos.length > 0 && <div className="hc-personal-search__results" aria-live="polite">
       {resultados.length ? resultados.map((persona) => <button type="button" key={persona.id} onClick={() => { onChange(persona); setBusqueda(''); }}>
-        <strong>{persona.nombre}</strong><span>DNI {persona.dni} · {persona.rol}</span>
+        <strong>{persona.nombre}</strong><span>DNI {persona.dni} · {etiquetaRol(persona.rol, persona.rol)}</span>
       </button>) : <p>{buscando || busqueda.trim().length < 2 ? 'Escriba al menos 2 caracteres…' : 'No se encontró personal con esos datos.'}</p>}
     </div>}
     {value ? <div className="hc-operator-summary" role="status" aria-label="Personal seleccionado">
-      <div className="hc-operator-identity"><span className="hc-operator-avatar"><UserRound size={24} aria-hidden="true" /></span><div><strong>{value.nombre}</strong><span className="hc-operator-role">{value.rol}</span><small>Responsable de la historia clínica</small></div></div>
-      <dl>{[['DNI', value.dni], ['C.O.P.', value.cop || 'No registrado'], ['Semestre', value.semestre || meta?.semestre], ['Año académico', meta?.anioAcademico], ['Fecha y hora de registro', mostrarFecha(fecha)], ['Cirujano dentista supervisor', meta?.docente]].map(([label, dato]) => <div key={label}><dt>{label}</dt><dd>{dato || '—'}</dd></div>)}</dl>
-    </div> : <div className="hc-operator-empty"><UserRound size={20} aria-hidden="true" /><span>Seleccione al cirujano dentista responsable para ver su ficha.</span></div>}
+      <div className="hc-operator-identity"><span className="hc-operator-avatar"><UserRound size={24} aria-hidden="true" /></span><div><strong>{value.nombre}</strong><span className="hc-operator-role">{etiquetaRol(value.rol, value.rol)}</span><small>Responsable de la historia clínica</small></div></div>
+      <dl>{[['DNI', value.dni], ['C.O.P.', value.cop || 'No registrado'], ['Semestre', value.semestre || meta?.semestre], ['Año académico', meta?.anioAcademico], ['Fecha y hora de registro', mostrarFecha(fecha)], ['Profesional encargado', meta?.docente]].map(([label, dato]) => <div key={label}><dt>{label}</dt><dd>{dato || '—'}</dd></div>)}</dl>
+    </div> : <div className="hc-operator-empty"><UserRound size={20} aria-hidden="true" /><span>Seleccione al asistente responsable para ver su ficha.</span></div>}
   </div>;
 }

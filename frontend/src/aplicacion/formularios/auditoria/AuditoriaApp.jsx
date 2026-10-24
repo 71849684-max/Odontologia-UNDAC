@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Download, Eye, Search, X } from 'lucide-react';
 import { StatusBadge } from '../compartidos/ControlesClinicos.jsx';
+import { etiquetaCodigoRol } from '../../configuracion/etiquetasRoles.js';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
 import useModalDialog from '../../componentes/interfaz/useModalDialog.js';
 import { useSesion } from '../../autenticacion/ContextoSesion.jsx';
@@ -273,7 +274,7 @@ function DetalleEvento({ evento, esSesion, triggerRef, onClose }) {
             ['Fecha y hora', formatearFecha(evento.fecha)],
             ['Usuario', evento.usuario || '—'],
             ['Acción', evento.accion || '—'],
-            ['Tipo de cuenta', evento.tipo_usuario || '—'],
+            ['Tipo de cuenta', etiquetaCodigoRol(evento.tipo_usuario, evento.tipo_usuario || '—')],
             ['IP', evento.ip || '—'],
             ['Motivo', evento.motivo || '—'],
             ['Agente', evento.agente || '—'],
@@ -284,7 +285,7 @@ function DetalleEvento({ evento, esSesion, triggerRef, onClose }) {
             ['Acción', evento.accion || '—'],
             ['Módulo', nombreModulo(evento.modulo)],
             ['Registro', evento.registro || '—'],
-            ['Tipo de usuario', evento.tipo_usuario || '—'],
+            ['Tipo de usuario', etiquetaCodigoRol(evento.tipo_usuario, evento.tipo_usuario || '—')],
             ['IP', evento.ip || '—'],
             ['Agente', evento.agente || '—'],
             ['Valores anteriores', evento.valores_anteriores, true],

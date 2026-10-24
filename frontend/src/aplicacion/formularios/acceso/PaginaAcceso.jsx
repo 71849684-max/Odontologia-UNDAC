@@ -12,7 +12,7 @@ import MarcaInstitucional from '../../componentes/interfaz/MarcaInstitucional.js
 
 const BENEFICIOS_INSTITUCIONALES = [
     { icono: HeartPulse, titulo: 'Atención clínica organizada', texto: 'Consulta la información del paciente desde un entorno claro y seguro.' },
-    { icono: BookOpenCheck, titulo: 'Seguimiento académico', texto: 'Acompaña la práctica odontológica con supervisión docente.' },
+    { icono: BookOpenCheck, titulo: 'Seguimiento académico', texto: 'Acompaña la práctica odontológica con supervisión del profesional encargado.' },
     { icono: GraduationCap, titulo: 'Formación con propósito', texto: 'Tecnología al servicio de la enseñanza y la salud bucal.' },
 ];
 
@@ -48,7 +48,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                         ))}
                     </div>
                 </div>
-                <p className="acceso-identidad__pie">Facultad de Ciencias de la Salud · UNDAC</p>
+                <p className="acceso-identidad__pie">Clínica Odontológica · Historia Clínica Digital</p>
             </section>
 
             <section className="acceso-formulario" aria-label="Acceso al sistema">
@@ -129,7 +129,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                         </button>
                     </form>
                     <div className="ayuda-acceso"><span aria-hidden="true">i</span><p>¿Necesitas asistencia? Comunícate con el soporte de la clínica odontológica.</p></div>
-                    <p className="acceso-formulario__pie">© 2026 Universidad Nacional Daniel Alcides Carrión</p>
+                    <p className="acceso-formulario__pie">© 2026 Clínica Odontológica · Historia Clínica Digital</p>
                 </div>
             </section>
         </main>

@@ -11,11 +11,11 @@ const PERFIL = {
         contexto: 'Vista general de operación, accesos y trazabilidad del sistema.',
     },
     docente: {
-        etiqueta: 'Cirujano dentista',
+        etiqueta: 'Profesional encargado',
         contexto: 'Supervisión clínica, validaciones y continuidad de atención.',
     },
     alumno: {
-        etiqueta: 'Asistente odontológico',
+        etiqueta: 'Asistente',
         contexto: 'Tus historias, tareas clínicas y próximos controles.',
     },
 };
@@ -74,7 +74,7 @@ export default function DashboardApp({ rol = 'alumno', usuario, permisos = null,
 
         <section className="hc-panel-card">
             <div className="hc-panel-card__header"><div><h2>Historias recientes</h2><p>Últimas historias clínicas modificadas.</p></div>{puedeHistorias ? <button type="button" onClick={() => go(onNavigate, rol === 'alumno' ? 'mis-historias' : 'historias')}>Ver todas →</button> : null}</div>
-            {historias.length ? <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Cirujano dentista responsable</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{historias.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Cirujano dentista responsable">{item.operador || '—'}</td><td data-label="Estado">{item.estado}</td><td data-label="Actualización">{formatearFecha(item.fecha) || '—'}</td><td data-label="Progreso">{item.progreso ?? 0}%</td><td data-label="Acción">{puedeHistorias ? <button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button> : '—'}</td></tr>)}</tbody></table></div> : <p className="hc-panel-card__empty">No hay historias clínicas recientes.</p>}
+            {historias.length ? <div className="hc-table-card hc-table-card--flush"><table className="hc-table"><thead><tr><th>HC</th><th>Paciente</th><th>Asistente responsable</th><th>Estado</th><th>Actualización</th><th>Progreso</th><th>Acción</th></tr></thead><tbody>{historias.slice(0, 5).map((item) => <tr key={item.id}><td data-label="HC"><strong>{item.codigo}</strong></td><td data-label="Paciente">{item.paciente}</td><td data-label="Asistente responsable">{item.operador || '—'}</td><td data-label="Estado">{item.estado}</td><td data-label="Actualización">{formatearFecha(item.fecha) || '—'}</td><td data-label="Progreso">{item.progreso ?? 0}%</td><td data-label="Acción">{puedeHistorias ? <button type="button" className="hc-mini-button" onClick={() => go(onNavigate, { view: 'historia', historiaId: item.id, section: 'datos-paciente' })}>Abrir</button> : '—'}</td></tr>)}</tbody></table></div> : <p className="hc-panel-card__empty">No hay historias clínicas recientes.</p>}
         </section>
     </div>;
 }

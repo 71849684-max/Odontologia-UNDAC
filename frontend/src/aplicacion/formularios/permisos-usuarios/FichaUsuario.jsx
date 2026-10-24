@@ -4,6 +4,7 @@ import { UserRound, X } from 'lucide-react';
 import { obtenerUsuario } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
 import { formatearFechaHora } from '../../utilidades/fechas.mjs';
+import { etiquetaCodigoRol, etiquetaRol } from '../../configuracion/etiquetasRoles.js';
 
 function fecha(iso) {
     if (!iso) return 'Sin registros';
@@ -36,7 +37,7 @@ export default function FichaUsuario({ id, onClose, onManage }) {
         ['Documento', [usuario.tipo_documento, usuario.numero_documento].filter(Boolean).join(' ') || '—'],
         ['Correo', usuario.correo || '—'],
         ['Teléfono', usuario.telefono || '—'],
-        ['Rol', usuario.rol || usuario.codigo_rol || 'Sin rol'],
+        ['Rol', etiquetaCodigoRol(usuario.codigo_rol, etiquetaRol(usuario.rol, usuario.rol || 'Sin rol'))],
         ['Estado', usuario.bloqueado ? 'Bloqueado' : usuario.estado ? 'Activo' : 'Inactivo'],
         ['Último acceso', fecha(usuario.ultimo_inicio_sesion)],
     ] : [];

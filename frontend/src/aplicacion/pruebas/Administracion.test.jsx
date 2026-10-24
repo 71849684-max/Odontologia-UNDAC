@@ -258,10 +258,10 @@ test('guarda la plantilla de permisos del rol docente', async () => {
     await ingresar(usuario);
     await act(async () => { window.onNavigate('permisos-usuarios'); });
     await usuario.click(await screen.findByRole('tab', { name: 'Por rol' }));
-    await usuario.click(await screen.findByRole('button', { name: /Docente/ }));
+    await usuario.click(await screen.findByRole('button', { name: /Profesional encargado/ }));
 
     const editor = await screen.findByRole('region', { name: 'Editor de permisos' });
-    expect(within(editor).getByRole('heading', { name: 'Docente' })).toBeInTheDocument();
+    expect(within(editor).getByRole('heading', { name: 'Profesional encargado' })).toBeInTheDocument();
     await usuario.click(within(editor).getByRole('button', { name: /Pacientes/ }));
     await usuario.click(within(editor).getByRole('checkbox', { name: 'Pacientes' }));
     await usuario.click(within(editor).getByRole('button', { name: 'Guardar cambios' }));

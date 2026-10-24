@@ -5,6 +5,7 @@
 @import './aplicacion/historia-clinica.css';
 @import './aplicacion/tema-stitch.css';
 @import './aplicacion/clinica/workspace.css';
+@import './aplicacion/clinica/impresion.css';
 @import './aplicacion/claude-shell.css';
 @import './aplicacion/claude-vistas.css';
 
