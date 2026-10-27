@@ -19,7 +19,7 @@
         "jsdom": "^30.0.1",
         "tailwindcss": "^4.0.0",
         "vite": "^8.0.0",
-        "vitest": "^4.1.11"
+        "vitest": "^4.1.12"
     },
     "dependencies": {
         "lucide-react": "^1.34.0",
