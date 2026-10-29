@@ -87,7 +87,7 @@ export default function VistaPreviaImpresion({ seccionId, onClose }) {
           datos={datos}
           formData={formData}
         /> : <p className="doc-impresion__aviso">Esta sección todavía no tiene una plantilla de impresión.</p>}
-        <p className="doc-impresion__nota">Para guardar un PDF limpio, desactive los encabezados y pies de página del navegador en el diálogo de impresión.</p>
+        <p className="doc-impresion__nota">Los márgenes ya están definidos en el documento. Para guardar un PDF limpio, desactive los encabezados y pies de página del navegador en el diálogo de impresión.</p>
       </div>
     </div>,
     document.body,

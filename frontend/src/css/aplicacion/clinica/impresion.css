@@ -1,4 +1,4 @@
-.doc-impresion-portal {
+:root {
   --doc-ink: #111827;
   --doc-muted: #4b5563;
   --doc-line: #6b7280;
@@ -6,6 +6,9 @@
   --doc-paper: #ffffff;
   --doc-canvas: #e5e7eb;
   --doc-soft: #f3f4f6;
+}
+
+.doc-impresion-portal {
   position: fixed;
   inset: 0;
   z-index: var(--ou-z-modal);
@@ -75,7 +78,7 @@
   width: 210mm;
   min-height: 297mm;
   margin: 0 auto 18px;
-  padding: 12mm 12mm 14mm;
+  padding: 12mm 10mm 14mm;
   color: var(--doc-ink);
   background: var(--doc-paper);
   box-shadow: var(--ou-shadow);
@@ -591,7 +594,7 @@
   font-weight: 700;
 }
 
-@media (max-width: 900px) {
+@media screen and (max-width: 900px) {
   .doc-impresion__lienzo {
     padding: 10px;
   }
@@ -620,17 +623,28 @@
   }
 }
 
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
+/*
+ * Los márgenes del documento se definen con el relleno de la hoja y no con
+ * `@page`. El diálogo de impresión del navegador puede fijar «Mínimos» o
+ * «Ninguno», y en ese caso ignora por completo el margen de `@page`; el
+ * relleno interno sí se respeta. `box-decoration-break: clone` replica ese
+ * relleno en cada página cuando la hoja se parte.
+ */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
 
+@media print {
   body.doc-impresion-abierta > #odontologia-app {
     display: none !important;
   }
 
   body.doc-impresion-abierta {
+    background: var(--doc-paper);
+  }
+
+  html {
     background: var(--doc-paper);
   }
 
@@ -656,8 +670,10 @@
     width: auto;
     min-height: 0;
     margin: 0;
-    padding: 0;
+    padding: 12mm 10mm 14mm;
     box-shadow: none;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
   }
 
   .doc-bloque,
