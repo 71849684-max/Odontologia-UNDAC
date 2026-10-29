@@ -6,6 +6,7 @@ import { cambiarEstadoHistoria, idHistoria, listarHistoriasRemotas, mensajeError
 import BotonEliminacionClinica from './BotonEliminacionClinica.jsx';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
+import Paginacion from '../../componentes/interfaz/Paginacion.jsx';
 import NuevaHistoriaModal from '../nueva-historia/NuevaHistoriaModal.jsx';
 import { formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
 
@@ -161,9 +162,9 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
         <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, asistente o profesional encargado..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
         {aviso && <p className="hc-inline-callout" role="status">{aviso}</p>}
-        {filtered.length ? <div className="hc-table-card"><table className="hc-table">
+        {filtered.length ? <div><Paginacion key={`${query}|${status}`} elementos={filtered} tamanos={[10]} inicial={10} etiqueta="historias">{(visibles) => <div className="hc-table-card"><table className="hc-table">
             <thead><tr><th>N.º historia</th><th>Paciente</th><th>Asistente responsable</th><th>Profesional encargado</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
-            <tbody>{filtered.map((history) => <tr key={history.id}>
+            <tbody>{visibles.map((history) => <tr key={history.id}>
                 <td data-label="N.º historia"><strong>{history.codigo}</strong></td>
                 <td data-label="Paciente"><div className="hc-person"><span className="hc-avatar">{history.paciente.split(' ').slice(0, 2).map((p) => p[0]).join('')}</span><span><strong>{history.paciente}</strong><small>DNI {history.dni}</small></span></div></td>
                 <td data-label="Asistente responsable">{history.operador}</td>
@@ -178,7 +179,7 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
                     {rol === 'administrador' && eliminacionActiva && idHistoria(history.id) ? <BotonEliminacionClinica historiaId={idHistoria(history.id)} codigo={history.codigo} onInactivada={() => setHistorias((lista) => lista.filter((item) => item.id !== history.id))} /> : null}
                 </div></td>
             </tr>)}</tbody>
-        </table></div> : <EstadoVacio titulo="No hay historias para mostrar" descripcion="Ajusta la búsqueda o selecciona otro estado." />}
+        </table></div>}</Paginacion></div> : <EstadoVacio titulo="No hay historias para mostrar" descripcion="Ajusta la búsqueda o selecciona otro estado." />}
         {observando && <div className="admin-dialogo-fondo" role="presentation" onClick={() => !enviando && setObservando(null)}>
             <form className="admin-dialogo" role="dialog" aria-modal="true" aria-labelledby="titulo-observar" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (observando.texto.trim()) ejecutar(observando.historia, observando.accion, observando.texto.trim()); }}>
                 <header className="admin-dialogo__cabecera"><h2 id="titulo-observar">Observar {observando.historia.codigo}</h2><button type="button" className="hc-mini-button" aria-label="Cerrar" disabled={enviando} onClick={() => setObservando(null)}><X size={16} /></button></header>

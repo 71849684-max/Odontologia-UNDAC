@@ -20,7 +20,7 @@ export default function Paginacion({ elementos = [], tamanos = [10, 25, 50], ini
     <nav className="hc-pagination" aria-label={`Paginación de ${etiqueta}`}>
       <span className="hc-pagination__summary">Mostrando {desde}–{hasta} de {elementos.length} {etiqueta}</span>
       <div className="hc-pagination__controls">
-        <label><span className="sr-only">Registros por página</span><select aria-label="Registros por página" value={porPagina} onChange={(event) => setPorPagina(Number(event.target.value))}>{tamanos.map((tamano) => <option key={tamano} value={tamano}>{tamano} por página</option>)}</select></label>
+        {tamanos.length > 1 ? <label><span className="sr-only">Registros por página</span><select aria-label="Registros por página" value={porPagina} onChange={(event) => setPorPagina(Number(event.target.value))}>{tamanos.map((tamano) => <option key={tamano} value={tamano}>{tamano} por página</option>)}</select></label> : null}
         <button type="button" className="hc-mini-button" disabled={paginaActual <= 1} onClick={() => setPagina((actual) => actual - 1)}>Anterior</button>
         <span className="hc-pagination__pages">{paginas.map((numero) => <button type="button" key={numero} className={numero === paginaActual ? 'is-active' : ''} aria-current={numero === paginaActual ? 'page' : undefined} onClick={() => setPagina(numero)}>{numero}</button>)}</span>
         <button type="button" className="hc-mini-button" disabled={paginaActual >= totalPaginas} onClick={() => setPagina((actual) => actual + 1)}>Siguiente</button>
