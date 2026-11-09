@@ -22,7 +22,7 @@ export default function DecisionesConsentimiento({ values, onChange, history }) 
     finally { setOcupado(false); }
   }
   const { get, set } = useSection(values, onChange);
-  return idHistoria(history?.id) ? <SectionCard title="Registrar decisión del paciente" subtitle="Conserva una versión del documento y sus constancias. No constituye firma digital.">
+  return idHistoria(history?.id) ? <SectionCard title="Registrar decisión del paciente" subtitle="Registra la decisión y sus constancias en el consentimiento y la auditoría. No constituye firma digital.">
       <p>Estado: {get('estadoConsentimiento', 'BORRADOR')} · Versión: {get('versionConsentimiento', 1)}</p>
       <SelectField label="Decisión" value={decision} onChange={setDecision} options={[{ value: 'OTORGADO', label: 'Otorgó su consentimiento' }, { value: 'NEGADO', label: 'Negó su consentimiento' }, { value: 'REVOCADO', label: 'Revocó su consentimiento anterior' }]} />
       <TextAreaField label="Constancia de información y decisión" value={motivo} onChange={setMotivo} rows={3} />

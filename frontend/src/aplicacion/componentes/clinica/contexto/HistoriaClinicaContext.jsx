@@ -6,7 +6,7 @@ import { clinicalMoments, clinicalSections } from '../../../configuracion/histor
 import { momentosPermitidos, seccionesPermitidas } from '../../../configuracion/permisosVista.js';
 import { historiasClinicas, metaHistoriaVacia, pacientesClinicos } from '../../../configuracion/datosClinicos.mjs';
 import { buscarHistoria, pacienteDeHistoria } from '../../../servicios/registroHistoriaClinica.js';
-import { eliminarArchivoClinico, esFalloDeRed, guardarExpediente, idHistoria, mensajeError, obtenerExpediente, subirArchivoClinico } from '../../../servicios/servicioClinico.js';
+import { eliminarArchivoClinico, guardarExpediente, idHistoria, mensajeError, obtenerExpediente, subirArchivoClinico } from '../../../servicios/servicioClinico.js';
 import { ArchivosClinicosContext } from '../../../formularios/compartidos/archivosClinicos.js';
 import { buildClinicalAlerts } from '../logica/clinicalAlerts.mjs';
 import { inferSectionStatus, SECTION_STATUS } from '../logica/clinicalStatus.mjs';
@@ -252,11 +252,9 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     temporizadorGuardado.current = window.setTimeout(() => {
       if (accesoRevocado.current) return;
       const now = new Date().toISOString();
-      let guardadoLocal = false;
       try {
         if (import.meta.env.MODE === 'test') {
           window.localStorage?.setItem(storageKey, JSON.stringify({ formData, sectionStatus: explicitStatus, lastSavedAt: now }));
-          guardadoLocal = true;
         }
       } catch {
         if (!historiaServidor) {
@@ -278,13 +276,8 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
         })
         .catch((error) => {
           if (!vigente) return;
-          if (esFalloDeRed(error) && guardadoLocal) {
-            setLastSavedAt(now);
-            setAutosaveStatus('local');
-          } else {
-            setAutosaveStatus('error');
-            setErrorGuardado(mensajeError(error, 'No se pudo guardar el expediente.'));
-          }
+          setAutosaveStatus('error');
+          setErrorGuardado(mensajeError(error, 'No se pudo guardar el expediente.'));
         });
     }, 450);
     return () => {
@@ -536,14 +529,14 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     returnCurrentToEdit,
     validationErrors: validation.sectionId === activeSection ? validation.errors : [],
     revisionAviso,
-    errorGuardado,
+    errorGuardado: errorGuardado || [...guardadosExternos.current.values()].map(entrada => entrada.error).find(Boolean) || '',
     transicionEnCurso,
-    aprobacionBloqueada: transicionEnCurso || (Boolean(expediente) && (autosaveStatus !== 'saved' || Boolean(errorGuardado) || hayCambiosPendientes())),
+    aprobacionBloqueada: transicionEnCurso || (Boolean(expediente) && (autosaveStatus !== 'saved' || Boolean(errorGuardado) || hayCambiosPendientes() || [...guardadosExternos.current.values()].some(entrada => entrada.error || entrada.cargando))),
     momentProgress,
     navigateToMoment,
     navigateRelative,
     alerts,
-    autosaveStatus: [...guardadosExternos.current.values()].some(entrada => entrada.pendiente() && entrada.error) ? 'error' : [...guardadosExternos.current.values()].some(entrada => entrada.pendiente()) ? 'saving' : autosaveStatus,
+    autosaveStatus: [...guardadosExternos.current.values()].some(entrada => entrada.error) ? 'error' : [...guardadosExternos.current.values()].some(entrada => entrada.cargando || entrada.pendiente()) ? 'saving' : autosaveStatus,
     reintentarGuardado: async () => {
       const resultados = await Promise.all([...guardadosExternos.current.values()].map(entrada => entrada.guardar()));
       return resultados.every(Boolean) && await reintentarGuardado();
@@ -568,7 +561,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
 
   return <HistoriaClinicaContext.Provider value={value}><GuardadosClinicosContext.Provider value={guardadosExternos}>
     <ArchivosClinicosContext.Provider value={archivos}>{children}</ArchivosClinicosContext.Provider>
-    {rectificacionPendiente ? <DialogoRectificacion onCancel={cancelarRectificacion} onConfirm={async motivo => {
+    {rectificacionPendiente ? <DialogoRectificacion detalleError={errorGuardado} onCancel={cancelarRectificacion} onConfirm={async motivo => {
       const guardado = await cambiarEstadoConfirmado(rectificacionPendiente, SECTION_STATUS.IN_PROGRESS, motivo);
       if (guardado) setRectificacionPendiente(null);
       return guardado;

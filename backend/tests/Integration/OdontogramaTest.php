@@ -48,6 +48,7 @@ class OdontogramaTest extends TestCase
         $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', ['dni' => '70000201', 'nombres' => 'Paciente Odonto', 'sexo' => 'M'])->json('id');
 
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $this->registro()])->assertOk();
+        $this->assertSame(0, DB::table('historia_documento_version')->where('id_historia_clinica', $id)->count());
 
         $this->actingAs($alumno, 'web')->getJson("/api/historias/{$id}/odontograma")
             ->assertOk()

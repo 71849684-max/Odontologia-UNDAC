@@ -154,7 +154,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
             {errorGuardado ? <p className="hc-form-error" role="alert">No se pudo guardar: {errorGuardado}</p> : null}
             {autosaveStatus === 'local' ? <p className="clinical-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
             {soloLectura ? <p className="clinical-readonly-note" role="note">Sección aprobada por el profesional encargado: solo lectura. Pida que la reabra si necesita corregirla.</p> : null}
-            <LecturaClinicaContext.Provider value={soloLectura || transicionEnCurso || cargandoExpediente}>
+            <LecturaClinicaContext.Provider value={soloLectura || transicionEnCurso}>
             <div className="clinical-active-section__content" onClickCapture={evento => {
               if ((soloLectura || transicionEnCurso) && evento.target.closest('input[type="checkbox"], input[type="radio"], input[type="file"]')) evento.preventDefault();
             }}>

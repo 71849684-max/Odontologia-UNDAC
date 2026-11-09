@@ -24,6 +24,7 @@ export default function useOdontogramaServidor(historia, paciente) {
   };
 
   async function guardar() {
+    if (!entrada.current.registro || entrada.current.cargando) return false;
     if (entrada.current.promesa) return entrada.current.promesa;
     if (!pendiente()) return true;
     if (entrada.current.cancelado) return false;
@@ -63,14 +64,27 @@ export default function useOdontogramaServidor(historia, paciente) {
     activo.current = true;
     if (!historia) return undefined;
     let vigente = true;
-    if (!entrada.current.registro) obtenerOdontograma(historia).then(respuesta => {
+    if (!entrada.current.registro) {
+      entrada.current.cargando = true;
+      registros?.notificar?.();
+      obtenerOdontograma(historia).then(respuesta => {
       if (!vigente) return;
       const datos = respuesta ? readRecord(JSON.stringify({ ...respuesta, patientId: String(paciente) }), paciente) : createRecord(paciente);
       entrada.current.revision = respuesta?.revisionServidor ?? null;
       entrada.current.registro = datos;
       entrada.current.confirmado = datos;
+      entrada.current.cargando = false;
+      entrada.current.error = '';
       asignar(datos); setError('');
-    }).catch(fallo => { if (vigente) setError(mensajeError(fallo, 'No se pudo cargar el odontograma.')); });
+      registros?.notificar?.();
+    }).catch(fallo => {
+      if (!vigente) return;
+      entrada.current.cargando = false;
+      entrada.current.error = mensajeError(fallo, 'No se pudo cargar el odontograma.');
+      setError(entrada.current.error);
+      registros?.notificar?.();
+    });
+    }
     return () => { vigente = false; activo.current = false; };
   }, [historia, paciente, intento]);
 

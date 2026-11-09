@@ -66,6 +66,7 @@ export function CollapsibleSection({ title, subtitle, summary, children, default
 
 /** Entrada de fecha en dd/mm/aaaa (valor interno ISO). */
 export function InputFecha({ id, value, onChange, min, max, required, readOnly, disabled, conHora = false, placeholder, className = '' }) {
+  readOnly = useLecturaClinica() || readOnly;
   return <CampoFechaTexto id={id} value={value} onChange={onChange} min={min} max={max} required={required} readOnly={readOnly || disabled} conHora={conHora} placeholder={placeholder} className={className} />;
 }
 

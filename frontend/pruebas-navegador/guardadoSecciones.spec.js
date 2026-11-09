@@ -1,0 +1,71 @@
+import { test, expect, ingresar, crearHistoria, escribirConCsrf, manifiesto } from './ayudas.js';
+
+test('un error impide aprobar y reabrir; la sección aprobada permite consultar sin modificar', async ({ page, browser }) => {
+    await ingresar(page);
+    const historia = await crearHistoria(page);
+    expect((await escribirConCsrf(page, `/api/historias/${historia.id}/asignacion`, { personal: `DOCENTE-${manifiesto.actores.docente.actor}` })).status()).toBe(200);
+    const sesion = await browser.newContext({ baseURL: new URL(page.url()).origin });
+    try {
+        const profesional = await sesion.newPage();
+        await ingresar(profesional, 'docente');
+        await profesional.goto(`/#/historia-clinica?historia=${historia.id}&seccion=anamnesis`);
+        const motivo = profesional.getByRole('textbox', { name: 'Motivo de consulta', exact: true });
+        await expect(motivo).toBeVisible();
+        let interrumpir = true;
+        let retener = false;
+        let liberar;
+        const espera = new Promise(resolver => { liberar = resolver; });
+        await profesional.route(`**/api/historias/${historia.id}/expediente`, async ruta => {
+            if (ruta.request().method() !== 'PUT') return ruta.continue();
+            if (interrumpir) return ruta.abort('failed');
+            if (retener) await espera;
+            return ruta.continue(); // Respuestas reales de Laravel; solo se interrumpe o retiene la red.
+        });
+        await motivo.fill('Corrección que debe conservarse');
+        await profesional.getByLabel('Historia de la enfermedad', { exact: true }).fill('Información sintética para comprobar el guardado');
+        const aprobar = profesional.getByRole('button', { name: 'Aprobar sección', exact: true });
+        await expect(aprobar).toBeDisabled();
+        await expect(profesional.getByText(/^No se pudo guardar:/)).toBeVisible();
+        const pendiente = await (await profesional.request.get(`/api/historias/${historia.id}/expediente`)).json();
+        expect(pendiente.formData.anamnesis?.motivoConsulta).not.toBe('Corrección que debe conservarse');
+        expect(pendiente.sectionStatus.anamnesis).not.toBe('approved');
+        interrumpir = false;
+        await profesional.getByRole('button', { name: 'Reintentar guardado' }).click();
+        await expect(aprobar).toBeEnabled();
+        retener = true;
+        await aprobar.click();
+        await expect(profesional.getByRole('button', { name: 'Guardando aprobación…', exact: true })).toBeDisabled();
+        await expect(profesional.getByRole('button', { name: 'Reabrir sección', exact: true })).toHaveCount(0);
+        expect((await (await profesional.request.get(`/api/historias/${historia.id}/expediente`)).json()).sectionStatus.anamnesis).not.toBe('approved');
+        liberar();
+        retener = false;
+        await expect(profesional.getByRole('button', { name: 'Reabrir sección', exact: true })).toBeEnabled();
+        await expect(motivo).toHaveAttribute('readonly');
+        await motivo.click();
+        await expect(motivo).toBeFocused();
+        await profesional.getByRole('button', { name: /Datos psicológicos/ }).click();
+        const observaciones = profesional.getByLabel('Observaciones', { exact: true });
+        await expect(observaciones).toBeVisible();
+        await expect(observaciones).toHaveAttribute('readonly');
+        const opcion = profesional.getByRole('checkbox').first();
+        const marcada = await opcion.isChecked();
+        await opcion.locator('..').click();
+        expect(await opcion.isChecked()).toBe(marcada);
+        interrumpir = true;
+        await profesional.getByRole('button', { name: 'Reabrir sección', exact: true }).click();
+        const dialogo = profesional.getByRole('dialog', { name: 'Reabrir sección para corregir' });
+        await dialogo.getByLabel('Motivo de la rectificación').fill('Rectificar los datos verificados durante la consulta');
+        await dialogo.getByRole('button', { name: 'Reabrir y conservar el original' }).click();
+        await expect(dialogo.getByRole('alert')).toBeVisible();
+        await expect(motivo).toHaveAttribute('readonly');
+        expect((await (await profesional.request.get(`/api/historias/${historia.id}/expediente`)).json()).sectionStatus.anamnesis).toBe('approved');
+        interrumpir = false;
+        await dialogo.getByRole('button', { name: 'Reabrir y conservar el original' }).click();
+        await expect(dialogo).toHaveCount(0);
+        await expect(motivo).not.toHaveAttribute('readonly');
+        await motivo.fill('Corrección después de reabrir');
+        await expect.poll(async () => (await (await profesional.request.get(`/api/historias/${historia.id}/expediente`)).json()).formData.anamnesis.motivoConsulta).toBe('Corrección después de reabrir');
+        await profesional.reload();
+        await expect(motivo).toHaveValue('Corrección después de reabrir');
+    } finally { await sesion.close(); }
+});

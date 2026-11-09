@@ -11,7 +11,6 @@ class ServicioConsentimientos
 {
     public function __construct(
         private readonly ServicioExpediente $expediente,
-        private readonly ServicioVersionesClinicas $versiones,
         private readonly AccesoHistorias $acceso,
     ) {}
 
@@ -58,10 +57,9 @@ class ServicioConsentimientos
                 throw new OperacionNoPermitida('motivo', 'Describa la constancia de información y decisión del paciente.');
             }
             $datos['estadoConsentimiento'] = $decision;
-            $version = $this->versiones->conservar($historia, 'CONSENTIMIENTO', $decision, ['documento' => $datos, 'versionDocumento' => $fila->version_documento, 'profesionalRegistrador' => ['nombre' => $actor->nombreCompleto(), 'cuenta' => $actor->clave()]], $actor, $motivo);
             DB::table('consentimiento_informado')->where('id_consentimiento', $fila->id_consentimiento)->update(['estado' => $decision, ...($decision !== 'REVOCADO' ? ['id_docente_informante' => $actor->idActor()] : [])]);
 
-            return ['version' => $version, 'estado' => $decision];
+            return ['version' => (int) $fila->version_documento, 'estado' => $decision, 'documento' => $datos];
         });
     }
 }

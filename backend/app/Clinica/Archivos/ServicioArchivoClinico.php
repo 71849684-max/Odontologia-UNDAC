@@ -2,7 +2,6 @@
 
 namespace App\Clinica\Archivos;
 
-use App\Clinica\Expediente\ServicioVersionesClinicas;
 use App\Clinica\Historias\AccesoHistorias;
 use App\Clinica\Historias\ServicioHistorias;
 use App\Identidad\Dominio\Cuenta;
@@ -57,7 +56,6 @@ class ServicioArchivoClinico
     public function __construct(
         private readonly ServicioHistorias $historias,
         private readonly AccesoHistorias $acceso,
-        private readonly ServicioVersionesClinicas $versiones,
     ) {}
 
     public function subir(int $idHistoria, UploadedFile $archivo, string $campo, Cuenta $actor): array
@@ -100,7 +98,6 @@ class ServicioArchivoClinico
         $id = DB::transaction(function () use ($idHistoria, $archivo, $campo, $seccion, $maximo, $activos, $nombreGuardado, $ruta, $extension, $mime, $actor) {
             DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->lockForUpdate()->first();
             $this->exigirEditable($actor, $idHistoria, $seccion, $campo);
-            $this->versiones->conservar($idHistoria, 'ARCHIVOS', 'ANTES_DE_EDITAR', $this->porSeccion($idHistoria), $actor);
             if ($maximo === 1 && $activos->isNotEmpty()) {
                 DB::table('archivo_clinico')->whereIn('id_archivo', $activos->pluck('id_archivo'))->update(['estado' => 0]);
             }

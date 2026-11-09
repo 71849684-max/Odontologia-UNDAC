@@ -25,7 +25,9 @@ test('reabrir conserva la versión aprobada y registra el motivo desde la interf
         await profesional.getByRole('button', { name: 'Historial de documentos' }).click();
         await expect(profesional.getByRole('dialog', { name: 'Historial de documentos' })).toBeVisible();
         const versiones = (await (await profesional.request.get(`/api/historias/${historia.id}/versiones`)).json()).data;
-        expect(versiones.some(version => version.motivo === 'Corregir un dato identificado en la entrevista')).toBe(true);
+        expect(versiones).toHaveLength(1);
+        expect(versiones[0].evento).toBe('APROBAR_SECCION');
+        expect(versiones[0].secciones).toEqual(['anamnesis']);
         const contenidos = await Promise.all(versiones.map(async version => (await profesional.request.get(`/api/historias/${historia.id}/versiones/${version.id_version}`)).json()));
         expect(contenidos.every(version => version.integridadVerificada)).toBe(true);
         expect(contenidos.some(version => version.contenido.formData?.anamnesis?.motivoConsulta === 'Texto original aprobado' && version.contenido.sectionStatus?.anamnesis === 'approved')).toBe(true);

@@ -2,22 +2,33 @@
 
 namespace App\Clinica\Expediente;
 
+use App\Clinica\Historias\AccesoHistorias;
 use App\Identidad\Dominio\Cuenta;
+use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
 use Illuminate\Support\Facades\DB;
 
 /** Conserva evidencia histórica; el hash encadenado no constituye firma digital. */
 class ServicioVersionesClinicas
 {
-    public function conservar(int $historia, string $clase, string $evento, array $contenido, Cuenta $actor, ?string $motivo = null): int
+    public function __construct(private readonly AccesoHistorias $acceso) {}
+
+    public function conservarAprobacion(int $historia, string $seccion, array $contenido, Cuenta $actor, ?string $motivo = null): int
     {
-        return DB::transaction(function () use ($historia, $clase, $evento, $contenido, $actor, $motivo) {
+        return DB::transaction(function () use ($historia, $seccion, $contenido, $actor, $motivo) {
             DB::table('historia_clinica')->where('id_historia_clinica', $historia)->lockForUpdate()->first();
+            if (! $this->acceso->puedeAprobar($actor) || ! $this->acceso->puedeVer($actor, $historia)) {
+                throw new OperacionNoPermitida('profesional', 'Solo un profesional con COP y acceso vigente puede conservar una aprobación.');
+            }
+            if ((! array_key_exists($seccion, $contenido['formData'] ?? []) && $seccion !== 'odontograma') || ($contenido['sectionStatus'][$seccion] ?? null) !== 'approved') {
+                throw new OperacionNoPermitida('seccion', 'Seleccione una sección clínica aprobada para conservar su versión.');
+            }
+            $documento = ['seccionAprobada' => $seccion, 'formData' => [$seccion => $contenido['formData'][$seccion] ?? []], 'sectionStatus' => [$seccion => 'approved']];
             $anterior = DB::table('historia_documento_version')->where('id_historia_clinica', $historia)->orderByDesc('id_version')->value('hash_integridad') ?? str_repeat('0', 64);
             $fila = [
-                'id_historia_clinica' => $historia, 'clase' => $clase, 'evento' => $evento,
+                'id_historia_clinica' => $historia, 'clase' => 'EXPEDIENTE', 'evento' => 'APROBAR_SECCION',
                 'tipo_usuario' => $actor->tipoCuenta(), 'id_usuario' => $actor->id(),
                 'nombre_usuario' => mb_substr($actor->nombreCompleto(), 0, 190),
-                'contenido' => json_encode($contenido, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
+                'contenido' => json_encode($documento, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                 'motivo' => $motivo, 'hash_anterior' => $anterior,
                 'creado_en' => now()->format('Y-m-d H:i:s.u'),
             ];
@@ -37,9 +48,35 @@ class ServicioVersionesClinicas
 
     public function listar(int $historia): array
     {
-        return DB::table('historia_documento_version')->where('id_historia_clinica', $historia)
-            ->orderByDesc('id_version')->limit(200)
-            ->get(['id_version', 'clase', 'evento', 'nombre_usuario', 'motivo', 'hash_integridad', 'creado_en'])->map(fn ($fila) => (array) $fila)->all();
+        // Reconoce también aprobaciones antiguas sin modificar filas ni sus hashes.
+        // Lee únicamente metadatos y estados, evitando cargar expedientes completos.
+        $filas = DB::table('historia_documento_version')->where('id_historia_clinica', $historia)->where('clase', 'EXPEDIENTE')
+            ->orderBy('id_version')->select(['id_version', 'clase', 'evento', 'tipo_usuario', 'nombre_usuario', 'motivo', 'hash_integridad', 'creado_en'])
+            ->selectRaw("JSON_EXTRACT(contenido, '$.sectionStatus') as estados, JSON_UNQUOTE(JSON_EXTRACT(contenido, '$.seccionAprobada')) as seccion")
+            ->cursor();
+        $anteriores = [];
+        $aprobaciones = [];
+        foreach ($filas as $fila) {
+            $estados = json_decode($fila->estados ?? '{}', true, 64, JSON_THROW_ON_ERROR) ?? [];
+            $secciones = $fila->evento === 'APROBAR_SECCION' && $fila->seccion
+                ? [$fila->seccion]
+                : ($fila->evento === 'GUARDAR' && $fila->tipo_usuario === 'DOCENTE'
+                    ? array_keys(array_filter($estados, fn ($estado, $codigo) => $estado === 'approved' && ($anteriores[$codigo] ?? null) !== 'approved', ARRAY_FILTER_USE_BOTH)) : []);
+            $anteriores = array_replace($anteriores, $estados);
+            if ($secciones === []) {
+                continue;
+            }
+            $datos = (array) $fila;
+            unset($datos['estados'], $datos['tipo_usuario']);
+            $datos['evento'] = 'APROBAR_SECCION';
+            $datos['secciones'] = $secciones;
+            $aprobaciones[] = $datos;
+            if (count($aprobaciones) > 200) {
+                array_shift($aprobaciones);
+            }
+        }
+
+        return array_reverse($aprobaciones);
     }
 
     public function obtener(int $historia, int $version): array

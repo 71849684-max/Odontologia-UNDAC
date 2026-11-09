@@ -2,7 +2,6 @@
 
 namespace App\Clinica\Odontograma;
 
-use App\Clinica\Expediente\ServicioVersionesClinicas;
 use App\Clinica\Historias\AccesoHistorias;
 use App\Identidad\Dominio\Cuenta;
 use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
@@ -13,7 +12,6 @@ class ServicioOdontograma
 {
     public function __construct(
         private readonly AccesoHistorias $acceso,
-        private readonly ServicioVersionesClinicas $versiones,
     ) {}
 
     private const TAMANO_MAXIMO = 2 * 1024 * 1024;
@@ -106,9 +104,6 @@ class ServicioOdontograma
                 }
             }
             unset($examen);
-            if ($anterior !== null) {
-                $this->versiones->conservar($idHistoria, 'ODONTOGRAMA', 'ANTES_DE_EDITAR', $anterior, $actor);
-            }
             $json = json_encode($registro, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             $this->eliminar($idHistoria);
             $catalogo = $this->catalogo();
@@ -136,7 +131,6 @@ class ServicioOdontograma
                 $primero = false;
                 $this->normalizarHallazgos($idOdontograma, $examen, $catalogo, $piezasCatalogo);
             }
-            $this->versiones->conservar($idHistoria, 'ODONTOGRAMA', 'GUARDAR', $registro, $actor);
         });
 
         $lectura = $this->leerConRevision($idHistoria);

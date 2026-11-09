@@ -5,7 +5,7 @@ for (const tema of ['claro', 'oscuro']) {
         test(`historial de documentos legible en tema ${tema} a ${ancho}px`, async ({ page }, informacion) => {
             await page.addInitScript(valor => localStorage.setItem('undac:tema', valor), tema);
             await page.setViewportSize({ width: ancho, height: ancho === 390 ? 844 : 668 });
-            await ingresar(page);
+            await ingresar(page, 'administrador');
             const historia = await crearHistoria(page);
             const abrir = page.getByRole('button', { name: 'Historial de documentos', exact: true });
             await abrir.click();
@@ -14,7 +14,7 @@ for (const tema of ['claro', 'oscuro']) {
             const listado = await page.request.get(`/api/historias/${historia.id}/versiones`);
             expect(listado.status()).toBe(200);
             if (!(await listado.json()).data.length) {
-                await expect(modal.getByRole('heading', { name: 'Aún no hay versiones conservadas' })).toBeVisible();
+                await expect(modal.getByRole('heading', { name: 'Aún no hay secciones aprobadas' })).toBeVisible();
                 await expect(modal.getByRole('table')).toHaveCount(0);
                 await informacion.attach('historial-vacio', { body: await modal.screenshot(), contentType: 'image/png' });
             }
@@ -26,8 +26,15 @@ for (const tema of ['claro', 'oscuro']) {
                 formData: { anamnesis: { motivoConsulta: 'Control sintético para revisión visual', historiaEnfermedad: 'Datos exclusivos del entorno aislado' } },
             });
             expect(guardado.status()).toBe(200);
+            expect((await (await page.request.get(`/api/historias/${historia.id}/versiones`)).json()).data).toHaveLength(0);
+            const aprobacion = await escribirConCsrf(page, `/api/historias/${historia.id}/expediente`, {
+                formData: { anamnesis: { motivoConsulta: 'Control sintético para revisión visual', historiaEnfermedad: 'Datos exclusivos del entorno aislado' } },
+                sectionStatus: { anamnesis: 'approved' },
+            });
+            expect(aprobacion.status()).toBe(200);
             await abrir.click();
             await expect(modal.getByRole('button', { name: /Consultar versión/ }).first()).toBeVisible();
+            await expect(modal.getByRole('cell', { name: /Sección aprobada/ })).toHaveCount(1);
             await informacion.attach('historial-versiones', { body: await modal.screenshot(), contentType: 'image/png' });
             await modal.getByRole('button', { name: /Consultar versión/ }).first().click();
             await expect(modal.getByText('Integridad de esta versión comprobada.')).toBeVisible();

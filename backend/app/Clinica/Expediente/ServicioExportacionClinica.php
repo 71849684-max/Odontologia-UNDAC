@@ -62,6 +62,22 @@ class ServicioExportacionClinica
                     $metadatos[] = ['archivo' => $nombre, 'nombreOriginal' => $fila->nombre_original, 'campo' => $fila->clave_campo, 'sha256' => $fila->hash_sha256, 'vigente' => (bool) $fila->estado];
                 }
                 $zip->addFromString('adjuntos.json', json_encode($metadatos, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+                $consentimientos = DB::table('consentimiento_informado')->where('id_historia_clinica', $historia)->orderBy('version_documento')->get();
+                $ids = $consentimientos->pluck('id_consentimiento')->all();
+                $clausulas = DB::table('consentimiento_clausula')->whereIn('id_consentimiento', $ids)->get()->groupBy('id_consentimiento');
+                $firmas = DB::table('firma_consentimiento')->whereIn('id_consentimiento', $ids)->get()->groupBy('id_consentimiento');
+                $documentos = $consentimientos->map(fn ($fila) => (array) $fila + [
+                    'clausulas' => ($clausulas[$fila->id_consentimiento] ?? collect())->all(),
+                    'firmas' => ($firmas[$fila->id_consentimiento] ?? collect())->all(),
+                ])->all();
+                $zip->addFromString('consentimientos.json', json_encode($documentos, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+                $decisiones = DB::table('auditoria')->where('id_registro', $historia)->where('tabla_afectada', 'historia_clinica')
+                    ->whereIn('accion', ['CONSENTIMIENTO_OTORGADO', 'CONSENTIMIENTO_NEGADO', 'CONSENTIMIENTO_REVOCADO'])->orderBy('id_auditoria')
+                    ->get(['accion', 'nombre_usuario', 'creado_en', 'valores_nuevos'])->map(fn ($fila) => [
+                        'accion' => $fila->accion, 'profesional' => $fila->nombre_usuario, 'fecha' => $fila->creado_en,
+                        'datos' => json_decode($fila->valores_nuevos ?? '{}', true, 64, JSON_THROW_ON_ERROR),
+                    ])->all();
+                $zip->addFromString('decisiones-consentimiento.json', json_encode($decisiones, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
                 $zip->addFromString('integridad.json', json_encode(['ultimaHuella' => $anteriores, 'exportadoEn' => now()->toISOString(), 'firmaDigital' => false], JSON_THROW_ON_ERROR));
             });
             if (! $zip->close()) {

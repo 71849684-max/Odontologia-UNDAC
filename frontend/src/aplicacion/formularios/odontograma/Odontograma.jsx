@@ -140,8 +140,8 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
       </div>
       <div className="nts-metadata">
         <label className="undac-field"><span>Fecha de evaluación</span><InputFecha max={localDate()} value={exam.date} disabled={locked} onChange={(date) => change({ date })} /></label>
-        <label className="undac-field"><span>Asistente</span><input value={exam.professional} disabled={locked} onChange={(e) => change({ professional: e.target.value })} /></label>
-        <label className="undac-field"><span>N.° COP</span><input value={exam.cop} inputMode="numeric" maxLength={8} disabled={locked} onChange={(e) => change({ cop: e.target.value })} /></label>
+        <label className="undac-field"><span>Asistente</span><input value={exam.professional} readOnly={locked} onChange={(e) => change({ professional: e.target.value })} /></label>
+        <label className="undac-field"><span>N.° COP</span><input value={exam.cop} inputMode="numeric" maxLength={8} readOnly={locked} onChange={(e) => change({ cop: e.target.value })} /></label>
       </div>
       </details>
       {message && <p className="nts-save-status" role="status">{message}</p>}
@@ -167,8 +167,8 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
 
     <SectionCard title="Especificaciones y observaciones">
       <div className="nts-notes">
-        <label className="undac-field"><span>Especificaciones</span><textarea rows="3" disabled={locked} value={exam.specifications} onChange={(e) => change({ specifications: e.target.value })} placeholder="Características adicionales, fluorosis y clasificación, material o color del metal…" /></label>
-        <label className="undac-field"><span>Observaciones</span><textarea rows="3" disabled={locked} value={exam.observations} onChange={(e) => change({ observations: e.target.value })} placeholder="Hallazgos clínicos no contemplados en la nomenclatura…" /></label>
+        <label className="undac-field"><span>Especificaciones</span><textarea rows="3" readOnly={locked} value={exam.specifications} onChange={(e) => change({ specifications: e.target.value })} placeholder="Características adicionales, fluorosis y clasificación, material o color del metal…" /></label>
+        <label className="undac-field"><span>Observaciones</span><textarea rows="3" readOnly={locked} value={exam.observations} onChange={(e) => change({ observations: e.target.value })} placeholder="Hallazgos clínicos no contemplados en la nomenclatura…" /></label>
       </div>
       {allMarks.length > 0 && <details className="nts-register"><summary>Registro de hallazgos ({allMarks.length})</summary><table><thead><tr><th>Pieza(s)</th><th>Hallazgo / sigla</th><th>Superficie</th><th>Especificación</th></tr></thead><tbody>{allMarks.map((m) => <tr key={m.id}><td>{m.teeth.join(', ')}</td><td style={{ color: clinicalColor(m) }}>{stateFor(m.state).label} {markCode(m)}{stateFor(m.state).condition ? ` · ${m.condition === 'bad' ? 'Mal estado' : 'Buen estado'}` : ''}</td><td>{m.surface ? surfaceName(m.surface) : 'Pieza / conjunto'}</td><td>{m.note || '—'}</td></tr>)}</tbody></table></details>}
       {!locked ? <div className="nts-close nts-no-print"><label><input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} /> He revisado el registro de esta evaluación.</label><button type="button" className="undac-btn undac-btn--primary" disabled={!reviewed} onClick={() => run(() => { if (persist(closeExamination(record, exam.id), servidor ? 'Evaluación cerrada y guardada en la historia clínica.' : 'Evaluación cerrada y conservada en este navegador.')) setReviewed(false); })}>Cerrar evaluación</button></div> : <p>Cerrada el {formatearFechaHora(exam.closedAt)} · Responsable: {exam.professional} · COP {exam.cop}</p>}

@@ -198,9 +198,9 @@ class ControladorHistorias extends Controller
     {
         $datos = $solicitud->validate(['decision' => ['required', Rule::in(['OTORGADO', 'NEGADO', 'REVOCADO'])], 'motivo' => ['required', 'string', 'max:1000']]);
         $resultado = $this->operacion(fn () => $consentimientos->decidir($idHistoria, $datos['decision'], $datos['motivo'], $solicitud->user()));
-        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'CONSENTIMIENTO_'.$datos['decision'], null, ['historia' => $idHistoria, 'version' => $resultado['version']]);
+        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'CONSENTIMIENTO_'.$datos['decision'], null, ['historia' => $idHistoria, 'versionConsentimiento' => $resultado['version'], 'motivo' => $datos['motivo'], 'documento' => $resultado['documento']]);
 
-        return response()->json($resultado);
+        return response()->json(['version' => $resultado['version'], 'estado' => $resultado['estado']]);
     }
 
     public function versiones(int $idHistoria): JsonResponse
@@ -304,7 +304,7 @@ class ControladorHistorias extends Controller
         }
         $reabiertas = array_filter(array_intersect_key($actuales, array_filter($estadosPrevios, fn ($estado) => in_array($estado, ['approved', 'review', 'complete'], true))), fn ($estado) => $estado === 'in-progress');
         foreach ($reabiertas as $codigo => $estado) {
-            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'REABRIR_SECCION', [$codigo => $estadosPrevios[$codigo]], [$codigo => $estado]);
+            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'REABRIR_SECCION', [$codigo => $estadosPrevios[$codigo]], [$codigo => $estado, 'motivo' => $datos['motivo'] ?? null]);
         }
         $enviadas = [];
         foreach ($datos['sectionStatus'] ?? [] as $codigo => $estado) {

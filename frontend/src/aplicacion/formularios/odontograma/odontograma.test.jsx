@@ -368,7 +368,7 @@ test('una evaluación cerrada permanece en solo lectura después de recargar', (
   fireEvent.click(screen.getByRole('button', { name: 'Pieza 11, Vestibular' }));
   const modal = screen.getByRole('dialog', { name: 'Acciones para pieza 11, Vestibular' });
   expect(within(modal).getByRole('button', { name: 'Caries', exact: true })).toBeDisabled();
-  expect(screen.getByLabelText('Especificaciones')).toBeDisabled();
+  expect(screen.getByLabelText('Especificaciones')).toHaveAttribute('readonly');
   fireEvent.click(screen.getByText('Datos de la evaluación'));
   fireEvent.click(screen.getByRole('button', { name: 'Nueva evaluación' }));
   expect(within(modal).getByRole('button', { name: 'Caries', exact: true })).toBeEnabled();

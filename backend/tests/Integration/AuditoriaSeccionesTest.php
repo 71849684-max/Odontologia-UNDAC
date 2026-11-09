@@ -44,7 +44,7 @@ class AuditoriaSeccionesTest extends TestCase
         $this->assertCount(1, $reaperturas);
         $this->assertSame($administrador->nombreUsuario(), $reaperturas[0]->nombre_usuario);
         $this->assertSame(['anamnesis' => 'approved'], json_decode($reaperturas[0]->valores_anteriores, true));
-        $this->assertSame(['anamnesis' => 'in-progress'], json_decode($reaperturas[0]->valores_nuevos, true));
+        $this->assertEquals(['anamnesis' => 'in-progress', 'motivo' => 'Rectificar el contenido de la entrevista'], json_decode($reaperturas[0]->valores_nuevos, true));
         $lista = app(RepositorioAuditoria::class)->listar(['origen' => 'acciones', 'accion' => 'APROBAR_SECCION']);
         $eventos = array_values(array_filter($lista['data'], fn ($evento) => (int) $evento['historiaId'] === $id));
         $this->assertCount(2, $eventos);

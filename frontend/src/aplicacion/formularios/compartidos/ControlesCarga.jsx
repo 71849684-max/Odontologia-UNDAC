@@ -148,6 +148,7 @@ function BotonCarga({ onClick, children, disabled = false }) {
 }
 
 function TarjetaImagen({ adjunto, onQuitar, onAbrir }) {
+  const soloLectura = useLecturaClinica();
   return (
     <figure className="undac-carousel__cell undac-photo-tile">
       <button type="button" className="undac-photo-tile__abrir" onClick={onAbrir} aria-label={`Ampliar ${adjunto.nombre}`}>
@@ -156,7 +157,7 @@ function TarjetaImagen({ adjunto, onQuitar, onAbrir }) {
           : <span className="undac-photo-tile__fallback" aria-hidden="true"><ImagePlus size={18} /></span>}
       </button>
       <figcaption><strong title={adjunto.nombre}>{adjunto.nombre}</strong><small>{formatoTamano(adjunto.tamano)}</small></figcaption>
-      <button type="button" className="undac-photo-tile__remove" aria-label={`Eliminar ${adjunto.nombre}`} onClick={() => onQuitar(adjunto)}>
+      <button type="button" className="undac-photo-tile__remove" disabled={soloLectura} aria-label={`Eliminar ${adjunto.nombre}`} onClick={() => onQuitar(adjunto)}>
         <X size={14} aria-hidden="true" />
       </button>
     </figure>
@@ -164,6 +165,7 @@ function TarjetaImagen({ adjunto, onQuitar, onAbrir }) {
 }
 
 function ItemArchivo({ adjunto, onQuitar }) {
+  const soloLectura = useLecturaClinica();
   return (
     <li className="undac-file-item">
       <span className="undac-file-item__icon" aria-hidden="true"><FileText size={16} /></span>
@@ -173,7 +175,7 @@ function ItemArchivo({ adjunto, onQuitar }) {
           : <strong title={adjunto.nombre}>{adjunto.nombre}</strong>}
         <small>{extensionDe(adjunto.nombre)} · {formatoTamano(adjunto.tamano)}</small>
       </span>
-      <button type="button" className="undac-file-item__remove" aria-label={`Eliminar ${adjunto.nombre}`} onClick={() => onQuitar(adjunto)}>
+      <button type="button" className="undac-file-item__remove" disabled={soloLectura} aria-label={`Eliminar ${adjunto.nombre}`} onClick={() => onQuitar(adjunto)}>
         <X size={14} aria-hidden="true" />
       </button>
     </li>
@@ -195,6 +197,7 @@ function desplazarTira(tira, izquierda) {
  * y se ajusta al viewport en tablets y móviles.
  */
 function VisorImagen({ adjuntos, indice, alCambiar, alCerrar, alQuitar }) {
+  const soloLectura = useLecturaClinica();
   const cerrarRef = React.useRef(null);
   const adjunto = adjuntos[indice];
   const anterior = indice > 0;
@@ -251,7 +254,7 @@ function VisorImagen({ adjuntos, indice, alCambiar, alCerrar, alQuitar }) {
         </div>
         <footer className="undac-visor__pie">
           <span>Use las flechas o el teclado para recorrer las imágenes · Esc para cerrar</span>
-          <button type="button" className="undac-visor__quitar" onClick={() => alQuitar(adjunto)}>
+          <button type="button" className="undac-visor__quitar" disabled={soloLectura} onClick={() => alQuitar(adjunto)}>
             <X size={14} aria-hidden="true" /> Eliminar imagen
           </button>
         </footer>
@@ -537,7 +540,7 @@ export function BloqueCarga({
               />
             ))}
             {Array.from({ length: vacantes }, (_, index) => (
-              <button type="button" className="undac-carousel__cell undac-photo-slot" key={`vista-${adjuntos.length + index + 1}`} onClick={abrirSelector} disabled={procesando}>
+              <button type="button" className="undac-carousel__cell undac-photo-slot" key={`vista-${adjuntos.length + index + 1}`} onClick={abrirSelector} disabled={soloLectura || procesando}>
                 <span aria-hidden="true"><ImagePlus size={18} /></span>
                 <strong>{limite > 1 ? `Vista ${adjuntos.length + index + 1}` : 'Área de imagen'}</strong>
                 <small>Pendiente de adjuntar</small>
@@ -595,7 +598,7 @@ export function BloqueCarga({
           {adjuntos.length ? `${adjuntos.length} archivo${adjuntos.length === 1 ? '' : 's'} adjunto${adjuntos.length === 1 ? '' : 's'}` : 'Sin archivos'}
         </span>
       </div>
-      <button type="button" className="undac-file-zone" onClick={abrirSelector} disabled={procesando}>
+      <button type="button" className="undac-file-zone" onClick={abrirSelector} disabled={soloLectura || procesando}>
         <span className="undac-file-zone__icon" aria-hidden="true"><Upload size={18} /></span>
         <strong>{procesando ? 'Preparando archivos…' : 'Cargar archivos'}</strong>
         <small>Haga clic para elegir desde su equipo, o arrastre los archivos hasta aquí. Formatos admitidos: {aceptar}.</small>
@@ -676,19 +679,19 @@ export function SlotConstancia({ label, value, onChange, campo, textoPendiente =
           <img src={adjunto.vistaPrevia || adjunto.url} alt={`Vista previa de ${label}`} />
           <span>Imagen adjunta</span>
           <strong>{label}</strong>
-          <button type="button" className="undac-signature-slot__remove" aria-label={`Eliminar ${label}`} onClick={quitar} disabled={ocupado}>
+          <button type="button" className="undac-signature-slot__remove" aria-label={`Eliminar ${label}`} onClick={quitar} disabled={soloLectura || ocupado}>
             <X size={13} aria-hidden="true" />
           </button>
         </div>
       ) : (
         <div className="undac-signature-slot__grupo">
-          <button type="button" className="undac-signature-slot undac-signature-slot--carga" onClick={() => inputRef.current?.click()} disabled={ocupado}>
+          <button type="button" className="undac-signature-slot undac-signature-slot--carga" onClick={() => inputRef.current?.click()} disabled={soloLectura || ocupado}>
             <span>{ocupado ? 'Guardando…' : textoPendiente}</span>
             <strong>{label}</strong>
             <small>Cargar imagen</small>
           </button>
           {permitirDibujo ? (
-            <button type="button" className="undac-signature-slot__dibujar" onClick={() => setDibujando(true)} disabled={ocupado} aria-label={`Dibujar ${label}`}>
+            <button type="button" className="undac-signature-slot__dibujar" onClick={() => setDibujando(true)} disabled={soloLectura || ocupado} aria-label={`Dibujar ${label}`}>
               <PenLine size={12} aria-hidden="true" /> Dibujar
             </button>
           ) : null}

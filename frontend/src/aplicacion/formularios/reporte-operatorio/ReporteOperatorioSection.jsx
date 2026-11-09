@@ -1,13 +1,15 @@
 import React from 'react';
+import { useLecturaClinica } from '../compartidos/LecturaClinicaContext.js';
 import { Info } from 'lucide-react';
 import { SectionCard, Field, TextAreaField, SlotConstancia } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 import Subheading from '../compartidos/Subheading.jsx';
 
 function VitalControlTable({ values, onChange }) {
+  const soloLectura = useLecturaClinica();
   const moments = [['pre','Pre operatorio'], ['intra','Intra-operatorio'], ['post','Post-operatorio']];
   const rows = [['pa','P.A.'],['temp','T°'],['fr','F.R.'],['fc','F.C.'],['pulso','Pulso']];
-  return <div className="undac-table-wrap"><table className="undac-table undac-vital-table"><thead><tr><th>Control</th>{moments.map(([, label]) => <th key={label}>{label}</th>)}</tr></thead><tbody>{rows.map(([key,label]) => <tr key={key}><th>{label}</th>{moments.map(([moment]) => <td key={moment}><input aria-label={`${label} ${moment}`} value={values?.[`${moment}_${key}`] ?? ''} onChange={(event) => onChange?.(`${moment}_${key}`, event.target.value)} /></td>)}</tr>)}</tbody></table></div>;
+  return <div className="undac-table-wrap"><table className="undac-table undac-vital-table"><thead><tr><th>Control</th>{moments.map(([, label]) => <th key={label}>{label}</th>)}</tr></thead><tbody>{rows.map(([key,label]) => <tr key={key}><th>{label}</th>{moments.map(([moment]) => <td key={moment}><input readOnly={soloLectura} aria-label={`${label} ${moment}`} value={values?.[`${moment}_${key}`] ?? ''} onChange={(event) => onChange?.(`${moment}_${key}`, event.target.value)} /></td>)}</tr>)}</tbody></table></div>;
 }
 
 export default function ReporteOperatorioSection({ values, onChange, patient, history, allFormData }) {

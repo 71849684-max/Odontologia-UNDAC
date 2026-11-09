@@ -169,7 +169,6 @@ class ServicioExpediente
             // Los formularios envían todo el expediente; solo se reescriben secciones
             // modificadas. Las firmas conservan la vinculación de adjuntos independientes.
             $formulario = array_filter($formulario, fn ($datos, $codigo) => in_array($codigo, ['consentimiento', 'reporte-operatorio', 'seguimiento'], true) || $datos != ($previo['formData'][$codigo] ?? []), ARRAY_FILTER_USE_BOTH);
-            $this->versiones->conservar($id, 'EXPEDIENTE', 'ANTES_DE_EDITAR', $previo, $actor, $motivo);
             if (isset($formulario['datos-paciente']) && is_array($formulario['datos-paciente'])) {
                 $this->pacientes->sincronizarFicha($pacienteId, $formulario['datos-paciente'], $actor);
             }
@@ -263,11 +262,14 @@ class ServicioExpediente
             }
 
             $resultado = $this->obtener($id);
-            $version = $this->versiones->conservar($id, 'EXPEDIENTE', 'GUARDAR', $resultado, $actor, $motivo);
             foreach ($estados as $codigo => $estado) {
                 if ($estado === 'approved' && ($previo['sectionStatus'][$codigo] ?? null) !== 'approved' && $puedeAprobar) {
+                    $version = $this->versiones->conservarAprobacion($id, $codigo, $resultado, $actor, $motivo);
                     DB::table('historia_seccion_estado')->where('id_historia_clinica', $id)->where('codigo_seccion', $codigo)->update(['id_version_aprobada' => $version]);
                 }
+            }
+            if ($nuevasAprobaciones !== [] && $puedeAprobar) {
+                $resultado = $this->obtener($id);
             }
 
             return ['resultado' => $resultado, 'previo' => $previo];
