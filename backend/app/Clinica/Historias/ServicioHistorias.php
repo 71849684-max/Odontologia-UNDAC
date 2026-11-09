@@ -145,6 +145,13 @@ class ServicioHistorias
 
             $this->asignarActor($id, $actor);
 
+            // Abrir otra historia de un paciente existente también debe conservar
+            // el correo introducido en el formulario, no solo al crear su ficha.
+            $correo = Valores::texto($datos['correo'] ?? $datos['email'] ?? null);
+            if ($correo !== null) {
+                $this->pacientes->actualizar($idPaciente, ['correo' => $correo], $actor);
+            }
+
             DB::table('paciente')->where('id_paciente', $idPaciente)->update(['estado_atencion' => 'Borrador']);
 
             return $this->mostrar($id);

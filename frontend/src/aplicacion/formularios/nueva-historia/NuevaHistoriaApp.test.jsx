@@ -2,6 +2,7 @@ import React from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import NuevaHistoriaModal from './NuevaHistoriaModal.jsx';
+import HistoriaClinica from '../../componentes/clinica/HistoriaClinica.jsx';
 
 // Node 25 expone un localStorage incompleto: use un almacén controlado para jsdom.
 beforeEach(() => {
@@ -82,4 +83,20 @@ test('precarga los datos del paciente recibido al abrir el modal', () => {
   expect(screen.getByLabelText('Sexo')).toHaveValue('F');
   expect(screen.getByLabelText('N.º de celular')).toHaveValue('999 111 222');
   expect(screen.getByLabelText('Correo electrónico')).toHaveValue('lucia@undac.edu.pe');
+});
+
+test('conserva el correo introducido al abrir otra historia de un paciente registrado', async () => {
+  const paciente = { id: 'local-correo', dni: '71234569', nombres: 'Ana Rojas', apellidoPaterno: 'Rojas', correo: 'anterior@example.test' };
+  localStorage.setItem('undac:pacientes:frontend:v2', JSON.stringify([paciente]));
+  const creado = vi.fn();
+  const vista = render(<NuevaHistoriaModal open pacienteInicial={paciente} onCreated={creado} onClose={() => {}} />);
+  fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'nuevo@example.test' } });
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Crear historia' })).toBeEnabled());
+  fireEvent.click(screen.getByRole('button', { name: 'Crear historia' }));
+  expect(creado).toHaveBeenCalledOnce();
+  const historia = creado.mock.calls[0][0];
+  expect(JSON.parse(localStorage.getItem('undac:pacientes:frontend:v2'))[0].correo).toBe('nuevo@example.test');
+  vista.unmount();
+  render(<HistoriaClinica historiaId={historia.id} rol="alumno" />);
+  expect(screen.getByLabelText('Correo electrónico')).toHaveValue('nuevo@example.test');
 });

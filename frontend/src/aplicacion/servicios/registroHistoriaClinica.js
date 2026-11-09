@@ -162,6 +162,11 @@ export function registrarPacienteMinimo(form) {
 }
 
 export function registrarHistoriaDesdeFormulario(form) {
-    const paciente = buscarPacientePorDocumento(form.dni) ?? registrarPacienteMinimo(form);
+    let paciente = buscarPacientePorDocumento(form.dni) ?? registrarPacienteMinimo(form);
+    const correo = texto(form.correo ?? form.email);
+    if (correo) {
+        paciente = { ...paciente, correo };
+        guardarLista(PACIENTES_STORAGE_KEY, listarPacientesLocales().map((item) => String(item.id) === String(paciente.id) ? paciente : item));
+    }
     return registrarHistoriaClinica(paciente);
 }
