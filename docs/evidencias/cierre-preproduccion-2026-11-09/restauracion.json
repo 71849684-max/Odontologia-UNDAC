@@ -1,0 +1,9 @@
+{
+    "resultado": "aprobado",
+    "tablasComprobadas": 83,
+    "historias": 1000,
+    "conteosIguales": true,
+    "adjuntoIdentico": true,
+    "parchesReaplicados": true,
+    "sha256Respaldo": "7018ff3a2cdfd214270dae605ffd7c707ab3d397eadc635f928a1ecfe7bc9db2"
+}

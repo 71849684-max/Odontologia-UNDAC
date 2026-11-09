@@ -100,6 +100,7 @@ export default function NuevaHistoriaModal({ open, onClose, onCreated, pacienteI
     setResultados([]);
   };
   const create = () => {
+    if (usaApi !== true && import.meta.env.MODE !== 'test') { setError('No se puede crear la historia sin conexión al servidor. Intente nuevamente.'); return; }
     const problema = (!seleccionado?.id && (!form.nombres.trim() ? 'Ingrese los nombres del paciente.' : problemaDocumento(form.dni)))
       || problemaTelefono(form.celular) || problemaCorreo(form.email) || problemaFechaNacimiento(form.nacimiento);
     if (problema) { setError(problema); return; }

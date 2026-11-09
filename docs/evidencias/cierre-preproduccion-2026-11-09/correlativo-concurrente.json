@@ -1,0 +1,7 @@
+{
+  "base": "bd_clinica_undac_test",
+  "conexiones": 20,
+  "confirmadas": 20,
+  "codigosUnicos": 20,
+  "duracionMs": 3025
+}

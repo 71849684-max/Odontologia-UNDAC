@@ -22,6 +22,7 @@ class AccesoHistoriasTest extends TestCase
         $id = (int) $this->actingAs($duena, 'web')->postJson('/api/historias', [
             'dni' => '70000401', 'nombres' => 'Paciente Privado', 'sexo' => 'F',
         ])->assertCreated()->json('id');
+        $this->asignarProfesionalPrueba($docente, $id);
 
         $archivo = $this->actingAs($duena, 'web')->post("/api/historias/{$id}/archivos", [
             'campo' => 'firmaPaciente',
@@ -64,6 +65,7 @@ class AccesoHistoriasTest extends TestCase
         $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', [
             'dni' => '70000402', 'nombres' => 'Paciente Validado', 'sexo' => 'M',
         ])->assertCreated()->json('id');
+        $this->asignarProfesionalPrueba($docente, $id);
         $cuerpo = ['formData' => ['anamnesis' => ['motivoConsulta' => 'Control']]];
 
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/expediente", [

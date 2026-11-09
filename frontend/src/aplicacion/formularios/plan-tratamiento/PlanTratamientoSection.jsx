@@ -3,11 +3,13 @@ import { Plus, Trash2 } from 'lucide-react';
 import { CollapsibleSection, Field, SelectField, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 
-const PHASES = ['Preventiva','Restauradora','Periodontal','Endodóntica','Quirúrgica','Rehabilitadora','Mantenimiento','Otra'];
+import { fasesTratamiento as PHASES, indicacionesHistoricas } from './planTratamiento.config.mjs';
 
-export default function PlanTratamientoSection({ values, onChange }) {
+export default function PlanTratamientoSection({ values, onChange, allFormData = {} }) {
   const { get, set } = useSection(values, onChange);
   const procedimientos = get('procedimientosPlan', []);
+  const indicaciones = indicacionesHistoricas(allFormData.odontograma?.registro).filter(indicacion => !procedimientos.some(item => item.pieza === indicacion.pieza && item.procedimiento === 'Extracción programada'));
+  const recuperar = () => set('procedimientosPlan')([...procedimientos, ...indicaciones.map(indicacion => ({ fase: 'Quirúrgica', pieza: indicacion.pieza, procedimiento: 'Extracción programada', prioridad: 'Media', estado: 'Pendiente', observaciones: `Indicación histórica de evaluación ${indicacion.fecha}. Revisar clínicamente antes de realizar.` }))]);
   const update = (index, key, value) => set('procedimientosPlan')(procedimientos.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
   const add = () => set('procedimientosPlan')([...procedimientos, { fase: 'Preventiva', pieza: '', procedimiento: '', prioridad: 'Media', estado: 'Pendiente', observaciones: '' }]);
   const remove = (index) => set('procedimientosPlan')(procedimientos.filter((_, itemIndex) => itemIndex !== index));
@@ -39,5 +41,6 @@ export default function PlanTratamientoSection({ values, onChange }) {
     <CollapsibleSection title="Plan de tratamiento integral" subtitle="Campo institucional de planificación clínica abierta" summary={get('planIntegral') ? 'Resumen registrado' : 'Sin resumen'} status={get('planIntegral') ? 'progress' : 'pending'}>
       <TextAreaField label="Plan de tratamiento integral" value={get('planIntegral')} onChange={set('planIntegral')} rows={8} placeholder="Describa las fases, objetivos y consideraciones generales del plan..." />
     </CollapsibleSection>
+    {indicaciones.length ? <section className="clinical-context-note"><div><strong>Indicaciones históricas del odontograma</strong><p>Piezas: {indicaciones.map(item => item.pieza).join(', ')}. Revise estas indicaciones antes de incorporarlas al plan; no son hallazgos observados.</p><button type="button" className="undac-btn undac-btn--secondary" onClick={recuperar}>Incorporar al plan para revisión</button></div></section> : null}
   </div>;
 }

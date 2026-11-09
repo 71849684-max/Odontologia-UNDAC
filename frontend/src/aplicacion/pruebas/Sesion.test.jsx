@@ -6,6 +6,7 @@ import { cerrarSesion, iniciarSesion, obtenerSesion } from '../servicios/servici
 import { ErrorHttp } from '../servicios/clienteHttp';
 import { puedeVerRuta, RUTAS_ADMIN } from '../autenticacion/rutasProtegidas';
 import * as admin from '../servicios/servicioAdministracion';
+import { marcarSalidaPendiente } from '../autenticacion/salidaPendiente.js';
 
 vi.mock('../servicios/servicioAutenticacion', () => ({
     iniciarSesion: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock('../servicios/servicioAdministracion', () => ({
 }));
 
 beforeEach(() => {
+    marcarSalidaPendiente(false);
     vi.clearAllMocks();
     obtenerSesion.mockResolvedValue(null);
     cerrarSesion.mockResolvedValue({ mensaje: 'Sesion finalizada.' });
@@ -135,6 +137,46 @@ test('al cerrar sesion se vuelve al acceso aunque el backend falle', async () =>
     await waitFor(() => {
         expect(screen.getByRole('heading', { name: /historia clínica digital/i })).toBeInTheDocument();
     });
+    expect(screen.getByRole('alert')).toHaveTextContent('No se pudo confirmar el cierre de sesión');
+    expect(localStorage.getItem('undac:sesion:salida-pendiente')).toBe('1');
+    cerrarSesion.mockResolvedValue({ mensaje: 'Sesión finalizada.' });
+    await usuario.click(screen.getByRole('button', { name: 'Reintentar cierre de sesión' }));
+    await waitFor(() => expect(localStorage.getItem('undac:sesion:salida-pendiente')).toBeNull());
+    expect(screen.queryByRole('button', { name: /cerrar sesión/i })).not.toBeInTheDocument();
+});
+
+test('una salida pendiente impide recuperar la sesión anterior al recargar sin red', async () => {
+    localStorage.setItem('undac:sesion:salida-pendiente', '1');
+    obtenerSesion.mockResolvedValue(SESIONES.administrador);
+    cerrarSesion.mockRejectedValue(new ErrorHttp('Sin conexión.', { estado: 500 }));
+    await renderizarAplicacion();
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo confirmar el cierre de sesión');
+    expect(obtenerSesion).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /cerrar sesión/i })).not.toBeInTheDocument();
+});
+
+test('una salida pendiente se da por confirmada si el servidor ya responde sin sesión', async () => {
+    localStorage.setItem('undac:sesion:salida-pendiente', '1');
+    cerrarSesion.mockRejectedValue(new ErrorHttp('Sin sesión.', { estado: 401 }));
+    obtenerSesion.mockResolvedValue(SESIONES.administrador);
+    await renderizarAplicacion();
+    await screen.findByRole('button', { name: /ingresar al sistema/i });
+    expect(obtenerSesion).not.toHaveBeenCalled();
+    expect(localStorage.getItem('undac:sesion:salida-pendiente')).toBeNull();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test('una autenticación explícita puede sustituir una cuenta cuyo cierre devuelve 403', async () => {
+    marcarSalidaPendiente(true);
+    cerrarSesion.mockRejectedValue(new ErrorHttp('Cuenta inactiva.', { estado: 403 }));
+    iniciarSesion.mockResolvedValue(SESIONES.alumno);
+    const usuario = userEvent.setup();
+    await renderizarAplicacion();
+    await screen.findByRole('alert');
+    await ingresar(usuario, { nombreUsuario: 'mquispe' });
+    await screen.findByRole('button', { name: 'Mis historias clínicas' });
+    expect(localStorage.getItem('undac:sesion:salida-pendiente')).toBeNull();
+    expect(window.location.search).not.toContain('salida_pendiente');
 });
 
 test('oculta el modulo cuando la sesion no incluye ese permiso', async () => {

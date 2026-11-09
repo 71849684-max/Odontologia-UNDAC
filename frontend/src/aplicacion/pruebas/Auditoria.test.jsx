@@ -119,3 +119,29 @@ test('oculta Ver más si la sesión no es de administrador', async () => {
     expect(screen.queryByRole('button', { name: 'Ver más' })).not.toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Detalle' })).not.toBeInTheDocument();
 });
+
+test('muestra quién aprobó o reabrió y la sección en la tabla y el detalle', async () => {
+    admin.listarAuditoria.mockImplementation(async (filtros = {}) => ({
+        data: filtros.origen === 'acciones' ? [
+            { id: 101, usuario: 'profesional.aprobador', accion: 'APROBAR_SECCION', historia: 'HC-2026-001', modulo: 'historia_seccion_estado', valores_anteriores: { anamnesis: 'review' }, valores_nuevos: { anamnesis: 'approved' } },
+            { id: 102, usuario: 'administrador.reapertura', accion: 'REABRIR_SECCION', historia: 'HC-2026-001', modulo: 'historia_seccion_estado', valores_anteriores: { odontograma: 'approved' }, valores_nuevos: { odontograma: 'in-progress' } },
+        ] : [],
+        accesos_recientes: [], acciones: ['APROBAR_SECCION', 'REABRIR_SECCION'],
+    }));
+    const usuario = userEvent.setup();
+    renderizarAuditoria();
+    await usuario.click(screen.getByRole('tab', { name: 'Acciones en historias' }));
+    const tabla = await screen.findByRole('table');
+    expect(within(tabla).getByRole('columnheader', { name: 'Sección / submódulo' })).toBeInTheDocument();
+    const aprobacion = within(tabla).getByRole('row', { name: /profesional.aprobador/ });
+    expect(within(aprobacion).getByText('Aprobar sección')).toBeInTheDocument();
+    expect(within(aprobacion).getByText('Anamnesis y enfermedad actual')).toBeInTheDocument();
+    const reapertura = within(tabla).getByRole('row', { name: /administrador.reapertura/ });
+    expect(within(reapertura).getByText('Reabrir sección para corregirla')).toBeInTheDocument();
+    expect(within(reapertura).getByText('Odontograma digital')).toBeInTheDocument();
+    await usuario.click(within(reapertura).getByRole('button', { name: 'Ver más' }));
+    const detalle = await screen.findByRole('dialog', { name: 'Detalle de la acción' });
+    expect(within(detalle).getByText('administrador.reapertura')).toBeInTheDocument();
+    expect(within(detalle).getByText('Sección / submódulo')).toBeInTheDocument();
+    expect(within(detalle).getAllByText('Odontograma digital').length).toBeGreaterThan(0);
+});

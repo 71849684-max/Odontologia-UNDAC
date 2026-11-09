@@ -2,7 +2,10 @@
 
 namespace App\Clinica\Http\Controladores;
 
+use App\Clinica\Expediente\ServicioConsentimientos;
 use App\Clinica\Expediente\ServicioExpediente;
+use App\Clinica\Expediente\ServicioExportacionClinica;
+use App\Clinica\Expediente\ServicioVersionesClinicas;
 use App\Clinica\Historias\AccesoHistorias;
 use App\Clinica\Historias\ServicioEquipoClinico;
 use App\Clinica\Historias\ServicioHistorias;
@@ -19,6 +22,7 @@ use App\Identidad\Http\ContextoDesdePeticion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ControladorHistorias extends Controller
 {
@@ -27,6 +31,7 @@ class ControladorHistorias extends Controller
     public function __construct(
         private readonly ServicioHistorias $historias,
         private readonly ServicioExpediente $expediente,
+        private readonly ServicioVersionesClinicas $versiones,
         private readonly ServicioOdontograma $odontograma,
         private readonly ServicioEquipoClinico $equipo,
         private readonly RegistradorAuditoria $auditoria,
@@ -186,7 +191,58 @@ class ControladorHistorias extends Controller
 
     public function expediente(int $idHistoria): JsonResponse
     {
-        return response()->json($this->expediente->obtener($idHistoria));
+        return response()->json($this->operacion(fn () => $this->expediente->obtener($idHistoria)));
+    }
+
+    public function decidirConsentimiento(Request $solicitud, int $idHistoria, ServicioConsentimientos $consentimientos): JsonResponse
+    {
+        $datos = $solicitud->validate(['decision' => ['required', Rule::in(['OTORGADO', 'NEGADO', 'REVOCADO'])], 'motivo' => ['required', 'string', 'max:1000']]);
+        $resultado = $this->operacion(fn () => $consentimientos->decidir($idHistoria, $datos['decision'], $datos['motivo'], $solicitud->user()));
+        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'CONSENTIMIENTO_'.$datos['decision'], null, ['historia' => $idHistoria, 'version' => $resultado['version']]);
+
+        return response()->json($resultado);
+    }
+
+    public function versiones(int $idHistoria): JsonResponse
+    {
+        return response()->json(['data' => $this->versiones->listar($idHistoria)]);
+    }
+
+    public function version(int $idHistoria, int $idVersion): JsonResponse
+    {
+        return response()->json($this->versiones->obtener($idHistoria, $idVersion));
+    }
+
+    public function exportar(Request $solicitud, int $idHistoria): JsonResponse
+    {
+        $datos = $this->expediente->obtener($idHistoria);
+        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'EXPORTAR_HISTORIA', null, ['historia' => $idHistoria]);
+
+        return response()->json(['expediente' => $datos, 'versiones' => $this->versiones->listar($idHistoria), 'exportadoEn' => now()->toISOString()])
+            ->header('Content-Disposition', 'attachment; filename="historia-'.$idHistoria.'.json"');
+    }
+
+    public function exportacionCompleta(Request $solicitud, int $idHistoria, ServicioExportacionClinica $exportacion): BinaryFileResponse
+    {
+        $ruta = $this->operacion(fn () => $exportacion->preparar($idHistoria));
+        try {
+            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'EXPORTAR_HISTORIA', null, ['historia' => $idHistoria, 'incluyeVersionesYAdjuntos' => true]);
+
+            return response()->download($ruta, 'historia-'.$idHistoria.'-completa.zip')->deleteFileAfterSend(true);
+        } catch (\Throwable $fallo) {
+            if (is_file($ruta)) {
+                unlink($ruta);
+            }
+            throw $fallo;
+        }
+    }
+
+    public function registrarImpresion(Request $solicitud, int $idHistoria): JsonResponse
+    {
+        $datos = $solicitud->validate(['seccion' => ['required', 'string', 'max:80']]);
+        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'IMPRIMIR_HISTORIA', null, ['historia' => $idHistoria, 'seccion' => $datos['seccion']]);
+
+        return response()->json(['registrado' => true]);
     }
 
     public function guardarExpediente(Request $solicitud, int $idHistoria): JsonResponse
@@ -205,6 +261,14 @@ class ControladorHistorias extends Controller
             'formData.datos-paciente.sexo' => ['nullable', Rule::in(['F', 'M', 'O'])],
             'formData.anamnesis.motivoConsulta' => ['nullable', 'string', 'max:10000'],
             'formData.anamnesis.enfermedadActual' => ['nullable', 'string', 'max:10000'],
+            'formData.consentimiento.fecha' => ['nullable', 'date', 'before_or_equal:today'],
+            'formData.consentimiento.intervencionAutorizada' => ['nullable', 'string', 'max:10000'],
+            'formData.consentimiento.representanteTipo' => ['nullable', Rule::in(['paciente', 'representante'])],
+            'formData.consentimiento.representacionSustento' => ['nullable', 'string', 'max:5000'],
+            'formData.consentimiento.riesgosPersonalizados' => ['nullable', 'string', 'max:10000'],
+            'formData.consentimiento.alternativas' => ['nullable', 'string', 'max:10000'],
+            'formData.consentimiento.textosClausulas' => ['nullable', 'array', 'max:50'],
+            'formData.consentimiento.textosClausulas.*' => ['nullable', 'string', 'max:5000'],
             'formData.examen-clinico.peso' => ReglasBasicas::numeroNoNegativo(),
             'formData.examen-clinico.talla' => ReglasBasicas::numeroNoNegativo(),
             'formData.examen-clinico.temperatura' => ReglasBasicas::numeroNoNegativo(),
@@ -214,19 +278,20 @@ class ControladorHistorias extends Controller
             'sectionStatus' => ['nullable', 'array', 'max:40'],
             'sectionStatus.*' => [Rule::in(['not-started', 'in-progress', 'complete', 'review', 'approved'])],
             'revision' => ['nullable', 'string', 'size:64'],
+            'motivo' => ['nullable', 'string', 'max:1000'],
         ]);
         // Se validan formatos puntuales sin recortar el resto de los campos clínicos
         // del borrador: el servicio conserva el mapeo de cada sección.
         $datos['formData'] = $solicitud->input('formData');
 
-        $previo = $this->expediente->obtener($idHistoria);
-        $estadosPrevios = $this->expediente->estadosSeccion($idHistoria);
-        $resultado = $this->operacion(
-            fn () => $this->expediente->guardar($idHistoria, $datos['formData'], $datos['sectionStatus'] ?? [], $actor, $datos['revision'] ?? null),
+        $operacion = $this->operacion(
+            fn () => $this->expediente->guardarConVersion($idHistoria, $datos['formData'], $datos['sectionStatus'] ?? [], $actor, $datos['revision'] ?? null, $datos['motivo'] ?? null),
         );
-
-        $actuales = $this->expediente->estadosSeccion($idHistoria);
-        $editadas = array_keys(array_filter($datos['formData'], fn ($valor, $codigo) => $valor !== ($previo['formData'][$codigo] ?? null), ARRAY_FILTER_USE_BOTH));
+        $previo = $operacion['previo'];
+        $resultado = $operacion['resultado'];
+        $estadosPrevios = $previo['sectionStatus'];
+        $actuales = $resultado['sectionStatus'];
+        $editadas = array_keys(array_filter(array_intersect_key($resultado['formData'], $datos['formData']), fn ($valor, $codigo) => $valor !== ($previo['formData'][$codigo] ?? null), ARRAY_FILTER_USE_BOTH));
         if ($editadas !== []) {
             $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'EDITAR',
                 array_intersect_key($previo['formData'] ?? [], array_flip($editadas)),
@@ -238,8 +303,8 @@ class ControladorHistorias extends Controller
             $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'MARCAR_COMPLETADO', array_intersect_key($estadosPrevios, $completadas), $completadas);
         }
         $reabiertas = array_filter(array_intersect_key($actuales, array_filter($estadosPrevios, fn ($estado) => in_array($estado, ['approved', 'review', 'complete'], true))), fn ($estado) => $estado === 'in-progress');
-        if ($reabiertas !== []) {
-            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'REABRIR_SECCION', array_intersect_key($estadosPrevios, $reabiertas), $reabiertas);
+        foreach ($reabiertas as $codigo => $estado) {
+            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'REABRIR_SECCION', [$codigo => $estadosPrevios[$codigo]], [$codigo => $estado]);
         }
         $enviadas = [];
         foreach ($datos['sectionStatus'] ?? [] as $codigo => $estado) {
@@ -255,7 +320,10 @@ class ControladorHistorias extends Controller
             array_diff_assoc(array_intersect_key($actuales, $datos['sectionStatus'] ?? []), $estadosPrevios),
             fn ($estado) => $estado === 'approved',
         );
-        $auditoriaEstados = $enviadas + $aprobadas;
+        foreach ($aprobadas as $codigo => $estado) {
+            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'APROBAR_SECCION', [$codigo => $estadosPrevios[$codigo] ?? 'not-started'], [$codigo => $estado]);
+        }
+        $auditoriaEstados = $enviadas;
         if ($auditoriaEstados !== []) {
             $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'REVISAR_SECCION',
                 array_intersect_key($estadosPrevios, $auditoriaEstados),
@@ -285,7 +353,7 @@ class ControladorHistorias extends Controller
 
     public function odontograma(int $idHistoria): JsonResponse
     {
-        return response()->json(['registro' => $this->odontograma->leer($idHistoria)]);
+        return response()->json($this->operacion(fn () => $this->odontograma->leerConRevision($idHistoria)));
     }
 
     public function guardarOdontograma(Request $solicitud, int $idHistoria): JsonResponse

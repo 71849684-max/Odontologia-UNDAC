@@ -769,4 +769,4 @@
     --color-paleta-original-4f46e5: #4f46e5;
     --color-paleta-original-9d037136: rgba(15, 113, 129, 0.35);
 }
-:root:not([data-tema="oscuro"]) { --ou-muted: #64748b; }
+:root:not([data-tema="oscuro"]) { --ou-muted: var(--color-paleta-original-52657a); }

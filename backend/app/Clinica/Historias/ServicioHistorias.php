@@ -115,15 +115,10 @@ class ServicioHistorias
             }
 
             $anio = now()->year;
-            // Usar el máximo correlativo (no el conteo) para no chocar con uq_historia_numero si hay huecos.
-            $ultimo = DB::table('historia_clinica')
-                ->where('numero_historia', 'like', "HC-{$anio}-%")
-                ->orderByDesc('numero_historia')
-                ->value('numero_historia');
-            $correlativo = 1;
-            if (is_string($ultimo) && preg_match('/HC-\d+-(\d+)$/', $ultimo, $partes)) {
-                $correlativo = ((int) $partes[1]) + 1;
-            }
+            DB::table('historia_correlativo')->insertOrIgnore(['anio' => $anio, 'ultimo' => 0]);
+            $contador = DB::table('historia_correlativo')->where('anio', $anio)->lockForUpdate()->first();
+            $correlativo = (int) $contador->ultimo + 1;
+            DB::table('historia_correlativo')->where('anio', $anio)->update(['ultimo' => $correlativo]);
             $numero = sprintf('HC-%d-%03d', $anio, $correlativo);
             $idEstado = (int) DB::table('estado_historia_clinica')->where('codigo', 'BORRADOR')->value('id_estado_historia');
 
@@ -155,7 +150,7 @@ class ServicioHistorias
             DB::table('paciente')->where('id_paciente', $idPaciente)->update(['estado_atencion' => 'Borrador']);
 
             return $this->mostrar($id);
-        });
+        }, 3);
     }
 
     public function cambiarEstado(int $id, string $codigo, Cuenta $actor, ?string $observacion = null): array
@@ -173,7 +168,7 @@ class ServicioHistorias
             throw new OperacionNoPermitida('estado', 'No se puede pasar de '.$fila->codigo_estado.' a '.$codigo.'.');
         }
 
-        if (in_array($codigo, ['VALIDADA', 'OBSERVADA'], true) && $actor->tipoCuenta() !== 'DOCENTE') {
+        if (in_array($codigo, ['VALIDADA', 'OBSERVADA'], true) && ! $this->acceso->puedeAprobar($actor)) {
             throw new OperacionNoPermitida('estado', 'Solo un cirujano dentista puede observar o validar la historia.');
         }
 

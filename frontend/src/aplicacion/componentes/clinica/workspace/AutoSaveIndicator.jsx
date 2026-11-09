@@ -3,7 +3,7 @@ import { AlertTriangle, CheckCircle2, HardDrive, LoaderCircle } from 'lucide-rea
 
 const ESTADOS = {
   saving: { Icon: LoaderCircle, label: 'Guardando cambios…', detalle: 'Enviando al servidor', className: 'is-saving' },
-  error: { Icon: AlertTriangle, label: 'No se pudo guardar', detalle: 'Se reintentará con el próximo cambio', className: 'is-error' },
+  error: { Icon: AlertTriangle, label: 'No se pudo guardar', detalle: 'Cambios solo en esta pantalla; no cierre ni recargue', className: 'is-error' },
   local: { Icon: HardDrive, label: 'Guardado solo en este equipo', detalle: 'Sin conexión con el servidor', className: 'is-local' },
   saved: { Icon: CheckCircle2, label: 'Guardado en el servidor', detalle: null, className: 'is-saved' },
 };

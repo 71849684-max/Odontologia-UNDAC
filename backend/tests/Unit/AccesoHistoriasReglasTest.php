@@ -75,9 +75,9 @@ class AccesoHistoriasReglasTest extends TestCase
         $acceso = app(AccesoHistorias::class);
 
         $this->assertSame(['anamnesis'], $acceso->seccionesBloqueadas($alumno, $id));
-        $this->assertSame([], $acceso->seccionesBloqueadas($docente, $id));
+        $this->assertSame(['anamnesis'], $acceso->seccionesBloqueadas($docente, $id));
         $this->assertFalse($acceso->seccionEditable($alumno, $id, 'anamnesis'));
         $this->assertTrue($acceso->seccionEditable($alumno, $id, 'odontograma'));
-        $this->assertTrue($acceso->seccionEditable($docente, $id, 'anamnesis'));
+        $this->assertFalse($acceso->seccionEditable($docente, $id, 'anamnesis'));
     }
 }

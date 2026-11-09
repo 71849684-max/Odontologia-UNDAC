@@ -39,11 +39,12 @@ class CriteriosClinicosTest extends TestCase
         $ajena = $this->crearUsuario('uat.ajena', self::CLAVE_PRUEBA, 'ALUMNO');
         $docente = $this->crearUsuario('uat.docente', self::CLAVE_PRUEBA, 'DOCENTE');
         $id = $this->abrirHistoria($alumno, '71000601', 'Paciente UAT');
+        $this->asignarProfesionalPrueba($docente, $id);
 
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", [
             'registro' => [
                 'version' => 1,
-                'examinations' => [['id' => 'uat-1', 'status' => 'draft', 'teeth' => []]],
+                'examinations' => [['id' => 'uat-1', 'date' => now()->toDateString(), 'status' => 'draft', 'teeth' => []]],
             ],
         ])->assertOk();
 
@@ -66,6 +67,7 @@ class CriteriosClinicosTest extends TestCase
         $docente = $this->crearUsuario('uat.val.docente', self::CLAVE_PRUEBA, 'DOCENTE');
         $admin = $this->crearUsuario('uat.val.admin', self::CLAVE_PRUEBA, 'ADMINISTRADOR');
         $id = $this->abrirHistoria($alumno, '71000602');
+        $this->asignarProfesionalPrueba($docente, $id);
 
         $this->guardarExpediente($alumno, $id, [
             'anamnesis' => ['motivoConsulta' => 'UAT', 'historiaEnfermedad' => 'Seguimiento'],

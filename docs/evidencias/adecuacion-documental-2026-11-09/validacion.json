@@ -1,0 +1,103 @@
+{
+  "fecha": "2026-11-09",
+  "zonaHoraria": "America/Lima",
+  "alcance": "Adecuación técnica; no certificación sanitaria ni acreditación SIHCE",
+  "backend": {
+    "resultado": "aprobado",
+    "pruebas": 163,
+    "afirmaciones": 1186
+  },
+  "frontend": {
+    "resultado": "aprobado",
+    "archivos": 35,
+    "pruebas": 271
+  },
+  "navegador": {
+    "resultado": "aprobado",
+    "pruebas": 60,
+    "motores": [
+      "Chromium",
+      "Firefox"
+    ],
+    "cookiesYCsrfReales": true,
+    "respuestasApiSimuladas": false
+  },
+  "estiloPhp": {
+    "resultado": "aprobado"
+  },
+  "compilacion": {
+    "resultado": "aprobado",
+    "nota": "Persiste aviso del tamaño del módulo clínico; rutas con carga diferida."
+  },
+  "cargaNominal": {
+    "resultado": "aprobado",
+    "usuariosVirtuales": 40,
+    "intervaloClinicoSegundos": 30,
+    "faseEstableMinutos": 5,
+    "latencias": {
+      "listado": {
+        "p95Milisegundos": 369.11,
+        "muestrasEstables": 391
+      },
+      "lectura": {
+        "p95Milisegundos": 323.14,
+        "muestrasEstables": 390
+      },
+      "autoguardado": {
+        "p95Milisegundos": 416.31,
+        "muestrasEstables": 389
+      }
+    },
+    "erroresHttpPorcentaje": 0,
+    "conflictos": 0,
+    "verificacionesIntegridad": {
+      "rate": 1,
+      "passes": 474,
+      "fails": 0
+    },
+    "todosLosUmbralesAprobados": true,
+    "servidor": "Artisan PHP 8.5.8, un proceso; MySQL local compartido. No equivale al servidor definitivo."
+  },
+  "verificacionDataset": {
+    "resultado": "aprobado",
+    "historias": 1000,
+    "renovacionesCsrf": 0
+  },
+  "recursos": {
+    "alcance": "Muestreo separado de 30 segundos del humo inicial de 5 usuarios. No mide la campaña nominal completa de 40 usuarios.",
+    "muestras": [
+      {
+        "proceso": "mysqld",
+        "muestras": 11,
+        "cpuMaximoPorcentajeEquipo": 7.38,
+        "memoriaMaximaMb": 249.08
+      },
+      {
+        "proceso": "php",
+        "muestras": 22,
+        "cpuMaximoPorcentajeEquipo": 9.26,
+        "memoriaMaximaMb": 50.78
+      }
+    ]
+  },
+  "instalacionLocal": {
+    "resultado": "aprobado",
+    "php": "8.5.8",
+    "tablas": 83,
+    "vistas": 3,
+    "triggers": 12,
+    "fallos": []
+  },
+  "versionesLocalesAlInstalar": "Versiones verificadas: 0. Inconsistencias: 0.",
+  "baseSqlReferenciaSha256": "70cf7588e7b9525a501d188c865d99116a6640957122af3b7c31a618f08150bd",
+  "firmaDigital": {
+    "implementada": false,
+    "motivo": "Se confirmó que la doctora aún no tiene certificado ni proveedor.",
+    "seDistingueDeImagenesYFlujoDeAprobacion": true
+  },
+  "observaciones": [
+    "Los ensayos de humo de ráfagas no cumplen todas las metas; se conservan junto a la campaña nominal aprobada.",
+    "Se instalaron únicamente tres parches aditivos de estructura en la base local y en las tres bases aisladas. No se ejecutaron cambios en registros de pacientes ni despliegue externo.",
+    "Las versiones no reconstruyen ni firman actuaciones anteriores a su instalación."
+  ]
+}

@@ -1,0 +1,636 @@
+{
+  "equipo": {
+    "sistema": "Windows_NT",
+    "version": "10.0.26300",
+    "cpu": "Intel(R) Core(TM) i5-10300H CPU @ 2.50GHz",
+    "procesadores": 8,
+    "memoriaGb": 24,
+    "generador": "k6 2.3.0",
+    "servidor": "PHP 8.5.8 Artisan, un proceso; MySQL 8.4.3 compartido; red de bucle local",
+    "dataset": "48 cuentas, 45 operadores, 1000 historias sintéticas"
+  },
+  "cargas": [
+    {
+      "nombre": "cierre-humo-listado",
+      "usuarios": 5,
+      "humo": true,
+      "validaComoReferencia": false,
+      "nota": "Servidor Artisan local; referencia exploratoria, no certifica producción.",
+      "latencias": {
+        "listado": {
+          "p(95)": 566.3115449999998,
+          "p(99)": 699.203983,
+          "max": 710.4979,
+          "count": 38,
+          "avg": 271.9738157894737,
+          "med": 237.8582
+        }
+      },
+      "errores": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 50
+      },
+      "errores5xx": 0,
+      "comprobaciones": {
+        "rate": 1,
+        "passes": 45,
+        "fails": 0
+      },
+      "umbrales": [
+        {
+          "metrica": "http_req_duration{operacion:listado,fase:estable}",
+          "criterio": "p(95)<800",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:listado}",
+          "criterio": "count>=1",
+          "aprobado": true
+        },
+        {
+          "metrica": "checks",
+          "criterio": "rate==1",
+          "aprobado": true
+        },
+        {
+          "metrica": "fallos_servidor",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_failed",
+          "criterio": "rate<0.01",
+          "aprobado": true
+        }
+      ]
+    },
+    {
+      "nombre": "cierre-humo-lectura",
+      "usuarios": 5,
+      "humo": true,
+      "validaComoReferencia": false,
+      "nota": "Servidor Artisan local; referencia exploratoria, no certifica producción.",
+      "latencias": {
+        "lectura": {
+          "avg": 211.30707073170734,
+          "med": 169.295,
+          "p(95)": 469.4439,
+          "p(99)": 575.3069800000001,
+          "max": 586.6689,
+          "count": 41
+        }
+      },
+      "errores": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 53
+      },
+      "errores5xx": 0,
+      "comprobaciones": {
+        "rate": 1,
+        "passes": 48,
+        "fails": 0
+      },
+      "umbrales": [
+        {
+          "metrica": "checks",
+          "criterio": "rate==1",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:lectura,fase:estable}",
+          "criterio": "p(95)<1200",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_failed",
+          "criterio": "rate<0.01",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:lectura}",
+          "criterio": "count>=1",
+          "aprobado": true
+        },
+        {
+          "metrica": "fallos_servidor",
+          "criterio": "count==0",
+          "aprobado": true
+        }
+      ]
+    },
+    {
+      "nombre": "cierre-humo-autoguardado",
+      "usuarios": 5,
+      "humo": true,
+      "validaComoReferencia": false,
+      "nota": "Servidor Artisan local; referencia exploratoria, no certifica producción.",
+      "latencias": {
+        "lectura": {
+          "med": 547.59515,
+          "p(95)": 785.620075,
+          "p(99)": 970.699615,
+          "max": 1016.9695,
+          "count": 16,
+          "avg": 516.36775
+        },
+        "autoguardado": {
+          "count": 17,
+          "avg": 784.2729588235294,
+          "med": 780.0453,
+          "p(95)": 1202.12108,
+          "p(99)": 1294.447416,
+          "max": 1317.529
+        }
+      },
+      "errores": {
+        "passes": 0,
+        "fails": 64,
+        "rate": 0
+      },
+      "errores5xx": 0,
+      "comprobaciones": {
+        "rate": 1,
+        "passes": 41,
+        "fails": 0
+      },
+      "integridad": {
+        "rate": 1,
+        "passes": 18,
+        "fails": 0
+      },
+      "umbrales": [
+        {
+          "metrica": "http_req_duration{operacion:lectura,fase:estable}",
+          "criterio": "p(95)<1200",
+          "aprobado": true
+        },
+        {
+          "metrica": "checks",
+          "criterio": "rate==1",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:lectura}",
+          "criterio": "count>=1",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_failed",
+          "criterio": "rate<0.01",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:autoguardado}",
+          "criterio": "count>=1",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:autoguardado,fase:estable}",
+          "criterio": "p(95)<700",
+          "aprobado": false
+        },
+        {
+          "metrica": "conflictos",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "fallos_servidor",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "integridad",
+          "criterio": "rate==1",
+          "aprobado": true
+        }
+      ]
+    },
+    {
+      "nombre": "cierre-humo-mixto",
+      "usuarios": 5,
+      "humo": true,
+      "validaComoReferencia": false,
+      "nota": "Servidor Artisan local; referencia exploratoria, no certifica producción.",
+      "latencias": {
+        "listado": {
+          "avg": 685.2621428571427,
+          "med": 594.34415,
+          "p(95)": 1114.3225199999997,
+          "p(99)": 1310.8935439999996,
+          "max": 1360.0363,
+          "count": 14
+        },
+        "lectura": {
+          "count": 12,
+          "avg": 639.1280833333334,
+          "med": 565.8012,
+          "p(95)": 1196.1866999999993,
+          "p(99)": 1540.4664600000006,
+          "max": 1626.5364
+        },
+        "autoguardado": {
+          "max": 1179.1347,
+          "count": 12,
+          "avg": 758.5270583333335,
+          "med": 722.42405,
+          "p(95)": 1072.8682099999999,
+          "p(99)": 1157.8814020000002
+        }
+      },
+      "errores": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 70
+      },
+      "errores5xx": 0,
+      "comprobaciones": {
+        "rate": 1,
+        "passes": 50,
+        "fails": 0
+      },
+      "integridad": {
+        "rate": 1,
+        "passes": 15,
+        "fails": 0
+      },
+      "umbrales": [
+        {
+          "metrica": "http_req_duration{operacion:listado,fase:estable}",
+          "criterio": "p(95)<800",
+          "aprobado": false
+        },
+        {
+          "metrica": "checks",
+          "criterio": "rate==1",
+          "aprobado": true
+        },
+        {
+          "metrica": "fallos_servidor",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "conflictos",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:lectura,fase:estable}",
+          "criterio": "p(95)<1200",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:autoguardado}",
+          "criterio": "count>=1",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:autoguardado,fase:estable}",
+          "criterio": "p(95)<700",
+          "aprobado": false
+        },
+        {
+          "metrica": "integridad",
+          "criterio": "rate==1",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:listado}",
+          "criterio": "count>=1",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:lectura}",
+          "criterio": "count>=1",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_failed",
+          "criterio": "rate<0.01",
+          "aprobado": true
+        }
+      ]
+    },
+    {
+      "nombre": "cierre-local-40",
+      "usuarios": 40,
+      "humo": false,
+      "validaComoReferencia": false,
+      "nota": "Interrupción prolongada del equipo; campaña fallida, no usar sus latencias para acreditar capacidad.",
+      "latencias": {
+        "listado": {
+          "p(95)": 406.354675,
+          "p(99)": 682.9677600000006,
+          "max": 900.9974,
+          "count": 316,
+          "avg": 193.7728297468355,
+          "med": 147.53945
+        },
+        "lectura": {
+          "p(95)": 390.61376,
+          "p(99)": 562.0194880000014,
+          "max": 818.8295,
+          "count": 315,
+          "avg": 175.72225460317458,
+          "med": 156.8393
+        },
+        "autoguardado": {
+          "avg": 3884.438482802548,
+          "med": 309.2315,
+          "p(95)": 613.2472849999992,
+          "p(99)": 769.9316260000002,
+          "max": 1110614.3319,
+          "count": 314
+        }
+      },
+      "errores": {
+        "rate": 0.0006257822277847309,
+        "passes": 1,
+        "fails": 1597
+      },
+      "errores5xx": 0,
+      "comprobaciones": {
+        "rate": 0.9991525423728813,
+        "passes": 1179,
+        "fails": 1
+      },
+      "integridad": {
+        "rate": 1,
+        "passes": 378,
+        "fails": 0
+      },
+      "umbrales": [
+        {
+          "metrica": "http_req_duration{operacion:autoguardado,fase:estable}",
+          "criterio": "p(95)<700",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:lectura}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_failed",
+          "criterio": "rate<0.01",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:listado,fase:estable}",
+          "criterio": "p(95)<800",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:lectura,fase:estable}",
+          "criterio": "p(95)<1200",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:listado}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "fallos_servidor",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "checks",
+          "criterio": "rate==1",
+          "aprobado": false
+        },
+        {
+          "metrica": "conflictos",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:autoguardado}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "integridad",
+          "criterio": "rate==1",
+          "aprobado": true
+        }
+      ]
+    },
+    {
+      "nombre": "cierre-local-40-continuo",
+      "usuarios": 40,
+      "humo": false,
+      "validaComoReferencia": true,
+      "nota": "Servidor Artisan local; referencia exploratoria, no certifica producción.",
+      "latencias": {
+        "listado": {
+          "p(95)": 558.75305,
+          "p(99)": 849.6372399999984,
+          "max": 1105.3295,
+          "count": 386,
+          "avg": 212.79772305699487,
+          "med": 148.8955
+        },
+        "lectura": {
+          "count": 386,
+          "avg": 186.45775233160617,
+          "med": 142.8571,
+          "p(95)": 470.00345000000004,
+          "p(99)": 837.3227349999976,
+          "max": 1293.5315
+        },
+        "autoguardado": {
+          "p(95)": 639.4651849999999,
+          "p(99)": 913.971496,
+          "max": 1167.6402,
+          "count": 388,
+          "avg": 355.79784458762896,
+          "med": 303.0837
+        }
+      },
+      "errores": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 1956
+      },
+      "errores5xx": 0,
+      "comprobaciones": {
+        "rate": 1,
+        "passes": 1447,
+        "fails": 0
+      },
+      "integridad": {
+        "rate": 1,
+        "passes": 469,
+        "fails": 0
+      },
+      "umbrales": [
+        {
+          "metrica": "http_req_failed",
+          "criterio": "rate<0.01",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:listado}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "fallos_servidor",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:listado,fase:estable}",
+          "criterio": "p(95)<800",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:autoguardado}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "integridad",
+          "criterio": "rate==1",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:autoguardado,fase:estable}",
+          "criterio": "p(95)<700",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:lectura,fase:estable}",
+          "criterio": "p(95)<1200",
+          "aprobado": true
+        },
+        {
+          "metrica": "conflictos",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:lectura}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "checks",
+          "criterio": "rate==1",
+          "aprobado": true
+        }
+      ]
+    },
+    {
+      "nombre": "cierre-local-40-recursos",
+      "usuarios": 40,
+      "humo": false,
+      "validaComoReferencia": false,
+      "nota": "Interrupción prolongada del equipo; campaña fallida, no usar sus latencias para acreditar capacidad.",
+      "latencias": {
+        "listado": {
+          "max": 541.8536,
+          "count": 322,
+          "avg": 182.30626118012412,
+          "med": 156.06060000000002,
+          "p(95)": 379.1526549999999,
+          "p(99)": 475.701046
+        },
+        "lectura": {
+          "avg": 170.20750217391313,
+          "med": 161.43785000000003,
+          "p(95)": 337.303955,
+          "p(99)": 425.4273930000001,
+          "max": 571.3424,
+          "count": 322
+        },
+        "autoguardado": {
+          "avg": 31470.980298442373,
+          "med": 307.3203,
+          "p(95)": 514.7406,
+          "p(99)": 540.80322,
+          "max": 9998171.4613,
+          "count": 321
+        }
+      },
+      "errores": {
+        "rate": 0.0006169031462060457,
+        "passes": 1,
+        "fails": 1620
+      },
+      "errores5xx": 0,
+      "comprobaciones": {
+        "rate": 0.9991645781119465,
+        "passes": 1196,
+        "fails": 1
+      },
+      "integridad": {
+        "rate": 1,
+        "passes": 384,
+        "fails": 0
+      },
+      "umbrales": [
+        {
+          "metrica": "checks",
+          "criterio": "rate==1",
+          "aprobado": false
+        },
+        {
+          "metrica": "http_req_failed",
+          "criterio": "rate<0.01",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:lectura,fase:estable}",
+          "criterio": "p(95)<1200",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:lectura}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:listado,fase:estable}",
+          "criterio": "p(95)<800",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:autoguardado}",
+          "criterio": "count>=30",
+          "aprobado": true
+        },
+        {
+          "metrica": "http_req_duration{operacion:autoguardado,fase:estable}",
+          "criterio": "p(95)<700",
+          "aprobado": true
+        },
+        {
+          "metrica": "integridad",
+          "criterio": "rate==1",
+          "aprobado": true
+        },
+        {
+          "metrica": "fallos_servidor",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "conflictos",
+          "criterio": "count==0",
+          "aprobado": true
+        },
+        {
+          "metrica": "muestras_estables{operacion:listado}",
+          "criterio": "count>=30",
+          "aprobado": true
+        }
+      ]
+    }
+  ]
+}

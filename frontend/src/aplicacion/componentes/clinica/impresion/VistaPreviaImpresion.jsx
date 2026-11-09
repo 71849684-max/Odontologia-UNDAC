@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Printer, X } from 'lucide-react';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
+import { idHistoria, obtenerExpediente, registrarImpresionClinica, mensajeError } from '../../../servicios/servicioClinico.js';
+import { clinicalSections } from '../../../configuracion/historiaClinica.config.mjs';
 import { getSectionById } from '../../../configuracion/historiaClinica.config.mjs';
 import { datosImpresion } from './documentoClinico.mjs';
 import { plantillaDeSeccion } from './registroImpresion.js';
@@ -19,8 +21,20 @@ function esperarImagenes(contenedor) {
 }
 
 export default function VistaPreviaImpresion({ seccionId, onClose }) {
-  const { patient, history, meta, formData, cargandoExpediente = false } = useHistoriaClinica();
-  const seccion = getSectionById(seccionId);
+  const contexto = useHistoriaClinica();
+  const [confirmado, setConfirmado] = useState(null);
+  const [errorCarga, setErrorCarga] = useState('');
+  const historiaId = idHistoria(contexto.history.id);
+  const { patient, history, meta } = contexto;
+  const formData = confirmado?.formData ?? contexto.formData;
+  const cargandoExpediente = contexto.cargandoExpediente || Boolean(historiaId && !confirmado);
+  useEffect(() => {
+    if (!historiaId) return undefined;
+    let vigente = true;
+    obtenerExpediente(historiaId).then(datos => { if (vigente) setConfirmado(datos); }).catch(fallo => { if (vigente) setErrorCarga(mensajeError(fallo, 'No se pudo cargar la copia del servidor.')); });
+    return () => { vigente = false; };
+  }, [historiaId]);
+  const seccion = seccionId === 'todas' ? { label: 'Expediente completo' } : getSectionById(seccionId);
   const Plantilla = plantillaDeSeccion(seccionId);
   const datos = useMemo(() => datosImpresion({ patient, history, meta, formData }), [patient, history, meta, formData]);
   const [preparando, setPreparando] = useState(false);
@@ -47,15 +61,13 @@ export default function VistaPreviaImpresion({ seccionId, onClose }) {
 
   async function imprimir() {
     if (preparando || cargandoExpediente) return;
-    const pendientes = dialogoRef.current ? [...dialogoRef.current.querySelectorAll('img')].filter((imagen) => !imagen.complete) : [];
-    if (!pendientes.length) {
-      window.print();
-      return;
-    }
     setPreparando(true);
-    await esperarImagenes(dialogoRef.current);
-    setPreparando(false);
-    window.print();
+    try {
+      if (historiaId) await registrarImpresionClinica(historiaId, seccionId);
+      await esperarImagenes(dialogoRef.current);
+      window.print();
+    } catch (fallo) { setErrorCarga(mensajeError(fallo, 'No se pudo registrar la preparación de impresión.')); }
+    finally { setPreparando(false); }
   }
 
   return createPortal(
@@ -78,7 +90,12 @@ export default function VistaPreviaImpresion({ seccionId, onClose }) {
       <div className="doc-impresion__lienzo" ref={dialogoRef} role="dialog" aria-modal="true" aria-labelledby="doc-impresion-titulo">
         <h1 id="doc-impresion-titulo" className="solo-lectores">Vista previa de impresión: {seccion.label}</h1>
         {cargandoExpediente ? <p className="doc-impresion__aviso" role="status">Cargando la información de la historia clínica…</p> : null}
-        {Plantilla ? <Plantilla
+        {errorCarga ? <p role="alert">{errorCarga}</p> : null}
+        {seccionId === 'todas' && !cargandoExpediente ? clinicalSections.map(seccion => {
+          const Documento = plantillaDeSeccion(seccion.id);
+          return Documento ? <Documento key={seccion.id} values={formData[seccion.id] ?? {}} allFormData={formData} formData={formData} patient={confirmado?.paciente ?? patient} history={confirmado?.historia ?? history} meta={meta} datos={datos} /> : null;
+        }) : null}
+        {Plantilla && !cargandoExpediente ? <Plantilla
           values={formData[seccionId] ?? {}}
           allFormData={formData}
           patient={patient}
@@ -86,7 +103,7 @@ export default function VistaPreviaImpresion({ seccionId, onClose }) {
           meta={meta}
           datos={datos}
           formData={formData}
-        /> : <p className="doc-impresion__aviso">Esta sección todavía no tiene una plantilla de impresión.</p>}
+        /> : seccionId !== 'todas' && !cargandoExpediente ? <p className="doc-impresion__aviso">Esta sección todavía no tiene una plantilla de impresión.</p> : null}
         <p className="doc-impresion__nota">Los márgenes ya están definidos en el documento. Para guardar un PDF limpio, desactive los encabezados y pies de página del navegador en el diálogo de impresión.</p>
       </div>
     </div>,

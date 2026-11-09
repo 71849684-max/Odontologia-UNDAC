@@ -40,7 +40,7 @@ Route::middleware(['auth', 'usuario.activo'])->group(function (): void {
     Route::post('notificaciones/leer-todas', [ControladorNotificaciones::class, 'marcarTodas'])
         ->name('notificaciones.leerTodas');
 
-    Route::middleware('acceso:PACIENTES')->group(function (): void {
+    Route::middleware(['acceso:PACIENTES', 'consulta.clinica'])->group(function (): void {
         Route::get('pacientes', [ControladorPacientes::class, 'listar'])->name('pacientes.index');
         Route::get('pacientes/buscar', [ControladorPacientes::class, 'buscar'])
             ->middleware('throttle:30,1')
@@ -54,7 +54,7 @@ Route::middleware(['auth', 'usuario.activo'])->group(function (): void {
             ->name('pacientes.update');
     });
 
-    Route::middleware('acceso:HISTORIAS')->group(function (): void {
+    Route::middleware(['acceso:HISTORIAS', 'consulta.clinica'])->group(function (): void {
         Route::get('historias', [ControladorHistorias::class, 'listar'])->name('historias.index');
         Route::get('personal', [ControladorHistorias::class, 'personal'])->name('personal.index');
         Route::get('seguimientos', [ControladorHistorias::class, 'seguimientos'])
@@ -74,6 +74,12 @@ Route::middleware(['auth', 'usuario.activo'])->group(function (): void {
             Route::delete('/', [ControladorHistorias::class, 'inactivar'])->name('historias.inactivar');
             Route::put('asignacion', [ControladorHistorias::class, 'asignar'])->middleware('throttle:cambios-equipo-estado')->name('historias.asignacion');
             Route::patch('estado', [ControladorHistorias::class, 'cambiarEstado'])->middleware('throttle:cambios-equipo-estado')->name('historias.estado');
+            Route::post('consentimiento/decision', [ControladorHistorias::class, 'decidirConsentimiento'])->name('historias.consentimiento.decision');
+            Route::get('versiones', [ControladorHistorias::class, 'versiones'])->name('historias.versiones');
+            Route::get('versiones/{idVersion}', [ControladorHistorias::class, 'version'])->whereNumber('idVersion')->name('historias.version');
+            Route::get('exportacion', [ControladorHistorias::class, 'exportar'])->name('historias.exportacion');
+            Route::get('exportacion-completa', [ControladorHistorias::class, 'exportacionCompleta'])->middleware('throttle:6,1')->name('historias.exportacion.completa');
+            Route::post('impresiones', [ControladorHistorias::class, 'registrarImpresion'])->name('historias.impresiones');
             Route::get('expediente', [ControladorHistorias::class, 'expediente'])->name('historias.expediente');
             Route::put('expediente', [ControladorHistorias::class, 'guardarExpediente'])->name('historias.expediente.update');
             Route::post('seguimientos', [ControladorHistorias::class, 'crearSeguimiento'])->name('historias.seguimientos.store');

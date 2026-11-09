@@ -77,7 +77,7 @@
 .hc-global-search__results p { padding: 14px; margin: 0; }
 .user-menu { gap: 10px; border: 0; padding: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .user-menu__avatar { width: 36px; height: 36px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; color: var(--color-texto-inverso); background: var(--color-exito-fondo); font-size: 11px; font-weight: 800; }
-:root:not([data-tema="oscuro"]) .user-menu__avatar { color: var(--color-paleta-original-fff); background: var(--color-paleta-original-0d9488); }
+:root:not([data-tema="oscuro"]) .user-menu__avatar { color: var(--color-texto-inverso); background: var(--color-accent); }
 .user-menu__texto strong { font-size: 12px; color: var(--color-text); }
 :root:not([data-tema="oscuro"]) .user-menu__texto strong { color: var(--color-paleta-original-1e293b); }
 .user-menu__texto small { font-size: 10px; color: var(--color-muted); }

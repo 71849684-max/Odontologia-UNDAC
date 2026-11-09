@@ -345,14 +345,15 @@ test.each([['11', 'DEX'], ['41', 'DAO'], ['51', 'DAO'], ['81', 'DEX']])(
   },
 );
 
-test('la extracción programada se dibuja en rojo y no se confunde con una pieza ausente', () => {
+test('una indicación antigua se puede consultar sin permitir su creación como hallazgo', () => {
   const exam = createRecord('a').examinations[0];
-  const programada = addFinding(exam, mark({ state: 'extraccion-programada', code: '', points: [] }));
+  expect(() => addFinding(exam, mark({ state: 'extraccion-programada', code: '', points: [] }))).toThrow(/plan de tratamiento/);
+  const programada = exam;
+  programada.teeth['11'].findings.push({ id: 'legado', state: 'extraccion-programada', code: '', points: [], teeth: ['11'], condition: 'good', note: '' });
   render(<CompactTooth number="11" tooth={programada.teeth['11']} />);
 
-  const aspa = within(screen.getByLabelText('Gráfico de pieza 11')).getByText('Extracción programada', { selector: 'title' }).parentElement;
-  expect(aspa).toHaveAttribute('stroke', '#dc2626');
-  expect(aspa.querySelector('path')).toHaveAttribute('stroke-dasharray', '6 4');
+  expect(within(screen.getByLabelText('Gráfico de pieza 11')).queryByText('Extracción programada', { selector: 'title' })).not.toBeInTheDocument();
+  expect(programada.teeth['11'].findings[0].state).toBe('extraccion-programada');
   for (const button of screen.getAllByRole('button')) {
     expect(button).toHaveAttribute('data-state', 'sin-registro');
     expect(button.getAttribute('style')).toBeNull();

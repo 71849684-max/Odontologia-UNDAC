@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info } from 'lucide-react';
-import { SectionCard, Field, TextAreaField, SlotConstancia } from '../compartidos/ControlesClinicos.jsx';
+import { SectionCard, Field, TextAreaField, SelectField, SlotConstancia } from '../compartidos/ControlesClinicos.jsx';
 import { consentParagraphs } from './consentimiento.config.mjs';
 import useSection from '../compartidos/useSection.js';
 import Subheading from '../compartidos/Subheading.jsx';
@@ -23,12 +23,20 @@ export default function ConsentimientoSection({ values, onChange, patient, histo
         <Field label="Fecha" type="date" value={get('fecha')} onChange={set('fecha')} /><Field label="Profesional encargado que informa / Dr.(a)" value={get('doctor') || meta?.docente || history?.docente || ''} onChange={set('doctor')} />
       </div>
       <div className="undac-consent-list">
-        {consentParagraphs.map((paragraph, index) => <label className="undac-consent-item" key={index}><input type="checkbox" checked={Boolean(get(`consent${index + 1}`, false))} onChange={(event) => set(`consent${index + 1}`)(event.target.checked)} /><span><b>{index + 1}.</b> {paragraph}</span></label>)}
+        {consentParagraphs.map((paragraph, index) => index === 4 ? null : <label className="undac-consent-item" key={index}><input type="checkbox" checked={Boolean(get(`consent${index + 1}`, false))} onChange={(event) => set(`consent${index + 1}`)(event.target.checked)} /><span><b>{index + 1}.</b> {get('textosClausulas', {})[index + 1] ?? paragraph}</span></label>)}
       </div>
       <TextAreaField label="Intervención quirúrgica autorizada" value={get('intervencionAutorizada')} onChange={set('intervencionAutorizada')} rows={4} />
       <div className="undac-form-grid">
         <Field label="Cerro de Pasco — día" value={get('firmaDia')} onChange={set('firmaDia')} /><Field label="Mes" value={get('firmaMes')} onChange={set('firmaMes')} /><Field label="Año" value={get('firmaAnio')} onChange={set('firmaAnio')} />
       </div>
+    </SectionCard>
+    <SectionCard title="Información específica y representación">
+      <TextAreaField label="Riesgos específicos explicados al paciente" value={get('riesgosPersonalizados')} onChange={set('riesgosPersonalizados')} rows={3} />
+      <TextAreaField label="Alternativas explicadas y consecuencias de no tratarse" value={get('alternativas')} onChange={set('alternativas')} rows={3} />
+      <SelectField label="Quién expresa la decisión" value={get('representanteTipo', 'paciente')} onChange={set('representanteTipo')} options={['paciente', 'representante']} />
+      <TextAreaField label="Identidad, vínculo y sustento de la representación (si corresponde)" value={get('representacionSustento')} onChange={set('representacionSustento')} rows={2} />
+      <p>La autorización de fotografías para docencia o investigación es opcional y se registra separada de la atención.</p>
+      <label className="undac-consent-item"><input type="checkbox" checked={Boolean(get('consent5', false))} onChange={evento => set('consent5')(evento.target.checked)} /><span>{get('textosClausulas', {})[5] ?? consentParagraphs[4]} Esta elección no condiciona la atención.</span></label>
     </SectionCard>
     <SectionCard title="Firmas, acompañante y programación" subtitle="Capture firmas y huella del paciente o acompañante, y registre la programación quirúrgica cuando corresponda.">
       <div className="undac-signature-grid">

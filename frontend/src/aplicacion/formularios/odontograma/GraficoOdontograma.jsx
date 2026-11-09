@@ -187,7 +187,7 @@ export function ToothDrawing({ number, tooth, selectedSurface, onSelect, interac
       {molar && <path d="M32 77.5H68" stroke="black" strokeWidth="1.8" pointerEvents="none" />}
     </g>
     <ellipse cx="50" cy="77.5" rx="42" ry="17.5" fill="none" stroke="black" strokeWidth="2.5" pointerEvents="none" />
-    {toothFindings(tooth).filter((mark) => !stateFor(mark.state).graphic.startsWith('draw-') || mark.points.length).map((mark) => <ToothMark key={mark.id} number={number} mark={mark} />)}
+    {toothFindings(tooth).filter(marca => marca.state !== 'extraccion-programada').filter((mark) => !stateFor(mark.state).graphic.startsWith('draw-') || mark.points.length).map((mark) => <ToothMark key={mark.id} number={number} mark={mark} />)}
     {selectedSurface && toothSurfaces.some((s) => s.id === selectedSurface) && <polygon points={toothSurfacePolygon(number, selectedSurface)} clipPath={`url(#${clipId})`} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
     {regiones.some((raiz) => raiz.id === selectedSurface) && <polygon points={regiones.find((raiz) => raiz.id === selectedSurface).points} fill="none" stroke="#53616e" strokeDasharray="3 3" strokeWidth="2" pointerEvents="none" />}
     {showLabels && <SurfaceLabels number={number} />}
@@ -233,7 +233,7 @@ export function OdontogramRow({ title, teeth, exam, selectedTooth, selectedSurfa
     <h4>{title}</h4>
     <div className="nts-compact-row" style={{ width: `${teeth.length * toothColumnWidth}px` }}>
       {teeth.map((number, index) => {
-        const tooth = exam.teeth[number], marks = toothFindings(tooth);
+        const tooth = exam.teeth[number], marks = toothFindings(tooth).filter(marca => marca.state !== 'extraccion-programada');
         const codes = marks;
         return <div key={number} className={`nts-tooth${!isUpper(number) ? ' nts-tooth--lower' : ''}${selectedTooth === number ? ' is-selected' : ''}${index === teeth.length / 2 ? ' nts-midline' : ''}`}>
           <button type="button" className="nts-tooth-number" aria-label={`Seleccionar pieza ${number}`} aria-pressed={selectedTooth === number} onClick={() => onSelect(number, 'oclusal')}>{number}</button>

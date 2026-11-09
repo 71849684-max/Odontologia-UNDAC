@@ -531,7 +531,9 @@
 }
 
 .doc-odontograma-pieza {
-  width: 8.4mm;
+  width: 10.5mm;
+  min-width: 10.5mm;
+  flex-shrink: 0;
   padding: 2px 0;
   border-right: 1px solid var(--doc-line-soft);
   text-align: center;

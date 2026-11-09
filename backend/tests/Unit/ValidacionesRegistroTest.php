@@ -70,9 +70,7 @@ class ValidacionesRegistroTest extends TestCase
     {
         $formulario = ['datos-paciente' => ['dni' => '12345678', 'ocupacion' => 'Docente', 'religion' => 'Sin especificar']];
         $expediente = Mockery::mock(ServicioExpediente::class);
-        $expediente->shouldReceive('obtener')->once()->with(7)->andReturn(['formData' => []]);
-        $expediente->shouldReceive('estadosSeccion')->twice()->with(7)->andReturn([]);
-        $expediente->shouldReceive('guardar')->once()->withArgs(fn ($id, $datos) => $id === 7 && $datos === $formulario)->andReturn(['formData' => $formulario]);
+        $expediente->shouldReceive('guardarConVersion')->once()->withArgs(fn ($id, $datos) => $id === 7 && $datos === $formulario)->andReturn(['previo' => ['formData' => [], 'sectionStatus' => []], 'resultado' => ['formData' => $formulario, 'sectionStatus' => []]]);
         $this->app->instance(ServicioExpediente::class, $expediente);
         $auditoria = Mockery::mock(RegistradorAuditoria::class);
         $auditoria->shouldReceive('registrar')->once();

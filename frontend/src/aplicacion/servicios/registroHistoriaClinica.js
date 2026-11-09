@@ -5,6 +5,7 @@ export const HISTORIAS_STORAGE_KEY = 'undac:historias:frontend:v1';
 let secuencia = 0;
 
 function leerLista(clave) {
+    if (import.meta.env.MODE !== 'test') return [];
     if (typeof localStorage === 'undefined') return [];
     try {
         const datos = JSON.parse(localStorage.getItem(clave) || '[]');
@@ -15,6 +16,7 @@ function leerLista(clave) {
 }
 
 function guardarLista(clave, lista) {
+    if (import.meta.env.MODE !== 'test') throw new Error('El registro clínico requiere confirmación del servidor.');
     localStorage.setItem(clave, JSON.stringify(lista));
 }
 

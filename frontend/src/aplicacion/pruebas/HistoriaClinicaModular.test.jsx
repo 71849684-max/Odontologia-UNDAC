@@ -1,4 +1,5 @@
 import React from 'react';
+import * as servicioClinico from '../servicios/servicioClinico.js';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import HistoriaClinica from '../componentes/clinica/HistoriaClinica.jsx';
@@ -9,7 +10,7 @@ beforeEach(() => {
   const data = new Map();
   vi.stubGlobal('localStorage', { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, String(value)) });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 test('la entrevista comienza directamente en el formulario sin resumen duplicado', () => {
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" />);
@@ -310,7 +311,7 @@ test('el alumno envía la sección a revisión y el docente la aprueba', async (
   expect(screen.getByText('Aprobado', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Reabrir sección/ })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Devolver a edición|Retomar edición/ })).not.toBeInTheDocument();
-  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toBeEnabled());
+  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toBeDisabled());
   await screen.findByText('Guardado solo en este equipo', {}, { timeout: 2000 });
   cleanup();
 
@@ -321,13 +322,16 @@ test('el alumno envía la sección a revisión y el docente la aprueba', async (
 });
 
 test('muestra el estado real del autoguardado y permite imprimir', async () => {
+  vi.spyOn(servicioClinico, 'registrarImpresionClinica').mockResolvedValue({ registrado: true });
   const imprimir = vi.fn();
   vi.stubGlobal('print', imprimir);
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" />);
   await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toBeEnabled());
   fireEvent.change(screen.getByLabelText('Motivo de consulta'), { target: { value: 'Control' } });
   expect(await screen.findByText('Guardado solo en este equipo', {}, { timeout: 2000 })).toBeInTheDocument();
+  vi.spyOn(servicioClinico, 'obtenerExpediente').mockResolvedValue({ formData: { anamnesis: { motivoConsulta: 'Control' } } });
   fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Imprimir documento' })).toBeEnabled());
   expect(screen.getByRole('dialog', { name: /Vista previa de impresión/ })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Imprimir documento' }));
   await waitFor(() => expect(imprimir).toHaveBeenCalled());

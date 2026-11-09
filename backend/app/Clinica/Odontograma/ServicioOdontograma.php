@@ -2,6 +2,7 @@
 
 namespace App\Clinica\Odontograma;
 
+use App\Clinica\Expediente\ServicioVersionesClinicas;
 use App\Clinica\Historias\AccesoHistorias;
 use App\Identidad\Dominio\Cuenta;
 use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
@@ -10,7 +11,10 @@ use Illuminate\Support\Facades\DB;
 
 class ServicioOdontograma
 {
-    public function __construct(private readonly AccesoHistorias $acceso) {}
+    public function __construct(
+        private readonly AccesoHistorias $acceso,
+        private readonly ServicioVersionesClinicas $versiones,
+    ) {}
 
     private const TAMANO_MAXIMO = 2 * 1024 * 1024;
 
@@ -34,7 +38,13 @@ class ServicioOdontograma
             foreach ([$fila->registro_json, $fila->especificaciones] as $contenido) {
                 $registro = json_decode((string) $contenido, true);
                 if (is_array($registro) && ($registro['version'] ?? null) === 1) {
-                    return $this->normalizarRegistro($registro);
+                    $registro = $this->normalizarRegistro($registro);
+                    $version = DB::table('historia_documento_version')->where('id_historia_clinica', $idHistoria)->where('clase', 'ODONTOGRAMA')->where('evento', 'GUARDAR')->orderByDesc('id_version')->first();
+                    if ($version !== null && (! hash_equals($version->hash_integridad, ServicioVersionesClinicas::huella((array) $version)) || json_decode($version->contenido, true) !== $registro)) {
+                        throw new OperacionNoPermitida('integridad', 'El odontograma no coincide con su versión conservada. Solicite su revisión antes de continuar.');
+                    }
+
+                    return $registro;
                 }
             }
         }
@@ -49,13 +59,13 @@ class ServicioOdontograma
         if (($registro['version'] ?? null) !== 1 || ! is_array($registro['examinations'] ?? null) || $registro['examinations'] === []) {
             throw new OperacionNoPermitida('odontograma', 'El registro del odontograma no tiene el formato esperado.');
         }
+        $this->validarExamenes($registro['examinations']);
 
         $json = json_encode($registro, JSON_UNESCAPED_UNICODE);
         if ($json === false || strlen($json) > self::TAMANO_MAXIMO) {
             throw new OperacionNoPermitida('odontograma', 'El odontograma supera el tamaño que se puede conservar en la historia.');
         }
 
-        $this->verificarEvaluacionesCerradas($idHistoria, $registro);
         $denticionDefecto = $this->denticionPorDefecto();
 
         DB::transaction(function () use ($idHistoria, $registro, $json, $actor, $denticionDefecto) {
@@ -63,6 +73,43 @@ class ServicioOdontograma
             if (! $this->acceso->puedeModificar($actor, $idHistoria)) {
                 throw (new ModelNotFoundException)->setModel('historia_clinica', [$idHistoria]);
             }
+            $anterior = $this->leer($idHistoria);
+            $revision = $registro['revisionServidor'] ?? null;
+            unset($registro['revisionServidor']);
+            if ($anterior !== null && $revision !== hash('sha256', json_encode($anterior, JSON_THROW_ON_ERROR))) {
+                throw new OperacionNoPermitida('revision', 'Otra sesión modificó el odontograma. Recargue antes de continuar; no se sobrescribió ningún cambio.');
+            }
+            $this->verificarEvaluacionesCerradas($anterior, $registro);
+            $filasAnteriores = DB::table('odontograma')->where('id_historia_clinica', $idHistoria)->orderBy('id_odontograma')->get();
+            $responsables = [];
+            $examenesAnteriores = [];
+            foreach (($anterior['examinations'] ?? []) as $indice => $examen) {
+                $responsables[$examen['id']] = $filasAnteriores[$indice]->id_docente_responsable ?? null;
+                $examenesAnteriores[$examen['id']] = $examen;
+            }
+            foreach ($registro['examinations'] as &$examen) {
+                $previo = $examenesAnteriores[$examen['id']] ?? null;
+                foreach ($this->marcas($examen) as $marca) {
+                    if (($marca['state'] ?? '') === 'extraccion-programada' && ! in_array($marca, $this->marcas($previo ?? []), true)) {
+                        throw new OperacionNoPermitida('odontograma', 'Registre los procedimientos previstos en el plan de tratamiento, no en el odontograma.');
+                    }
+                }
+                if (($examen['status'] ?? '') === 'closed' && ($previo['status'] ?? '') !== 'closed') {
+                    if (! $this->acceso->puedeAprobar($actor)) {
+                        throw new OperacionNoPermitida('profesional', 'El cierre requiere un profesional con COP registrado.');
+                    }
+                    $examen['professional'] = $actor->nombreCompleto();
+                    $examen['cop'] = (string) DB::table('docente')->where('id_docente', $actor->idActor())->value('numero_colegiatura');
+                    $examen['closedAt'] = now()->toISOString();
+                    $examen['autorCierre'] = $actor->clave();
+                    $responsables[$examen['id']] = $actor->idActor();
+                }
+            }
+            unset($examen);
+            if ($anterior !== null) {
+                $this->versiones->conservar($idHistoria, 'ODONTOGRAMA', 'ANTES_DE_EDITAR', $anterior, $actor);
+            }
+            $json = json_encode($registro, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
             $this->eliminar($idHistoria);
             $catalogo = $this->catalogo();
             $piezasCatalogo = DB::table('pieza_dental')->pluck('id_pieza_dental', 'codigo_fdi')->all();
@@ -74,7 +121,7 @@ class ServicioOdontograma
                 $cerrado = ($examen['status'] ?? '') === 'closed';
                 $idOdontograma = DB::table('odontograma')->insertGetId([
                     'id_historia_clinica' => $idHistoria,
-                    'id_docente_responsable' => $actor->tipoCuenta() === 'DOCENTE' ? $actor->idActor() : null,
+                    'id_docente_responsable' => $responsables[$examen['id']] ?? ($actor->tipoCuenta() === 'DOCENTE' ? $actor->idActor() : null),
                     'tipo_denticion' => $this->denticion($examen, $denticionDefecto),
                     'fecha_evaluacion' => $this->fecha($examen['date'] ?? null),
                     'motivo_evaluacion' => $this->texto($examen['reason'] ?? null, 80),
@@ -89,15 +136,83 @@ class ServicioOdontograma
                 $primero = false;
                 $this->normalizarHallazgos($idOdontograma, $examen, $catalogo, $piezasCatalogo);
             }
+            $this->versiones->conservar($idHistoria, 'ODONTOGRAMA', 'GUARDAR', $registro, $actor);
         });
 
-        return $registro;
+        $lectura = $this->leerConRevision($idHistoria);
+
+        return $lectura['registro'] + ['revisionServidor' => $lectura['revision']];
+    }
+
+    public function revision(int $idHistoria): string
+    {
+        return hash('sha256', json_encode($this->leer($idHistoria), JSON_THROW_ON_ERROR));
+    }
+
+    public function leerConRevision(int $idHistoria): array
+    {
+        $registro = $this->leer($idHistoria);
+
+        return ['registro' => $registro, 'revision' => hash('sha256', json_encode($registro, JSON_THROW_ON_ERROR))];
+    }
+
+    private function validarExamenes(array $examenes): void
+    {
+        $ids = [];
+        if (count($examenes) > 200) {
+            throw new OperacionNoPermitida('odontograma', 'El registro supera el límite de evaluaciones.');
+        }
+        foreach ($examenes as $examen) {
+            $id = $examen['id'] ?? null;
+            $fecha = $examen['date'] ?? '';
+            if (! is_string($id) || $id === '' || strlen($id) > 100 || isset($ids[$id]) || ! in_array($examen['status'] ?? '', ['draft', 'closed'], true)) {
+                throw new OperacionNoPermitida('odontograma', 'Cada evaluación debe tener una identidad única y un estado válido.');
+            }
+            $ids[$id] = true;
+            $partes = explode('-', $fecha);
+            if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha) || ! checkdate((int) ($partes[1] ?? 0), (int) ($partes[2] ?? 0), (int) $partes[0]) || $fecha > now()->toDateString()) {
+                throw new OperacionNoPermitida('fecha', 'Indique una fecha de evaluación válida que no sea futura.');
+            }
+            if (! is_array($examen['teeth'] ?? null) || ! is_array($examen['ranges'] ?? null)) {
+                throw new OperacionNoPermitida('odontograma', 'Las piezas y hallazgos deben tener un formato válido.');
+            }
+            foreach ($examen['teeth'] as $diente) {
+                if (! is_array($diente) || ! is_array($diente['findings'] ?? []) || ! is_array($diente['surfaces'] ?? [])) {
+                    throw new OperacionNoPermitida('odontograma', 'La pieza dental no tiene un formato válido.');
+                }
+            }
+            foreach ($this->marcas($examen) as $marca) {
+                if (! is_array($marca) || ! is_string($marca['id'] ?? null) || ! is_string($marca['state'] ?? null)) {
+                    throw new OperacionNoPermitida('odontograma', 'El hallazgo no tiene identidad o estado válido.');
+                }
+                if (! is_array($marca['points'] ?? [])) {
+                    throw new OperacionNoPermitida('odontograma', 'El trazo debe ser una lista de puntos.');
+                }
+                foreach (($marca['points'] ?? []) as $punto) {
+                    if (! is_array($punto) || count($punto) !== 2 || ! is_numeric($punto[0] ?? null) || ! is_numeric($punto[1] ?? null) || min($punto) < 0 || max($punto) > 100) {
+                        throw new OperacionNoPermitida('odontograma', 'El trazo contiene coordenadas inválidas.');
+                    }
+                }
+            }
+        }
+    }
+
+    private function marcas(array $examen): array
+    {
+        $marcas = $examen['ranges'] ?? [];
+        foreach (($examen['teeth'] ?? []) as $diente) {
+            $marcas = array_merge($marcas, $diente['findings'] ?? []);
+            foreach (($diente['surfaces'] ?? []) as $superficie) {
+                $marcas = array_merge($marcas, $superficie['findings'] ?? []);
+            }
+        }
+
+        return $marcas;
     }
 
     /** Una evaluación cerrada no puede cambiar ni desaparecer del registro. */
-    private function verificarEvaluacionesCerradas(int $idHistoria, array $registro): void
+    private function verificarEvaluacionesCerradas(?array $anterior, array $registro): void
     {
-        $anterior = $this->leer($idHistoria);
         if ($anterior === null) {
             return;
         }

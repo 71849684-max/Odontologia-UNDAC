@@ -11,6 +11,8 @@ import PatientContextBar from './PatientContextBar.jsx';
 import ClinicalMomentSidebar from './ClinicalMomentSidebar.jsx';
 import ClinicalSectionTabs from './ClinicalSectionTabs.jsx';
 import VistaPreviaImpresion from '../impresion/VistaPreviaImpresion.jsx';
+import DecisionesConsentimiento from '../../../formularios/consentimiento/DecisionesConsentimiento.jsx';
+import HistorialDocumentos from './HistorialDocumentos.jsx';
 import DialogoObservaciones from './DialogoObservaciones.jsx';
 
 const DESKTOP_NAVIGATION_QUERY = '(min-width: 992px)';
@@ -26,11 +28,11 @@ export default function ClinicalWorkspace({ onExit, rol }) {
   const cerrarObservaciones = useCallback(() => setObservacionesAbiertas(false), []);
   const {
     sections, patient, history, meta, activeSection, formData, updateActiveSection, navigateRelative,
-    sendCurrentToReview, approveCurrent, returnCurrentToEdit, validationErrors = [], revisionAviso = '', sectionStatuses, autosaveStatus, lastSavedAt, cargandoExpediente,
+    sendCurrentToReview, approveCurrent, returnCurrentToEdit, validationErrors = [], revisionAviso = '', sectionStatuses, autosaveStatus, reintentarGuardado, lastSavedAt, cargandoExpediente,
   } = useHistoriaClinica();
   const supervisa = rol === 'docente' || rol === 'administrador';
   const estadoActual = sectionStatuses[activeSection];
-  const soloLectura = rol === 'alumno' && (estadoActual === SECTION_STATUS.APPROVED || history.codigoEstado === 'VALIDADA');
+  const soloLectura = estadoActual === SECTION_STATUS.APPROVED || (rol === 'alumno' && history.codigoEstado === 'VALIDADA');
   const active = sections.find((section) => section.id === activeSection) ?? sections[0];
   const index = sections.findIndex((section) => section.id === active?.id);
   const ActiveComponent = componentesSeccion[active.id];
@@ -41,6 +43,9 @@ export default function ClinicalWorkspace({ onExit, rol }) {
   const [desktopNavigation, setDesktopNavigation] = useState(desktopNavigationMatches);
   const [navigationOpen, setNavigationOpen] = useState(desktopNavigationMatches);
   const [eliminacionActiva, setEliminacionActiva] = useState(false);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
+  const cerrarHistorial = useCallback(() => setHistorialAbierto(false), []);
+  const [impresionCompleta, setImpresionCompleta] = useState(false);
   const [impresionAbierta, setImpresionAbierta] = useState(false);
   const abrirImpresion = useCallback(() => setImpresionAbierta(true), []);
   const cerrarImpresion = useCallback(() => setImpresionAbierta(false), []);
@@ -136,6 +141,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
               <div className="clinical-active-section__meta">
                 <span className={`clinical-active-section__state is-${estadoActual}`}>{statusLabel(estadoActual)}</span>
                 <button type="button" className="undac-btn undac-btn--ghost clinical-print-hide" onClick={abrirImpresion}><Printer size={16} aria-hidden="true" />Imprimir</button>
+                {idHistoria(history.id) ? <><button type="button" className="undac-btn undac-btn--ghost" onClick={() => setHistorialAbierto(true)}>Historial de documentos</button><button type="button" className="undac-btn undac-btn--ghost" onClick={() => setImpresionCompleta(true)}>Expediente completo</button></> : null}
               </div>
             </div>
             {validationErrors.length ? <div className="clinical-validation-summary" role="alert">
@@ -160,9 +166,10 @@ export default function ClinicalWorkspace({ onExit, rol }) {
                 historyId={history.id}
               /> : <div className="undac-card"><p>Sección preparada para implementación.</p></div>}
             </fieldset>
+            {active.id === 'consentimiento' && supervisa ? <DecisionesConsentimiento values={formData[active.id] || {}} onChange={updateActiveSection} history={history} /> : null}
           </section>
           <footer className="clinical-workspace-actions" inert={cargandoExpediente ? true : undefined} aria-busy={cargandoExpediente}>
-            <span className="clinical-workspace-actions__save"><AutoSaveIndicator status={autosaveStatus} lastSavedAt={lastSavedAt} /></span>
+            <span className="clinical-workspace-actions__save"><AutoSaveIndicator status={autosaveStatus} lastSavedAt={lastSavedAt} />{autosaveStatus === 'error' && !revisionAviso ? <button type="button" className="undac-btn undac-btn--secondary" onClick={reintentarGuardado}>Reintentar guardado</button> : null}</span>
             <div>
               <button ref={botonObservacionesRef} type="button" className="undac-btn undac-btn--ghost" aria-haspopup="dialog" aria-expanded={observacionesAbiertas} onClick={() => setObservacionesAbiertas(true)} disabled={cargandoExpediente}><MessageSquare size={16} />Ver observaciones</button>
               {index > 0 ? <button type="button" className="undac-btn undac-btn--ghost" onClick={() => navigateRelative(-1)}><ArrowLeft size={16} />Anterior</button> : null}
@@ -180,6 +187,8 @@ export default function ClinicalWorkspace({ onExit, rol }) {
           </footer>
         </main>
       </div>
+      {historialAbierto ? <HistorialDocumentos historiaId={idHistoria(history.id)} onClose={cerrarHistorial} /> : null}
+      {impresionCompleta ? <VistaPreviaImpresion seccionId="todas" onClose={() => setImpresionCompleta(false)} /> : null}
       {impresionAbierta ? <VistaPreviaImpresion seccionId={active.id} onClose={cerrarImpresion} /> : null}
       {observacionesAbiertas ? <DialogoObservaciones historia={history} triggerRef={botonObservacionesRef} alCerrar={cerrarObservaciones} /> : null}
     </div>

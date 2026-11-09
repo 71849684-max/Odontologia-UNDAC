@@ -90,6 +90,7 @@ class SolicitudGuardarUsuario extends FormRequest
             'apellidos' => ['required', 'string', 'max:120'],
             'correo' => ['nullable', 'email', 'max:150'],
             'telefono' => ReglasBasicas::telefono(),
+            'numero_colegiatura' => ['nullable', 'regex:/^\d{4,8}$/'],
         ];
     }
 

@@ -113,6 +113,7 @@ class NotificacionesTest extends TestCase
             $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/asignacion", ['personal' => 'DOCENTE-'.$docente->idActor()])->assertOk();
         }
         $this->assertSame(1, DB::table('notificacion')->where('id_historia_clinica', $id)->where('tipo', 'HISTORIA_ASIGNADA')->count());
+        $this->actingAs($alumno, 'web')->patchJson("/api/historias/{$id}/estado", ['codigo' => 'PENDIENTE_REVISION'])->assertOk();
         $this->actingAs($docente, 'web')->patchJson("/api/historias/{$id}/estado", ['codigo' => 'OBSERVADA', 'observacion' => 'Corregir antecedentes'])->assertOk();
         $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/expediente", [
             'formData' => ['anamnesis' => ['motivoConsulta' => 'Control']], 'sectionStatus' => ['anamnesis' => 'approved'],

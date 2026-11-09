@@ -12,6 +12,9 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
 {
     private const ACCIONES_ACCESO = ['INICIAR SESIÓN', 'ACCESO FALLIDO'];
 
+    /** Las aprobaciones antiguas compartían código con los envíos a revisión. */
+    private const ACCION_VISIBLE = "CASE WHEN auditoria.accion = 'REVISAR_SECCION' AND JSON_SEARCH(auditoria.valores_nuevos, 'one', 'approved') IS NOT NULL AND JSON_SEARCH(auditoria.valores_nuevos, 'one', 'review') IS NULL THEN 'APROBAR_SECCION' ELSE auditoria.accion END";
+
     /** Tablas de historias clínicas y archivos asociados. */
     private const TABLAS_HISTORIAS = [
         'historia_clinica',
@@ -38,7 +41,7 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
             'accesos_recientes' => $accesos,
             'acciones' => DB::table('auditoria')
                 ->whereIn('tabla_afectada', self::TABLAS_HISTORIAS)
-                ->select('accion')
+                ->selectRaw(self::ACCION_VISIBLE.' AS accion')
                 ->distinct()
                 ->orderBy('accion')
                 ->pluck('accion'),
@@ -49,7 +52,7 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
                 'accesos_fallidos' => $this->contarAccesos(false),
                 'modificaciones' => DB::table('auditoria')
                     ->whereIn('tabla_afectada', self::TABLAS_HISTORIAS)
-                    ->whereIn('accion', ['EDITAR', 'CREAR', 'DESACTIVAR', 'ACTIVAR', 'RESTAURAR', 'INACTIVAR', 'CAMBIAR_ESTADO', 'ASIGNAR_PERSONAL', 'REVISAR_SECCION', 'MARCAR_COMPLETADO', 'REABRIR_SECCION', 'EDITAR_ODONTOGRAMA', 'SUBIR_ARCHIVO', 'ELIMINAR_ARCHIVO'])
+                    ->whereIn('accion', ['EDITAR', 'CREAR', 'DESACTIVAR', 'ACTIVAR', 'RESTAURAR', 'INACTIVAR', 'CAMBIAR_ESTADO', 'ASIGNAR_PERSONAL', 'REVISAR_SECCION', 'APROBAR_SECCION', 'MARCAR_COMPLETADO', 'REABRIR_SECCION', 'EDITAR_ODONTOGRAMA', 'SUBIR_ARCHIVO', 'ELIMINAR_ARCHIVO'])
                     ->count(),
             ],
         ];
@@ -92,6 +95,7 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
                 $union->on('historia.id_historia_clinica', '=', DB::raw("CASE WHEN auditoria.tabla_afectada = 'archivo_clinico' THEN COALESCE(JSON_UNQUOTE(JSON_EXTRACT(auditoria.valores_nuevos, '$.historia')), JSON_UNQUOTE(JSON_EXTRACT(auditoria.valores_anteriores, '$.historia'))) ELSE auditoria.id_registro END"));
             })
             ->select('auditoria.*', 'historia.numero_historia as historia_codigo', 'historia.id_historia_clinica as historia_id')
+            ->selectRaw(self::ACCION_VISIBLE.' AS accion')
             ->whereIn('tabla_afectada', self::TABLAS_HISTORIAS)
             ->orderByDesc('auditoria.creado_en')
             ->orderByDesc('id_auditoria');
@@ -99,7 +103,7 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
         $this->aplicarBusqueda($consulta, $busqueda, ['nombre_usuario', 'tabla_afectada', 'id_registro', 'direccion_ip', 'historia.numero_historia']);
 
         if ($accion !== '') {
-            $consulta->where('accion', $accion);
+            $consulta->whereRaw(self::ACCION_VISIBLE.' = ?', [$accion]);
         }
 
         return $consulta->limit($limite)->get()->map(fn ($fila) => [

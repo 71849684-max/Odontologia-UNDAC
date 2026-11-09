@@ -42,6 +42,7 @@ class FlujoClinicoCompletoTest extends TestCase
         $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', [
             'pacienteId' => $paciente->json('id'),
         ])->assertCreated()->json('id');
+        $this->asignarProfesionalPrueba($docente, $id);
 
         $this->guardarExpediente($alumno, $id, [
             'anamnesis' => [

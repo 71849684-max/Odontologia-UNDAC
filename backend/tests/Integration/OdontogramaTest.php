@@ -75,28 +75,14 @@ class OdontogramaTest extends TestCase
             ->count());
     }
 
-    public function test_la_extraccion_programada_no_marca_la_pieza_como_perdida(): void
+    public function test_no_admite_procedimientos_previstos_como_hallazgos(): void
     {
         $alumno = $this->crearUsuario('alumno.programada', self::CLAVE, 'ALUMNO');
         $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', ['dni' => '70000204', 'nombres' => 'Paciente Programada', 'sexo' => 'F'])->json('id');
-
         $registro = $this->registro();
         $registro['examinations'][0]['teeth']['12'] = ['findings' => [$this->marca('extraccion-programada', '', ['12'])], 'surfaces' => []];
-        $registro['examinations'][0]['teeth']['11'] = ['findings' => [$this->marca('ausente', 'DEX', ['11'])], 'surfaces' => []];
-
-        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $registro])->assertOk();
-
-        $odontograma = DB::table('odontograma')->where('id_historia_clinica', $id)->first();
-        $perdida = fn (string $codigo): int => (int) DB::table('odontograma_hallazgo as h')
-            ->join('catalogo_hallazgo_dental as c', 'c.id_hallazgo_dental', '=', 'h.id_hallazgo_dental')
-            ->join('odontograma_hallazgo_pieza as hp', 'hp.id_odontograma_hallazgo', '=', 'h.id_odontograma_hallazgo')
-            ->join('odontograma_pieza as p', 'p.id_odontograma_pieza', '=', 'hp.id_odontograma_pieza')
-            ->where('h.id_odontograma', $odontograma->id_odontograma)
-            ->where('c.codigo', $codigo)
-            ->value('p.perdida');
-
-        $this->assertSame(0, $perdida('EXTRACCION_PROGRAMADA'));
-        $this->assertSame(1, $perdida('AUSENTE'));
+        $this->putJson("/api/historias/{$id}/odontograma", ['registro' => $registro])->assertUnprocessable()->assertJsonValidationErrors('odontograma');
+        $this->assertSame(0, DB::table('odontograma')->where('id_historia_clinica', $id)->count());
     }
 
     public function test_una_evaluacion_cerrada_no_se_puede_modificar(): void
@@ -104,22 +90,27 @@ class OdontogramaTest extends TestCase
         $alumno = $this->crearUsuario('alumno.cerrado', self::CLAVE, 'ALUMNO');
         $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', ['dni' => '70000202', 'nombres' => 'Paciente Cerrado', 'sexo' => 'F'])->json('id');
 
+        $docente = $this->crearUsuario('docente.cerrado', self::CLAVE, 'DOCENTE');
+        $this->asignarProfesionalPrueba($docente, $id);
         $cerrado = $this->registro('closed');
-        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $cerrado])->assertOk();
+        $cerrado = $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $cerrado])->assertOk()->json('registro');
+        $this->assertSame($docente->nombreCompleto(), $cerrado['examinations'][0]['professional']);
+        $this->assertSame($docente->clave(), $cerrado['examinations'][0]['autorCierre']);
 
+        $cerrado['revisionServidor'] = $this->getJson("/api/historias/{$id}/odontograma")->json('revision');
         $alterado = $cerrado;
         $alterado['examinations'][0]['observations'] = 'Texto cambiado después del cierre';
-        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $alterado])
+        $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $alterado])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('odontograma');
 
         $sinEvaluacion = $cerrado;
         $sinEvaluacion['examinations'][0]['id'] = 'otra';
-        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $sinEvaluacion])->assertUnprocessable();
+        $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $sinEvaluacion])->assertUnprocessable();
 
         $conNueva = $cerrado;
         $conNueva['examinations'][] = array_merge($cerrado['examinations'][0], ['id' => 'exam-2', 'status' => 'draft', 'closedAt' => null, 'reason' => 'Nuevos hallazgos']);
-        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $conNueva])->assertOk();
+        $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/odontograma", ['registro' => $conNueva])->assertOk();
         $this->assertSame(2, DB::table('odontograma')->where('id_historia_clinica', $id)->count());
     }
 
@@ -152,5 +143,19 @@ class OdontogramaTest extends TestCase
         $json = (string) DB::table('odontograma')->where('id_historia_clinica', $id)->value('registro_json');
         $this->assertStringNotContainsString('"professional":null', $json);
         $this->assertStringContainsString('"professional":""', $json);
+    }
+
+    public function test_una_revision_obsoleta_no_sobrescribe_hallazgos_de_otra_sesion(): void
+    {
+        $alumno = $this->crearUsuario('alumno.concurrente.odonto', self::CLAVE, 'ALUMNO');
+        $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', ['dni' => '70000208', 'nombres' => 'Paciente Sintético', 'sexo' => 'F'])->assertCreated()->json('id');
+        $url = "/api/historias/{$id}/odontograma";
+        $registro = $this->putJson($url, ['registro' => $this->registro()])->assertOk()->json('registro');
+        $otro = $registro;
+        $registro['examinations'][0]['observations'] = 'Primer cambio confirmado';
+        $this->putJson($url, ['registro' => $registro])->assertOk();
+        $otro['examinations'][0]['observations'] = 'Cambio desde una sesión desactualizada';
+        $this->putJson($url, ['registro' => $otro])->assertUnprocessable()->assertJsonValidationErrors('revision');
+        $this->getJson($url)->assertOk()->assertJsonPath('registro.examinations.0.observations', 'Primer cambio confirmado');
     }
 }

@@ -15,12 +15,25 @@ while (((Get-Date) - $inicio).TotalSeconds -lt $Segundos) {
         $proceso = Get-Process -Id $identificador -ErrorAction SilentlyContinue
         if (-not $proceso) { continue }
         $anterior = $anteriores[$identificador]
-        $cpu = if ($anterior) { 100 * ($proceso.CPU - $anterior.Cpu) / (($momento - $anterior.Momento).TotalSeconds * $procesadores) } else { 0 }
+        $origenCpu = 'tiempo_proceso';
+        $cpu = $null;
+        if ($null -ne $proceso.CPU) {
+            $cpu = if ($anterior -and $null -ne $anterior.Cpu) { 100 * ($proceso.CPU - $anterior.Cpu) / (($momento - $anterior.Momento).TotalSeconds * $procesadores) } else { 0 }
+        } else {
+            # Windows puede ocultar CPU a procesos del servicio MySQL. No convertirlo en cero.
+            $origenCpu = 'contador_windows';
+            $contadorProceso = Get-CimInstance Win32_PerfFormattedData_PerfProc_Process -Filter "IDProcess=$identificador" -ErrorAction SilentlyContinue;
+            if ($contadorProceso -and $null -ne $contadorProceso.PercentProcessorTime) {
+                $cpu = [double]$contadorProceso.PercentProcessorTime / $procesadores;
+            }
+        }
         $muestras.Add([pscustomobject]@{
             FechaUtc = $momento.ToUniversalTime().ToString('o')
             Proceso = $proceso.ProcessName
             Identificador = $identificador
-            CpuPorcentajeEquipo = [Math]::Round($cpu, 2)
+            CpuPorcentajeEquipo = if ($null -ne $cpu) { [Math]::Round($cpu, 2) } else { $null }
+            CpuDisponible = $null -ne $cpu
+            OrigenCpu = $origenCpu
             MemoriaMb = [Math]::Round($proceso.WorkingSet64 / 1MB, 2)
             Hilos = $proceso.Threads.Count
         })

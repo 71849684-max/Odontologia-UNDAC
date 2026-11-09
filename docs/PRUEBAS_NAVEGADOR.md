@@ -1,6 +1,6 @@
 # Pruebas de navegador
 
-La suite `frontend/pruebas-navegador/` usa Playwright sobre la compilación de producción, Laravel y MySQL reales. No fabrica respuestas de la API ni sustituye el servidor por mocks. En el caso de renovación de CSRF, un proxy de la prueba modifica las cabeceras de la primera escritura y reenvía la respuesta real de Laravel sin modificar su estado ni su cuerpo: esto permite verificar el 419 y el reintento real. Laravel 13 también verifica metadatos de origen; el caso fuerza la rama que valida el token. La suite de Laravel `tests/E2E` permanece como prueba del flujo de API y no se presenta como prueba de navegador.
+La suite `frontend/pruebas-navegador/` usa Playwright sobre la compilación de producción, Laravel y MySQL reales. No sustituye respuestas exitosas de la API por mocks. Los casos de fallo de red interrumpen expresamente solicitudes del navegador para comprobar el bloqueo y el reintento; las comprobaciones de persistencia posteriores vuelven a utilizar el servidor real. En el caso de renovación de CSRF, un proxy de la prueba modifica las cabeceras de la primera escritura y reenvía la respuesta real de Laravel sin modificar su estado ni su cuerpo: esto permite verificar el 419 y el reintento real. Laravel 13 también verifica metadatos de origen; el caso fuerza la rama que valida el token. La suite de Laravel `tests/E2E` permanece como prueba del flujo de API y no se presenta como prueba de navegador.
 
 ## Preparación
 
@@ -15,7 +15,7 @@ npm run pruebas:navegador
 
 La preparación crea `.env.pruebas_navegador` a partir del entorno local únicamente si no existe. Configura `APP_ENV=pruebas_navegador`, `bd_clinica_undac_navegador`, cookie de sesión propia, caché y almacenamiento privados en `backend/storage/pruebas-navegador`. Si la conexión inicial utiliza root local, crea un usuario con permisos limitados a esa base y actualiza únicamente el archivo de entorno de pruebas. Los secretos y el manifiesto se excluyen de Git.
 
-El comando rechaza otros pares entorno/base, no elimina bases existentes y no ejecuta el `DROP DATABASE` del SQL original. Si encuentra un esquema parcial, se detiene para revisarlo. Importa disparadores respetando sus delimitadores y aplica los parches pendientes. La preparación puede repetirse: reutiliza las cuentas sintéticas, renueva sus contraseñas y escribe un manifiesto privado; no la ejecute mientras la suite esté usando ese manifiesto.
+El comando rechaza otros pares entorno/base y DB_URL; extrae estructura, catálogos permitidos y configuración sintética, sin importar cuentas, pacientes, auditoría o notificaciones operativas. No elimina bases existentes. Si encuentra un esquema parcial o sin marcador de saneamiento, se detiene. Para sustituir una base antigua de pruebas, desde `backend` ejecutar explícitamente `php artisan pruebas:esquema bd_clinica_undac_navegador --recrear` y luego repetir la preparación. Importa disparadores respetando delimitadores, conserva vistas INVOKER y aplica los parches pendientes. La preparación reutiliza cuentas sintéticas, renueva contraseñas y escribe un manifiesto privado; no ejecutarla durante la suite.
 
 Playwright inicia y detiene sus propios procesos: API `8011` y vista previa `5183`. Falla si los puertos ya están ocupados; no reutiliza la aplicación de desarrollo de `5173/8001`. No se cambia la conexión de `.env` ni la base `bd_clinica_undac_test` de PHPUnit. No se deshabilitan CSRF, autorización ni límites de acceso.
 
@@ -27,7 +27,12 @@ Playwright inicia y detiene sus propios procesos: API `8011` y vista previa `518
 - Observación docente, corrección, reenvío y validación; rechazo 409 de la edición posterior del alumno.
 - Alumno B obtiene 404 ante historia y expediente de A, sin datos ajenos en el listado.
 - Grupo creado desde interfaz y consultado desde otro administrador en contexto independiente.
+- Auditoría de aprobación y reapertura: profesional y administrador distintos, sección afectada y detalle legible, usando el servidor y sesiones reales.
 - Revisión obsoleta rechazada con error de validación `revision`, sin sobrescribir el cambio confirmado.
+- Falta de red inicial sin mostrar borradores heredados; alta fallida sin éxito local; recuperación de un cambio en memoria con «Reintentar guardado» y comprobación tras recarga.
+- Cambio de usuario en el mismo navegador sin acceso al expediente de la sesión anterior.
+- Salida fallida sin recuperación automática de cuenta al recargar; reintento al recuperar red y autenticación explícita de otra cuenta.
+- Protección de cambios pendientes al salir: permanecer, guardar antes de salir, descarte confirmado, historial, recarga y edición inmediatamente anterior a la salida.
 - Modal con teclado, Escape y devolución del foco; contraste en claro/oscuro y tres tamaños; panel móvil y vista de impresión; posiciones y selección neutra del odontograma.
 
 Las llamadas directas de comprobación comparten las cookies del actor autenticado. Las escrituras auxiliares envían el token real. Las altas y las transiciones de los cinco recorridos principales se realizan desde la interfaz.

@@ -20,8 +20,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: pdo_mysql, mbstring, gd
+          php-version: '8.5'
+          extensions: pdo_mysql, pdo_sqlite, mbstring, fileinfo, gd, zip
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -40,17 +40,22 @@ jobs:
           npx playwright install --with-deps chromium firefox
       - name: Preparar base de PHPUnit
         run: |
-          node frontend/scripts/esquemaPhpunit.mjs /tmp/esquema-unidad.sql
-          mysql --host=127.0.0.1 --user=root < /tmp/esquema-unidad.sql
           cd backend
+          php artisan pruebas:esquema bd_clinica_undac_test --recrear
           php artisan clinica:parches --bd=bd_clinica_undac_test
+          composer audit
       - name: Verificar backend
         working-directory: backend
-        run: php artisan test
+        run: |
+          composer check-platform-reqs
+          php vendor/bin/pint --test
+          php artisan test
+          node scripts/comprobarCorrelativo.mjs
       - name: Verificar frontend y compilar
         working-directory: frontend
         run: |
           npm run verificar:tokens
+          npm audit
           npm run test
           npm run build
           npm run medir:compilacion
@@ -59,9 +64,7 @@ jobs:
         run: npm run pruebas:navegador:preparar
       - name: Verificar navegador Chromium y Firefox
         working-directory: frontend
-        run: |
-          npm run pruebas:navegador
-          npm run pruebas:navegador:firefox
+        run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: always()
         with:

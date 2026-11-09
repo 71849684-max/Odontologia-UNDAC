@@ -118,6 +118,7 @@ class RepositorioUsuariosEloquent implements RepositorioUsuarios
                     'apellidos' => $datos['apellidos'],
                     'correo' => $datos['correo'] ?? null,
                     'telefono' => $datos['telefono'] ?? null,
+                    ...($tipo === 'DOCENTE' ? ['numero_colegiatura' => $datos['numero_colegiatura'] ?? null] : []),
                     'estado' => 1,
                     'creado_en' => now(),
                 ];
@@ -160,6 +161,7 @@ class RepositorioUsuariosEloquent implements RepositorioUsuarios
                     'apellidos' => $datos['apellidos'],
                     'correo' => $datos['correo'] ?? null,
                     'telefono' => $datos['telefono'] ?? null,
+                    ...($actual->tipoCuenta() === 'DOCENTE' && array_key_exists('numero_colegiatura', $datos) ? ['numero_colegiatura' => $datos['numero_colegiatura'] ?? null] : []),
                 ]);
 
                 $cambios = [
@@ -210,6 +212,7 @@ class RepositorioUsuariosEloquent implements RepositorioUsuarios
                     'apellidos' => $datos['apellidos'],
                     'correo' => $datos['correo'] ?? null,
                     'telefono' => $datos['telefono'] ?? null,
+                    ...($tipo === 'DOCENTE' ? ['numero_colegiatura' => $datos['numero_colegiatura'] ?? null] : []),
                     'estado' => 1,
                     'creado_en' => now(),
                 ];
@@ -353,6 +356,7 @@ class RepositorioUsuariosEloquent implements RepositorioUsuarios
             'numero_documento' => $actual->numeroDocumento,
             'correo' => $actual->correo(),
             'telefono' => $actual->telefono,
+            'numero_colegiatura' => $cuenta->tipoCuenta() === 'DOCENTE' ? DB::table('docente')->where('id_docente', $cuenta->idActor())->value('numero_colegiatura') : null,
             'estado' => $actual->estaActiva(),
             'bloqueado' => $actual->estaBloqueada(),
             'codigo_rol' => $actual->codigoRol,

@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Clinica\Expediente\ServicioExpediente;
 use App\Clinica\Historias\ServicioHistorias;
 use App\Clinica\Soporte\AplicadorParches;
+use App\Clinica\Soporte\EsquemaPruebas;
 use App\Identidad\Dominio\Contratos\RepositorioUsuarios;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,9 @@ class PrepararPruebas extends Command
         }
         $this->prepararEsquema($destino);
         (new AplicadorParches(database_path('parches')))->aplicar('mysql');
+        if ($this->call('clinica:verificar') !== self::SUCCESS) {
+            throw new RuntimeException('El esquema exclusivo está incompleto. Corríjalo antes de generar datos sintéticos.');
+        }
         $clave = bin2hex(random_bytes(12)).'Aa9*';
         $actores = [];
         $roles = ['alumnoA' => 'ALUMNO', 'alumnoB' => 'ALUMNO', 'docente' => 'DOCENTE', 'administrador' => 'ADMINISTRADOR', 'administradorB' => 'ADMINISTRADOR'];
@@ -65,6 +69,9 @@ class PrepararPruebas extends Command
             } else {
                 $usuarios->cambiarContrasena($cuenta, $clave);
             }
+            if ($cuenta->tipoCuenta() === 'DOCENTE') {
+                DB::table('docente')->where('id_docente', $cuenta->idActor())->whereNull('numero_colegiatura')->update(['numero_colegiatura' => (string) (90000000 + count($actores))]);
+            }
             $actores[$alias] = ['usuario' => $nombre, 'clave' => $clave, 'tipo' => $cuenta->tipoCuenta(), 'actor' => $cuenta->idActor(), 'historias' => []];
         }
         $alumnos = array_keys(array_filter($actores, fn (array $actor) => $actor['tipo'] === 'ALUMNO'));
@@ -83,6 +90,13 @@ class PrepararPruebas extends Command
                 'apellidoPaterno' => 'Laboratorio', 'apellidoMaterno' => 'Pruebas', 'sexo' => $indice % 2 ? 'M' : 'F',
             ], $cuenta);
             $actores[$alias]['historias'][] = $historia['id'];
+            $asignado = DB::table('historia_docente')->where('id_historia_clinica', $historia['id'])->where('id_docente', $docente->idActor())->where('estado', 1)->exists();
+            if (! $asignado) {
+                DB::table('historia_docente')->updateOrInsert([
+                    'id_historia_clinica' => $historia['id'], 'id_docente' => $docente->idActor(),
+                    'fecha_asignacion' => now()->toDateString(),
+                ], ['tipo_participacion' => 'ENCARGADO', 'estado' => 1, 'creado_en' => now()]);
+            }
             $expedientes->guardar($historia['id'], ['anamnesis' => [
                 'motivoConsulta' => "inicial|{$actores[$alias]['usuario']}|{$historia['id']}|0",
                 'historiaEnfermedad' => str_repeat('Descripción sintética para medición. ', $indice % 10 === 0 ? 30 : 3),
@@ -150,37 +164,22 @@ class PrepararPruebas extends Command
         $conexion->exec("CREATE DATABASE IF NOT EXISTS `{$destino}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         $conexion->exec("USE `{$destino}`");
         if ($conexion->query("SHOW TABLES LIKE 'historia_clinica'")->fetch()) {
+            if (! $conexion->query("SHOW TABLES LIKE 'pruebas_esquema'")->fetch()
+                || (int) $conexion->query('SELECT version FROM pruebas_esquema')->fetchColumn() !== 1) {
+                throw new RuntimeException('Esquema de pruebas sin certificación de saneamiento. Recréelo con pruebas:esquema; no se importarán datos operativos.');
+            }
+
             return;
         }
         if ($conexion->query('SHOW TABLES')->fetch()) {
             throw new RuntimeException('La base contiene un esquema parcial. Revíselo antes de importar; no se eliminarán sus tablas.');
         }
-        $sql = file_get_contents(base_path('../bd_clinica_undac.sql'));
-        $sql = preg_replace('/^DROP DATABASE IF EXISTS bd_clinica_undac;\s*/m', '', $sql);
-        $sql = preg_replace('/^CREATE DATABASE bd_clinica_undac\s+CHARACTER SET utf8mb4\s+COLLATE utf8mb4_unicode_ci;\s*/m', '', $sql);
-        $sql = preg_replace('/^USE bd_clinica_undac;\s*/m', '', $sql);
-        if (preg_match('/\b(?:CREATE|DROP)\s+DATABASE\b|\bUSE\s+\w+\s*;|\bbd_clinica_undac\s*\./i', preg_replace('/^\s*--.*$/m', '', $sql))) {
-            throw new RuntimeException('El esquema contiene instrucciones de base no permitidas.');
+        try {
+            $conexion->exec('SET SESSION sql_log_bin = 0');
+        } catch (\PDOException) {
         }
-        $delimitador = ';';
-        $sentencia = '';
-        foreach (preg_split('/\r?\n/', $sql) as $linea) {
-            if (preg_match('/^\s*DELIMITER\s+(\S+)/i', $linea, $coincidencia)) {
-                $delimitador = $coincidencia[1];
-
-                continue;
-            }
-            if (preg_match('/^\s*--/', $linea)) {
-                continue;
-            }
-            $sentencia .= $linea."\n";
-            if (str_ends_with(rtrim($linea), $delimitador)) {
-                $conexion->exec(substr(rtrim($sentencia), 0, -strlen($delimitador)));
-                $sentencia = '';
-            }
-        }
-        if (trim($sentencia) !== '') {
-            throw new RuntimeException('El esquema termina con una sentencia incompleta.');
+        foreach ((new EsquemaPruebas)->sentencias(file_get_contents(base_path('../bd_clinica_undac.sql'))) as $sentencia) {
+            $conexion->exec($sentencia);
         }
     }
 }

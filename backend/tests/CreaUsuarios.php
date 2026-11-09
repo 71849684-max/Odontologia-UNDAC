@@ -2,6 +2,7 @@
 
 namespace Tests;
 
+use App\Identidad\Dominio\Contratos\RepositorioUsuarios;
 use App\Identidad\Infraestructura\Persistencia\CuentaSistema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,15 @@ use Illuminate\Support\Facades\Hash;
  */
 trait CreaUsuarios
 {
+    protected function asignarProfesionalPrueba(object $docente, int $idHistoria): void
+    {
+        DB::table('historia_docente')->insert([
+            'id_historia_clinica' => $idHistoria, 'id_docente' => $docente->idActor(),
+            'tipo_participacion' => 'ENCARGADO', 'fecha_asignacion' => now()->toDateString(),
+            'estado' => 1, 'creado_en' => now(),
+        ]);
+    }
+
     protected function crearUsuario(
         string $nombreUsuario,
         string $contrasena,
@@ -31,6 +41,7 @@ trait CreaUsuarios
             'numero_documento' => $documento,
             'nombres' => 'Persona',
             'apellidos' => 'De Prueba',
+            ...($tipo === 'DOCENTE' ? ['numero_colegiatura' => $documento] : []),
             'estado' => 1,
             'creado_en' => now(),
         ]);
@@ -45,7 +56,7 @@ trait CreaUsuarios
             'creado_en' => now(),
         ]);
 
-        return app(\App\Identidad\Dominio\Contratos\RepositorioUsuarios::class)
+        return app(RepositorioUsuarios::class)
             ->buscarPorId(($tipo === 'ALUMNO' ? 'ALUMNO-' : 'DOCENTE-').$idUsuario);
     }
 }

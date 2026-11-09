@@ -1,5 +1,7 @@
 # Rendimiento e integridad
 
+La campaña local del cierre de preproducción y los ensayos que no pasaron están documentados en `CIERRE_PREPRODUCCION_2026-11-09.md`; las métricas sin datos clínicos están en `evidencias/cierre-preproduccion-2026-11-09/carga.json`. No equivalen a certificación del servidor definitivo.
+
 Los escenarios están en `backend/pruebas-rendimiento/escenarios.js`, seleccionados mediante `CARGA_ESCENARIO`: `listado`, `lectura`, `autoguardado` o `mixto`. Requieren k6 instalado. Las ejecuciones normales incluyen calentamiento, aumento progresivo y cinco minutos a carga estable. Los ensayos de humo duran doce segundos y no acreditan capacidad clínica.
 
 ## Datos exclusivos
@@ -27,7 +29,9 @@ $env:CARGA_ESCENARIO = 'mixto'
 $env:CARGA_EJECUCION = 'laboratorio-001'
 $env:CARGA_HUMO = '1'
 k6 run escenarios.js
+$codigoCarga = $LASTEXITCODE
 node verificarIntegridad.mjs
+if ($LASTEXITCODE -ne 0 -or $codigoCarga -ne 0) { throw 'La campaña no pasó los umbrales o la verificación de integridad.' }
 ```
 
 Para concurrencia preliminar, definir `CARGA_USUARIOS=5`. Para el ensayo nominal eliminar `CARGA_HUMO`; por defecto se utilizan 40 usuarios para listado/mixto y 30 para lectura/autoguardado. Ejecutar cada escenario por separado antes del mixto. La hipótesis nominal y el tamaño de muestra deben acordarse con la facultad antes de acreditar capacidad.
@@ -65,5 +69,7 @@ En Windows, desde `backend/pruebas-rendimiento`, ejecutar en otra terminal:
 ```
 
 Sustituir los identificadores por los procesos reales del servidor de pruebas. El CSV incluye CPU normalizada al equipo, memoria e hilos. Si Apache ejecuta PHP dentro de sus propios procesos, seleccionar sus procesos. En Linux recoger métricas equivalentes del servicio y MySQL con las herramientas del servidor. Los contadores globales de MySQL y su CPU incluyen otras bases si el servidor es compartido; documentarlo y usar un servidor dedicado para acreditar la referencia de CPU MySQL sostenida < 70 %.
+
+En Windows el medidor utiliza los contadores de rendimiento del sistema si no puede leer el tiempo de CPU de un servicio. `CpuDisponible` y `OrigenCpu` indican la procedencia; un contador no disponible se registra vacío, nunca como cero. No interpretar ausencia de permisos como ausencia de carga.
 
 La medición del frontend está disponible con `npm run medir:compilacion`, después de compilar. Cuenta la entrada y los módulos precargados declarados en `dist/index.html`, con tamaño original y gzip. Las capturas de navegador acreditan apertura funcional; la meta clínica de apertura inferior a cuatro segundos exige medir el equipo/red de referencia y una muestra de tiempos, no solo el tamaño del archivo.

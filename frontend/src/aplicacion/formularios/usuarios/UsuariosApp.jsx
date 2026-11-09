@@ -27,6 +27,7 @@ const FORMULARIO_VACIO = {
     apellidos: '',
     correo: '',
     telefono: '',
+    numero_colegiatura: '',
     estado: true,
 };
 
@@ -97,6 +98,7 @@ export default function UsuariosApp() {
             apellidos: usuario.apellidos ?? '',
             correo: usuario.correo ?? '',
             telefono: usuario.telefono ?? '',
+            numero_colegiatura: usuario.numero_colegiatura ?? '',
             estado: Boolean(usuario.estado),
         });
         setErroresFormulario({});
@@ -316,13 +318,14 @@ export default function UsuariosApp() {
                                 ['contrasena', dialogo.modo === 'crear' ? 'Contraseña' : 'Nueva contraseña (opcional)', 'password'],
                                 ['correo', 'Correo', 'email'],
                                 ['telefono', 'Teléfono', 'text'],
+                                ['numero_colegiatura', 'N.º COP del profesional (opcional)', 'text'],
                             ].map(([campo, etiqueta, tipo]) => (
                                 <label key={campo}>
                                     <span>{etiqueta}</span>
                                     {tipo === 'select' ? (
-                                        <select value={formulario[campo]} onChange={(evento) => actualizarCampo(campo, evento.target.value)} required>
+                                        <select value={formulario[campo] ?? ''} onChange={(evento) => actualizarCampo(campo, evento.target.value)} required>
                                             {!TIPOS_DOCUMENTO.some((opcion) => opcion.valor === formulario[campo]) && formulario[campo] && (
-                                                <option value={formulario[campo]}>{formulario[campo]}</option>
+                                                <option value={formulario[campo] ?? ''}>{formulario[campo]}</option>
                                             )}
                                             {TIPOS_DOCUMENTO.map((opcion) => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
                                         </select>
@@ -330,9 +333,9 @@ export default function UsuariosApp() {
                                         type={tipo}
                                         maxLength={campo === 'nombres' ? 100 : campo === 'apellidos' || campo === 'nombre_usuario' ? 120 : campo === 'correo' ? 150 : campo === 'telefono' ? 30 : campo === 'numero_documento' ? (formulario.tipo_documento === 'DNI' ? 8 : 20) : 255}
                                         minLength={campo === 'contrasena' ? 8 : undefined}
-                                        value={formulario[campo]}
+                                        value={formulario[campo] ?? ''}
                                         onChange={(evento) => actualizarCampo(campo, evento.target.value)}
-                                        required={campo !== 'correo' && campo !== 'telefono' && !(campo === 'contrasena' && dialogo.modo === 'editar')}
+                                        required={campo !== 'correo' && campo !== 'telefono' && campo !== 'numero_colegiatura' && !(campo === 'contrasena' && dialogo.modo === 'editar')}
                                     />}
                                     {erroresFormulario[campo] && <small className="admin-error">{erroresFormulario[campo][0]}</small>}
                                 </label>

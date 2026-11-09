@@ -2,6 +2,7 @@
 
 use App\Clinica\Http\Middleware\AsegurarAccesoHistoria;
 use App\Clinica\Http\Middleware\AsegurarSubmodulo;
+use App\Clinica\Http\Middleware\RegistrarConsultaClinica;
 use App\Http\Middleware\CabecerasSeguridad;
 use App\Identidad\Http\Middleware\AsegurarRol;
 use App\Identidad\Http\Middleware\AsegurarUsuarioActivo;
@@ -33,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'usuario.activo' => AsegurarUsuarioActivo::class,
             'acceso' => AsegurarSubmodulo::class,
             'historia.acceso' => AsegurarAccesoHistoria::class,
+            'consulta.clinica' => RegistrarConsultaClinica::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

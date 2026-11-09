@@ -28,6 +28,7 @@ class EquipoClinicoTest extends TestCase
         $alumno = $this->crearUsuario('alumno.equipo', self::CLAVE, 'ALUMNO');
         $docente = $this->crearUsuario('docente.equipo', self::CLAVE, 'DOCENTE');
         $id = $this->historia($alumno, '70000301');
+        $this->asignarProfesionalPrueba($docente, $id);
 
         $otro = DB::table('alumno')->insertGetId([
             'codigo_alumno' => 'ALU-EQ-1',
@@ -74,6 +75,7 @@ class EquipoClinicoTest extends TestCase
         $otro = $this->crearUsuario('asistente.ajeno', self::CLAVE, 'ALUMNO');
         $docente = $this->crearUsuario('profesional.asignacion', self::CLAVE, 'DOCENTE');
         $id = $this->historia($alumno, '70000309');
+        $this->asignarProfesionalPrueba($docente, $id);
 
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/asignacion", [
             'personal' => 'DOCENTE-'.$docente->idActor(),
@@ -214,12 +216,17 @@ class EquipoClinicoTest extends TestCase
         $alumno = $this->crearUsuario('alumno.revision', self::CLAVE, 'ALUMNO');
         $docente = $this->crearUsuario('docente.revision', self::CLAVE, 'DOCENTE');
         $id = $this->historia($alumno, '70000303');
+        $this->asignarProfesionalPrueba($docente, $id);
         $estado = fn (string $seccion) => DB::table('historia_seccion_estado')
             ->where('id_historia_clinica', $id)->where('codigo_seccion', $seccion)->value('estado');
 
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/expediente", [
             'formData' => ['anamnesis' => ['motivoConsulta' => 'Control']],
             'sectionStatus' => ['anamnesis' => 'approved', 'diagnostico' => 'review', 'examen-clinico' => 'hackeado'],
+        ])->assertUnprocessable()->assertJsonValidationErrors('sectionStatus.examen-clinico');
+        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/expediente", [
+            'formData' => ['anamnesis' => ['motivoConsulta' => 'Control']],
+            'sectionStatus' => ['anamnesis' => 'approved', 'diagnostico' => 'review'],
         ])->assertOk();
         $this->assertNull($estado('anamnesis'));
         $this->assertSame('review', $estado('diagnostico'));
@@ -230,13 +237,16 @@ class EquipoClinicoTest extends TestCase
             'sectionStatus' => ['diagnostico' => 'approved'],
         ])->assertOk();
         $this->assertSame('approved', $estado('diagnostico'));
-        $this->assertSame(2, DB::table('auditoria')
+        $this->assertSame(1, DB::table('auditoria')
             ->where('accion', 'REVISAR_SECCION')->where('id_registro', (string) $id)->count());
+        $this->assertDatabaseHas('auditoria', [
+            'accion' => 'APROBAR_SECCION', 'id_registro' => (string) $id, 'nombre_usuario' => $docente->nombreUsuario(),
+        ]);
 
         $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/expediente", [
             'formData' => ['anamnesis' => ['motivoConsulta' => 'Control']],
             'sectionStatus' => ['diagnostico' => 'in-progress'],
-        ])->assertOk();
+        ])->assertUnprocessable()->assertJsonValidationErrors('motivo');
         $this->assertSame('approved', $estado('diagnostico'));
     }
 
@@ -245,6 +255,7 @@ class EquipoClinicoTest extends TestCase
         $alumno = $this->crearUsuario('alumno.congelado', self::CLAVE, 'ALUMNO');
         $docente = $this->crearUsuario('docente.congelado', self::CLAVE, 'DOCENTE');
         $id = $this->historia($alumno, '70000304');
+        $this->asignarProfesionalPrueba($docente, $id);
         $guardar = fn ($cuenta, array $formData, array $estados = []) => $this->actingAs($cuenta, 'web')
             ->putJson("/api/historias/{$id}/expediente", ['formData' => $formData, 'sectionStatus' => $estados]);
         $motivo = fn () => $this->actingAs($docente, 'web')->getJson("/api/historias/{$id}/expediente")->json('formData.anamnesis.motivoConsulta');
@@ -266,6 +277,8 @@ class EquipoClinicoTest extends TestCase
             ->assertJsonPath('errors.registro.0', 'El odontograma ya fue aprobado por el cirujano dentista supervisor y no admite cambios.');
 
         $guardar($docente, ['anamnesis' => ['motivoConsulta' => 'Corregido por docente']])->assertOk();
+        $this->assertSame('Dolor en molar', $motivo());
+        $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/expediente", ['formData' => ['anamnesis' => ['motivoConsulta' => 'Corregido por docente']], 'sectionStatus' => ['anamnesis' => 'in-progress'], 'motivo' => 'Rectificar el motivo de consulta del paciente'])->assertOk();
         $this->assertSame('Corregido por docente', $motivo());
     }
 }

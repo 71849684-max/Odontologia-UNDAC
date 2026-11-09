@@ -189,16 +189,17 @@ export async function obtenerExpediente(historiaId) {
 export function conTextosClausulas(formData) {
     const consentimiento = formData?.consentimiento;
     if (!consentimiento || typeof consentimiento !== 'object') return formData;
-    const textosClausulas = Object.fromEntries(consentParagraphs.map((texto, indice) => [indice + 1, texto]));
+    const textosClausulas = consentimiento.textosClausulas ?? Object.fromEntries(consentParagraphs.map((texto, indice) => [indice + 1, texto]));
     return { ...formData, consentimiento: { ...consentimiento, textosClausulas } };
 }
 
-export async function guardarExpediente(historiaId, formData, sectionStatus, revision) {
+export async function guardarExpediente(historiaId, formData, sectionStatus, revision, motivo) {
     sinRedEnPrueba();
     return clienteHttp.actualizar(`/historias/${historiaId}/expediente`, {
         formData: formularioParaServidor(formData),
         sectionStatus,
         ...(revision ? { revision } : {}),
+        ...(motivo ? { motivo } : {}),
     });
 }
 
@@ -231,10 +232,35 @@ export async function inactivarHistoria(historiaId) {
 export async function obtenerOdontograma(historiaId) {
     sinRedEnPrueba();
     const cuerpo = await clienteHttp.obtener(`/historias/${historiaId}/odontograma`);
-    return cuerpo?.registro ?? null;
+    return cuerpo?.registro ? { ...cuerpo.registro, revisionServidor: cuerpo.revision } : null;
+}
+
+export async function listarVersionesClinicas(historiaId) {
+    sinRedEnPrueba();
+    return (await clienteHttp.obtener(`/historias/${historiaId}/versiones`))?.data ?? [];
+}
+
+export function enlaceExportacionClinica(historiaId) {
+    return `/api/historias/${historiaId}/exportacion-completa`;
+}
+
+export async function obtenerVersionClinica(historiaId, versionId) {
+    sinRedEnPrueba();
+    return clienteHttp.obtener(`/historias/${historiaId}/versiones/${versionId}`);
+}
+
+export async function registrarImpresionClinica(historiaId, seccion) {
+    sinRedEnPrueba();
+    return clienteHttp.enviar(`/historias/${historiaId}/impresiones`, { seccion });
+}
+
+export async function registrarDecisionConsentimiento(historiaId, decision, motivo) {
+    sinRedEnPrueba();
+    return clienteHttp.enviar(`/historias/${historiaId}/consentimiento/decision`, { decision, motivo });
 }
 
 export async function guardarOdontograma(historiaId, registro) {
     sinRedEnPrueba();
-    return clienteHttp.actualizar(`/historias/${historiaId}/odontograma`, { registro });
+    const cuerpo = await clienteHttp.actualizar(`/historias/${historiaId}/odontograma`, { registro });
+    return cuerpo?.registro;
 }

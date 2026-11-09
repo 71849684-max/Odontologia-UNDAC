@@ -17,7 +17,7 @@ const BENEFICIOS_INSTITUCIONALES = [
     { icono: GraduationCap, titulo: 'Formación con propósito', texto: 'Tecnología al servicio de la enseñanza y la salud bucal.' },
 ];
 
-export default function PaginaAcceso({ alIngresar, enviando = false, error = null }) {
+export default function PaginaAcceso({ alIngresar, enviando = false, error = null, alReintentarSalida = null }) {
     const [mostrarContrasena, establecerMostrarContrasena] = useState(false);
     const [nombreUsuario, establecerNombreUsuario] = useState('');
     const [contrasena, establecerContrasena] = useState('');
@@ -105,6 +105,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                         {error && (
                             <p className="mensaje-acceso-error" role="alert">{error}</p>
                         )}
+                        {alReintentarSalida ? <button type="button" className="enlace-acceso" disabled={enviando} onClick={alReintentarSalida}>Reintentar cierre de sesión</button> : null}
                         <div className="opciones-acceso">
                             <button
                                 type="button"

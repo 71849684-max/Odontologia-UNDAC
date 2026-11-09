@@ -20,6 +20,16 @@ class AccesoHistorias
         return ! $this->accesos->esAdministrador($actor);
     }
 
+    public function puedeAprobar(Cuenta $actor): bool
+    {
+        if ($actor->tipoCuenta() !== 'DOCENTE') {
+            return false;
+        }
+        $cop = DB::table('docente')->where('id_docente', $actor->idActor())->where('estado', 1)->value('numero_colegiatura');
+
+        return $actor->estaActiva() && ! $actor->estaBloqueada() && preg_match('/^\d{4,8}$/', (string) $cop) === 1;
+    }
+
     public function restringido(Cuenta $actor): bool
     {
         return $actor->tipoCuenta() === 'ALUMNO';
@@ -57,10 +67,6 @@ class AccesoHistorias
      */
     public function seccionesBloqueadas(Cuenta $actor, int $idHistoria): array
     {
-        if (! $this->restringido($actor)) {
-            return [];
-        }
-
         return DB::table('historia_seccion_estado')
             ->where('id_historia_clinica', $idHistoria)
             ->where('estado', 'approved')

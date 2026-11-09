@@ -1,10 +1,12 @@
-import { test, expect, ingresar, crearHistoria, completarAnamnesis, cambiarEstado, escribirConCsrf } from './ayudas.js';
+import { test, expect, ingresar, crearHistoria, completarAnamnesis, cambiarEstado, escribirConCsrf, manifiesto } from './ayudas.js';
 
 test('docente observa, alumno corrige y la validación impide modificaciones posteriores', async ({ page, browser }) => {
     // Incluye dos sesiones, cinco transiciones y la verificación posterior.
     test.setTimeout(120000);
     await ingresar(page);
     const historia = await crearHistoria(page);
+    const asignada = await escribirConCsrf(page, `/api/historias/${historia.id}/asignacion`, { personal: `DOCENTE-${manifiesto.actores.docente.actor}` });
+    expect(asignada.status()).toBe(200);
     await completarAnamnesis(page, historia, 'Motivo inicial sintético');
     await cambiarEstado(page, historia, 'Enviar a revisión', 'PENDIENTE_REVISION');
     const contexto = await browser.newContext({ baseURL: new URL(page.url()).origin });
