@@ -13,7 +13,7 @@ test('reabrir conserva la versión aprobada y registra el motivo desde la interf
         await expect(profesional.getByRole('textbox', { name: 'Motivo de consulta', exact: true })).toHaveValue('Texto original aprobado');
         await profesional.getByRole('button', { name: 'Aprobar sección', exact: true }).click();
         await expect.poll(async () => (await (await profesional.request.get(`/api/historias/${historia.id}/expediente`)).json()).sectionStatus.anamnesis).toBe('approved');
-        await expect(profesional.getByRole('textbox', { name: 'Motivo de consulta', exact: true })).toBeDisabled();
+        await expect(profesional.getByRole('textbox', { name: 'Motivo de consulta', exact: true })).toHaveAttribute('readonly');
         await profesional.getByRole('button', { name: 'Reabrir sección', exact: true }).click();
         const dialogo = profesional.getByRole('dialog', { name: 'Reabrir sección para corregir' });
         await expect(dialogo.getByRole('button', { name: 'Reabrir y conservar el original' })).toBeDisabled();

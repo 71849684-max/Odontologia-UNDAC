@@ -1,3 +1,4 @@
+import EstadoCarga from '../../componentes/interfaz/EstadoCarga.jsx';
 import { useEffect, useState } from 'react';
 import { KeyRound, Search, UserPlus, UsersRound, X } from 'lucide-react';
 import { etiquetaCodigoRol, etiquetaRol } from '../../configuracion/etiquetasRoles.js';
@@ -229,7 +230,7 @@ export default function UsuariosApp() {
 
             {error && <p className="hc-inline-callout" role="alert">{error}</p>}
             {aviso && <p className="hc-inline-callout" role="status">{aviso}</p>}
-            {cargando && <p role="status">Cargando usuarios…</p>}
+            {cargando && <EstadoCarga mensaje="Cargando usuarios…" />}
 
             {!cargando && usuarios.length === 0 && (
                 <EstadoVacio titulo="No se encontraron usuarios" descripcion="Prueba con otros términos o elimina el filtro de rol." />

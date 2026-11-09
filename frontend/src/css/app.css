@@ -9,6 +9,8 @@
 @import './aplicacion/claude-shell.css';
 @import './aplicacion/claude-vistas.css';
 @import './aplicacion/modo-oscuro.css';
+@import './aplicacion/estados-carga.css';
+@import './aplicacion/clinica/historial-documentos.css';
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',

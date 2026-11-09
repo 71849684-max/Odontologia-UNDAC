@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Filter, Plus, Search, X } from 'lucide-react';
 import { listarHistorias } from '../../servicios/registroHistoriaClinica.js';
 import { listarConfiguracion } from '../../servicios/servicioAdministracion.js';
@@ -6,6 +6,7 @@ import { cambiarEstadoHistoria, idHistoria, listarHistoriasRemotas, mensajeError
 import BotonEliminacionClinica from './BotonEliminacionClinica.jsx';
 import { ProgressBar, StatusBadge } from '../compartidos/ControlesClinicos.jsx';
 import EstadoVacio from '../../componentes/interfaz/EstadoVacio.jsx';
+import EstadoCarga from '../../componentes/interfaz/EstadoCarga.jsx';
 import Paginacion from '../../componentes/interfaz/Paginacion.jsx';
 import NuevaHistoriaModal from '../nueva-historia/NuevaHistoriaModal.jsx';
 import { formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
@@ -70,8 +71,12 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
     const [query, setQuery] = useState('');
     const [status, setStatus] = useState('');
     const [historias, setHistorias] = useState(listarHistorias);
-    // null = comprobando conexión; true = API disponible; false = modo local confirmado
+    // null = primera consulta; true = última consulta correcta; false = error de carga.
     const [usaApi, setUsaApi] = useState(null);
+    const [cargando, setCargando] = useState(true);
+    const [errorCarga, setErrorCarga] = useState('');
+    const [reintento, setReintento] = useState(0);
+    const primeraConsulta = useRef(true);
     const [error, setError] = useState('');
     const [aviso, setAviso] = useState('');
     const [observando, setObservando] = useState(null);
@@ -99,22 +104,28 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
     }, [rol]);
     useEffect(() => {
         let vigente = true;
-        listarHistoriasRemotas()
-            .then((lista) => { if (vigente) { setHistorias(lista); setUsaApi(true); } })
-            .catch(() => { if (vigente) setUsaApi(false); });
-        return () => { vigente = false; };
-    }, []);
-    useEffect(() => {
-        if (usaApi !== true) return undefined;
-        let vigente = true;
-        const temporizador = setTimeout(() => {
+        setCargando(true);
+        setErrorCarga('');
+        const consultar = () => {
             listarHistoriasRemotas({ q: query, estado: CODIGO_ESTADO[status] })
-                .then((lista) => { if (vigente) setHistorias(lista); })
-                .catch(() => {});
-        }, 250);
+                .then((lista) => { if (vigente) { setHistorias(lista); setUsaApi(true); } })
+                .catch((err) => {
+                    if (!vigente) return;
+                    setUsaApi(false);
+                    setErrorCarga(mensajeError(err, 'No se pudieron cargar las historias. Intente nuevamente.'));
+                })
+                .finally(() => { if (vigente) setCargando(false); });
+        };
+        let temporizador;
+        if (primeraConsulta.current) consultar();
+        else temporizador = setTimeout(consultar, 250);
+        primeraConsulta.current = false;
         return () => { vigente = false; clearTimeout(temporizador); };
-    }, [usaApi, query, status]);
-    const filtered = useMemo(() => historias.filter((item) => (!status || item.estado === status) && `${item.paciente} ${item.codigo} ${item.dni} ${item.operador} ${item.docente}`.toLowerCase().includes(query.toLowerCase())), [historias, query, status]);
+    }, [query, status, reintento]);
+    const filtered = useMemo(() => {
+        const busqueda = query.toLowerCase();
+        return historias.filter((item) => (!status || item.estado === status) && `${item.paciente} ${item.codigo} ${item.dni} ${item.operador} ${item.docente}`.toLowerCase().includes(busqueda));
+    }, [historias, query, status]);
     const go = (target) => typeof onNavigate === 'function' ? onNavigate(target) : window.onNavigate?.(target);
     const indicadores = [
         ['Total', historias.length],
@@ -162,6 +173,8 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
         <div className="hc-filterbar"><label className="hc-search"><Search size={17} /><span className="sr-only">Buscar historia clínica</span><input value={query} maxLength={120} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar paciente, historia, asistente o profesional encargado..." /></label><label className="hc-select-filter"><Filter size={16} /><span className="sr-only">Filtrar por estado</span><select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todos los estados</option>{Object.keys(CODIGO_ESTADO).map((item) => <option key={item}>{item}</option>)}</select></label></div>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
         {aviso && <p className="hc-inline-callout" role="status">{aviso}</p>}
+        {cargando ? <EstadoCarga mensaje="Cargando historias clínicas…" compacto={usaApi === true} /> : null}
+        {!cargando && errorCarga ? <div className="hc-form-error" role="alert">{errorCarga}<button type="button" className="hc-mini-button" onClick={() => setReintento((valor) => valor + 1)}>Reintentar carga</button></div> : null}
         {filtered.length ? <div><Paginacion key={`${query}|${status}`} elementos={filtered} tamanos={[10]} inicial={10} etiqueta="historias">{(visibles) => <div className="hc-table-card"><table className="hc-table">
             <thead><tr><th>N.º historia</th><th>Paciente</th><th>Asistente responsable</th><th>Profesional encargado</th><th>Progreso</th><th>Estado</th><th>Fecha</th><th>Acciones</th></tr></thead>
             <tbody>{visibles.map((history) => <tr key={history.id}>
@@ -179,7 +192,7 @@ export default function HistoriasApp({ rol, onNavigate, pacienteInicial = null, 
                     {rol === 'administrador' && eliminacionActiva && idHistoria(history.id) ? <BotonEliminacionClinica historiaId={idHistoria(history.id)} codigo={history.codigo} onInactivada={() => setHistorias((lista) => lista.filter((item) => item.id !== history.id))} /> : null}
                 </div></td>
             </tr>)}</tbody>
-        </table></div>}</Paginacion></div> : <EstadoVacio titulo="No hay historias para mostrar" descripcion="Ajusta la búsqueda o selecciona otro estado." />}
+        </table></div>}</Paginacion></div> : !cargando && !errorCarga ? <EstadoVacio titulo="No hay historias para mostrar" descripcion="Ajusta la búsqueda o selecciona otro estado." /> : null}
         {observando && <div className="admin-dialogo-fondo" role="presentation" onClick={() => !enviando && setObservando(null)}>
             <form className="admin-dialogo" role="dialog" aria-modal="true" aria-labelledby="titulo-observar" onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (observando.texto.trim()) ejecutar(observando.historia, observando.accion, observando.texto.trim()); }}>
                 <header className="admin-dialogo__cabecera"><h2 id="titulo-observar">Observar {observando.historia.codigo}</h2><button type="button" className="hc-mini-button" aria-label="Cerrar" disabled={enviando} onClick={() => setObservando(null)}><X size={16} /></button></header>

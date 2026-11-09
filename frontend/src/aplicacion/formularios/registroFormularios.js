@@ -14,7 +14,14 @@ import ConsentimientoSection from './consentimiento/ConsentimientoSection.jsx';
 import CirugiaSection from './cirugia/CirugiaSection.jsx';
 import ReporteOperatorioSection from './reporte-operatorio/ReporteOperatorioSection.jsx';
 import SeguimientoSection from './seguimiento/SeguimientoSection.jsx';
-import Odontograma from './odontograma/Odontograma.jsx';
+import { createElement, lazy } from 'react';
+import CargaVista from '../componentes/interfaz/CargaVista.jsx';
+
+const OdontogramaDiferido = lazy(() => import('./odontograma/Odontograma.jsx'));
+
+function Odontograma(props) {
+  return createElement(CargaVista, null, createElement(OdontogramaDiferido, props));
+}
 
 // Relaciona los identificadores de clinicalSections con sus vistas.
 export const componentesSeccion = {

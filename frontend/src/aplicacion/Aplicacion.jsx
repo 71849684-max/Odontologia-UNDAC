@@ -1,6 +1,7 @@
 import { lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { solicitarSalidaClinica } from './utilidades/salidaClinica.js';
 import CargaVista from './componentes/interfaz/CargaVista.jsx';
+import EstadoCarga from './componentes/interfaz/EstadoCarga.jsx';
 import PaginaAcceso from './paginas/PaginaAcceso';
 import AppLayout from './disenos/AppLayout';
 import { menuParaSesion, perfilDesdeRoles } from './configuracion/menuPorRol';
@@ -89,8 +90,8 @@ const VIEW_COMPONENTS = {
 
 function PantallaCargandoSesion() {
     return (
-        <main className="pantalla-sesion" role="status" aria-live="polite">
-            <p>Verificando tu sesión…</p>
+        <main className="pantalla-sesion">
+            <EstadoCarga mensaje="Verificando tu sesión…" detalle="Estamos comprobando tu acceso al sistema." />
         </main>
     );
 }

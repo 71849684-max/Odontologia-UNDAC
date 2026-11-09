@@ -1,4 +1,6 @@
 import useOdontogramaServidor from './useOdontogramaServidor.js';
+import { useLecturaClinica } from '../compartidos/LecturaClinicaContext.js';
+import EstadoCarga from '../../componentes/interfaz/EstadoCarga.jsx';
 import HerramientasOdontograma from './HerramientasOdontograma.jsx';
 import ShapeEditor from './ShapeEditor.jsx';
 import React, { useRef, useState } from 'react';
@@ -27,6 +29,7 @@ function load(patientId, key) {
 
 // El padre usa una key por historia para aislar los pacientes también en memoria.
 export default function Odontograma({ patientId = 'sin-historia', patientName = '', historyCode = '', historyId = null }) {
+  const soloLectura = useLecturaClinica();
   const servidor = idHistoria(historyId);
   const remoto = useOdontogramaServidor(servidor, patientId);
   const storageKey = `undac:odontograma:nts188:v1:${patientId}`;
@@ -62,14 +65,15 @@ export default function Odontograma({ patientId = 'sin-historia', patientName = 
   }, [mobileOpen, actionTarget]);
 
   if (!record && !servidor) return <SectionCard title="Odontograma"><p role="alert">{error || ERROR_LECTURA_ODONTOGRAMA}</p></SectionCard>;
-  if (!record) return <SectionCard title="Odontograma"><p role="status">{remoto.error || 'Cargando odontograma del servidor…'}</p>{remoto.error ? <button type="button" className="undac-btn undac-btn--secondary" onClick={remoto.cargar}>Reintentar carga</button> : null}</SectionCard>;
+  if (!record) return <SectionCard title="Odontograma">{remoto.error ? <><p role="alert">{remoto.error}</p><button type="button" className="undac-btn undac-btn--secondary" onClick={remoto.cargar}>Reintentar carga</button></> : <EstadoCarga mensaje="Cargando odontograma del servidor…" compacto />}</SectionCard>;
   const exam = record.examinations.find((e) => e.id === examId) || record.examinations.at(-1);
-  const locked = exam.status === 'closed', state = stateFor(stateId);
+  const locked = soloLectura || exam.status === 'closed', state = stateFor(stateId);
   const selectedMarks = [...toothFindings(exam.teeth[selectedTooth]), ...exam.ranges.filter((m) => m.teeth.includes(selectedTooth))].filter(marca => marca.state !== 'extraccion-programada');
   const allMarks = [...Object.entries(exam.teeth).flatMap(([number, tooth]) => toothFindings(tooth).map((m) => ({ ...m, teeth: [number] }))), ...exam.ranges].filter(marca => marca.state !== 'extraccion-programada');
   const actionSurface = actionTarget ? surfaceName(actionTarget.surface) : '';
 
   const persist = (cambio, guardado = 'Guardado en la historia clínica.') => {
+    if (soloLectura) return false;
     if (servidor) return remoto.cambiar(cambio);
     try {
       if (localCorrupto) throw new Error(ERROR_LECTURA_ODONTOGRAMA);

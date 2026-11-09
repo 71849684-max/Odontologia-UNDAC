@@ -2,6 +2,7 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, FileText, ImagePlus, PenLine, Upload, X } from 'lucide-react';
 import { useArchivosClinicos } from './archivosClinicos.js';
+import { useLecturaClinica } from './LecturaClinicaContext.js';
 import PadFirma from './PadFirma.jsx';
 
 /** Ancho de separación entre celdas del carrusel (debe coincidir con el CSS). */
@@ -279,6 +280,7 @@ export function BloqueCarga({
   nota,
 }) {
   const servidorContexto = useArchivosClinicos();
+  const soloLectura = useLecturaClinica();
   const servidor = campo ? servidorContexto : null;
   const notaVisible = nota ?? (servidor ? NOTA_SERVIDOR : NOTA_LOCAL);
   const controlado = typeof onChange === 'function';
@@ -314,6 +316,7 @@ export function BloqueCarga({
     : 'Adjunte los documentos de respaldo en PDF, Word, Excel o imagen.');
 
   function abrirSelector() {
+    if (soloLectura) return;
     if (!sinEspacio || !esImagen) inputRef.current?.click();
   }
 
@@ -369,6 +372,7 @@ export function BloqueCarga({
   }, [adjuntos.length, esImagen]);
 
   async function incorporar(lista) {
+    if (soloLectura) return;
     const archivos = Array.from(lista || []);
     if (!archivos.length) return;
     setError('');
@@ -432,6 +436,7 @@ export function BloqueCarga({
 
   /** Ejecuta la retirada local tras borrar en el servidor; sin servidor es inmediata. */
   function retirar(adjunto, alRetirar) {
+    if (soloLectura) return;
     if (!servidor || !adjunto?.archivoId) {
       alRetirar();
       return;
@@ -515,7 +520,7 @@ export function BloqueCarga({
           <span className="undac-photo-block__count">{Number.isFinite(limite) ? `${limite} vista${limite === 1 ? '' : 's'} sugerida${limite === 1 ? '' : 's'}` : 'Adjuntos'}</span>
         </div>
         <div className="undac-photo-block__toolbar">
-          <BotonCarga onClick={abrirSelector} disabled={procesando || sinEspacio}>
+          <BotonCarga onClick={abrirSelector} disabled={soloLectura || procesando || sinEspacio}>
             {procesando ? 'Preparando…' : 'Cargar imágenes'}
           </BotonCarga>
           <p className="undac-photo-block__status" role="status">{estado}</p>
@@ -612,6 +617,7 @@ export function BloqueCarga({
 
 /** Slot individual de constancia (firma, huella) con carga de imagen. */
 export function SlotConstancia({ label, value, onChange, campo, textoPendiente = 'Constancia pendiente', accept = ACEPTAR_IMAGENES, permitirDibujo = true }) {
+  const soloLectura = useLecturaClinica();
   const inputRef = React.useRef(null);
   const servidorContexto = useArchivosClinicos();
   const servidor = campo ? servidorContexto : null;
@@ -621,6 +627,7 @@ export function SlotConstancia({ label, value, onChange, campo, textoPendiente =
   const adjunto = value || null;
 
   async function incorporar(contenido, nombre) {
+    if (soloLectura) return;
     setError('');
     setOcupado(true);
     try {
@@ -649,6 +656,7 @@ export function SlotConstancia({ label, value, onChange, campo, textoPendiente =
   }
 
   async function quitar() {
+    if (soloLectura) return;
     if (servidor && adjunto?.archivoId) {
       try {
         await servidor.eliminar(adjunto);

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLecturaClinica } from './LecturaClinicaContext.js';
 import { BloqueCarga } from './ControlesCarga.jsx';
 import { aIsoFecha, aIsoFechaHora, dentroDeRangoIso, enmascararFecha, fechaCompleta, formatearFecha, formatearFechaHora } from '../../utilidades/fechas.mjs';
 
@@ -125,6 +126,7 @@ function CampoFechaTexto({ id, value, onChange, min, max, required, readOnly, co
 }
 
 export function Field({ label, value = '', onChange, type = 'text', placeholder = '', required = false, min, max, step, className = '', help, readOnly = false, maxLength, inputMode }) {
+  readOnly = useLecturaClinica() || readOnly;
   const id = React.useId();
   const esFecha = type === 'date' || type === 'datetime-local';
   return (
@@ -140,23 +142,25 @@ export function Field({ label, value = '', onChange, type = 'text', placeholder 
   );
 }
 
-export function TextAreaField({ label, value = '', onChange, placeholder = '', rows = 4, className = '', help }) {
+export function TextAreaField({ label, value = '', onChange, placeholder = '', rows = 4, className = '', help, readOnly = false }) {
+  const soloLectura = useLecturaClinica() || readOnly;
   const id = React.useId();
   return (
     <label className={`undac-field ${className}`} htmlFor={id}>
       <span>{label}</span>
-      <textarea id={id} value={value ?? ''} placeholder={placeholder} rows={rows} onChange={(event) => onChange?.(event.target.value)} />
+      <textarea id={id} value={value ?? ''} readOnly={soloLectura} placeholder={placeholder} rows={rows} onChange={(event) => { if (!soloLectura) onChange?.(event.target.value); }} />
       {help ? <small>{help}</small> : null}
     </label>
   );
 }
 
 export function SelectField({ label, value = '', onChange, options = [], placeholder = 'Seleccione', className = '', disabled = false }) {
+  const soloLectura = useLecturaClinica();
   const id = React.useId();
   return (
     <label className={`undac-field ${className}`} htmlFor={id}>
       <span>{label}</span>
-      <select id={id} value={value ?? ''} disabled={disabled} onChange={(event) => onChange?.(event.target.value)}>
+      <select id={id} value={value ?? ''} disabled={disabled} aria-readonly={soloLectura || undefined} onChange={(event) => { if (!soloLectura) onChange?.(event.target.value); }}>
         <option value="">{placeholder}</option>
         {options.map((option) => {
           const normalized = typeof option === 'string' ? { value: option, label: option } : option;
@@ -168,6 +172,7 @@ export function SelectField({ label, value = '', onChange, options = [], placeho
 }
 
 export function ChoiceGroup({ label, value = '', onChange, options = ['Sí', 'No'], inline = true, className = '', hideLabel = false }) {
+  const soloLectura = useLecturaClinica();
   const name = React.useId();
   return (
     <fieldset className={`undac-choice ${inline ? 'undac-choice--inline' : ''} ${className}`}>
@@ -177,7 +182,7 @@ export function ChoiceGroup({ label, value = '', onChange, options = ['Sí', 'No
           const normalized = typeof option === 'string' ? { value: option, label: option } : option;
           return (
             <label key={normalized.value}>
-              <input type="radio" name={name} value={normalized.value} checked={value === normalized.value} onChange={() => onChange?.(normalized.value)} />
+              <input type="radio" name={name} value={normalized.value} checked={value === normalized.value} aria-readonly={soloLectura || undefined} onClick={evento => { if (soloLectura) evento.preventDefault(); }} onChange={() => { if (!soloLectura) onChange?.(normalized.value); }} />
               <span>{normalized.label}</span>
             </label>
           );
@@ -188,7 +193,9 @@ export function ChoiceGroup({ label, value = '', onChange, options = ['Sí', 'No
 }
 
 export function CheckboxGroup({ label, values = [], onChange, options = [], className = '' }) {
+  const soloLectura = useLecturaClinica();
   const toggle = (option) => {
+    if (soloLectura) return;
     const next = values.includes(option) ? values.filter((item) => item !== option) : [...values, option];
     onChange?.(next);
   };
@@ -198,7 +205,7 @@ export function CheckboxGroup({ label, values = [], onChange, options = [], clas
       <div className="undac-check-grid">
         {options.map((option) => (
           <label key={option}>
-            <input type="checkbox" checked={values.includes(option)} onChange={() => toggle(option)} />
+            <input type="checkbox" checked={values.includes(option)} aria-readonly={soloLectura || undefined} onClick={evento => { if (soloLectura) evento.preventDefault(); }} onChange={() => toggle(option)} />
             <span>{option}</span>
           </label>
         ))}

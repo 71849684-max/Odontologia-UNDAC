@@ -1,0 +1,59 @@
+.estado-carga {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 1.25rem;
+    min-height: 18rem;
+    padding: clamp(1.5rem, 5vw, 3rem);
+    border: 1px solid var(--ou-border);
+    border-radius: var(--ou-radius-md);
+    color: var(--ou-text);
+    background: var(--ou-surface);
+    text-align: center;
+}
+.estado-carga__indicador {
+    display: grid;
+    place-items: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--color-accent) 9%, var(--ou-surface));
+}
+.estado-carga__indicador > span {
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 3px solid var(--ou-border);
+    border-top-color: var(--color-accent);
+    border-right-color: var(--color-accent);
+    border-radius: 50%;
+    animation: giro-carga 1s linear infinite;
+}
+.estado-carga__texto strong { font-size: 1.05rem; font-weight: 650; }
+.estado-carga__texto p { margin: .5rem 0 0; color: var(--ou-muted); font-size: .875rem; line-height: 1.6; }
+.estado-carga__esqueleto { display: grid; gap: .625rem; width: min(100%, 21rem); }
+.estado-carga__esqueleto > span {
+    position: relative;
+    overflow: hidden;
+    height: .65rem;
+    border-radius: var(--ou-radius-sm);
+    background: color-mix(in srgb, var(--ou-border) 65%, var(--ou-surface));
+}
+.estado-carga__esqueleto > span:nth-child(2) { width: 82%; justify-self: center; }
+.estado-carga__esqueleto > span:nth-child(3) { width: 60%; justify-self: center; }
+.estado-carga__esqueleto > span::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, var(--ou-surface), transparent);
+    animation: brillo-carga 1.8s ease-in-out infinite;
+}
+.estado-carga--compacto { display: flex; min-height: 6rem; gap: 1rem; padding: 1rem; text-align: left; }
+.estado-carga--compacto .estado-carga__indicador { flex: 0 0 3rem; width: 3rem; height: 3rem; }
+.estado-carga--compacto .estado-carga__indicador > span { width: 2rem; height: 2rem; }
+.pantalla-sesion .estado-carga { width: min(100%, 34rem); }
+@keyframes giro-carga { to { transform: rotate(360deg); } }
+@keyframes brillo-carga { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) {
+    .estado-carga__indicador > span, .estado-carga__esqueleto > span::after { animation: none; }
+    .estado-carga__esqueleto > span::after { display: none; }
+}

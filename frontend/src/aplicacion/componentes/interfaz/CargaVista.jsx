@@ -1,4 +1,5 @@
 import { Component, Suspense } from 'react';
+import EstadoCarga from './EstadoCarga.jsx';
 
 export default class CargaVista extends Component {
     state = { error: false };
@@ -15,7 +16,7 @@ export default class CargaVista extends Component {
                 <button type="button" className="hc-button hc-button--primary" onClick={() => window.location.reload()}>Recargar vista</button>
             </section>;
         }
-        return <Suspense fallback={<p role="status" aria-live="polite">Cargando vista…</p>}>
+        return <Suspense fallback={<EstadoCarga mensaje="Cargando vista…" />}>
             {this.props.children}
         </Suspense>;
     }

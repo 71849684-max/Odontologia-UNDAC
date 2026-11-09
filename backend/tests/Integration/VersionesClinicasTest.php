@@ -120,6 +120,28 @@ class VersionesClinicasTest extends TestCase
         $this->getJson($url)->assertOk()->assertJsonPath('formData.datos-paciente.nombres', 'Nombre al aprobar');
     }
 
+    public function test_la_revision_permanece_vigente_al_aprobar_reabrir_y_volver_a_guardar(): void
+    {
+        [, $profesional, $id] = $this->escenario();
+        $url = "/api/historias/{$id}/expediente";
+        $lectura = $this->actingAs($profesional)->getJson($url)->assertOk()->json();
+        $lectura['formData']['anamnesis'] = ['motivoConsulta' => 'Control inicial', 'historiaEnfermedad' => 'Información sintética'];
+        $aprobada = $this->putJson($url, ['formData' => $lectura['formData'], 'sectionStatus' => ['anamnesis' => 'approved'], 'revision' => $lectura['revision']])->assertOk()->json();
+        $this->assertSame($aprobada['revision'], $this->getJson($url)->assertOk()->json('revision'));
+        $reabierta = $this->putJson($url, ['formData' => $aprobada['formData'], 'sectionStatus' => ['anamnesis' => 'in-progress'], 'revision' => $aprobada['revision'], 'motivo' => 'Corregir información de la consulta'])->assertOk()->json();
+        $reabierta['formData']['anamnesis']['motivoConsulta'] = 'Control rectificado';
+        $this->putJson($url, ['formData' => $reabierta['formData'], 'sectionStatus' => $reabierta['sectionStatus'], 'revision' => $reabierta['revision']])->assertOk()->assertJsonPath('formData.anamnesis.motivoConsulta', 'Control rectificado');
+    }
+
+    public function test_un_error_de_validacion_no_aprueba_ni_guarda_parcialmente(): void
+    {
+        [, $profesional, $id] = $this->escenario();
+        $url = "/api/historias/{$id}/expediente";
+        $previo = $this->actingAs($profesional)->getJson($url)->assertOk()->json();
+        $this->putJson($url, ['formData' => ['datos-paciente' => ['correo' => 'correo incorrecto'], 'anamnesis' => ['motivoConsulta' => 'No debe persistir']], 'sectionStatus' => ['anamnesis' => 'approved']])->assertUnprocessable();
+        $this->assertSame($previo['revision'], $this->getJson($url)->assertOk()->json('revision'));
+    }
+
     public function test_exporta_versiones_y_adjuntos_y_no_omite_archivos_reemplazados(): void
     {
         Storage::fake('local');

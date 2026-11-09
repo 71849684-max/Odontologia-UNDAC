@@ -1,3 +1,4 @@
+import EstadoCarga from '../../componentes/interfaz/EstadoCarga.jsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Download, Eye, Search, X } from 'lucide-react';
@@ -187,7 +188,7 @@ export default function AuditoriaApp() {
             </div>
 
             {error && <p className="hc-inline-callout" role="alert">{error}</p>}
-            {cargando && <p role="status">Cargando auditoría…</p>}
+            {cargando && <EstadoCarga mensaje="Cargando auditoría…" />}
 
             {!cargando && eventos.length === 0 && (
                 <EstadoVacio titulo={vacio.titulo} descripcion={vacio.descripcion} />

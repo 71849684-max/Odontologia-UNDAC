@@ -223,7 +223,8 @@ class ServicioExpediente
             }
 
             $puedeAprobar = $this->acceso->puedeAprobar($actor);
-            if (! $puedeAprobar && $actor->tipoCuenta() === 'DOCENTE' && in_array('approved', $estados, true)) {
+            $nuevasAprobaciones = array_filter($estados, fn ($estado, $codigo) => $estado === 'approved' && ($previo['sectionStatus'][$codigo] ?? null) !== 'approved', ARRAY_FILTER_USE_BOTH);
+            if (! $puedeAprobar && $actor->tipoCuenta() === 'DOCENTE' && $nuevasAprobaciones !== []) {
                 throw new OperacionNoPermitida('profesional', 'La aprobación requiere una cuenta profesional con número COP registrado.');
             }
 

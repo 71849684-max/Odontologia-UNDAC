@@ -35,10 +35,10 @@ test('el cuestionario comienza en las preguntas y conserva el detalle al cambiar
   expect(screen.getByLabelText(/¿Hace qué tiempo/)).toHaveValue('Dos semanas');
 });
 
-test.each(clinicalSections)('abre la sección $id con sus dependencias independientes', ({ id, label }) => {
+test.each(clinicalSections)('abre la sección $id con sus dependencias independientes', async ({ id, label }) => {
   expect(componentesSeccion[id]).toBeTypeOf('function');
   render(<HistoriaClinica historiaId="1" initialSection={id} />);
-  expect(screen.getByRole('heading', { name: label, level: 2 })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: label, level: 2 })).toBeInTheDocument();
   expect(screen.queryByText('Sección preparada para implementación.')).not.toBeInTheDocument();
 });
 
@@ -311,13 +311,13 @@ test('el alumno envía la sección a revisión y el docente la aprueba', async (
   expect(screen.getByText('Aprobado', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Reabrir sección/ })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: /Devolver a edición|Retomar edición/ })).not.toBeInTheDocument();
-  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toBeDisabled());
+  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toHaveAttribute('readonly'));
   await screen.findByText('Guardado solo en este equipo', {}, { timeout: 2000 });
   cleanup();
 
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" rol="alumno" />);
   expect(screen.getByRole('note')).toHaveTextContent('solo lectura');
-  expect(screen.getByLabelText('Motivo de consulta')).toBeDisabled();
+  expect(screen.getByLabelText('Motivo de consulta')).toHaveAttribute('readonly');
   expect(screen.queryByRole('button', { name: /Marcar sección completa/ })).not.toBeInTheDocument();
 });
 
