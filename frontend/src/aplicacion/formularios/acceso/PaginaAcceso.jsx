@@ -9,6 +9,7 @@ import {
     LockKeyhole,
 } from 'lucide-react';
 import MarcaInstitucional from '../../componentes/interfaz/MarcaInstitucional.jsx';
+import BotonTema from '../../componentes/interfaz/BotonTema.jsx';
 
 const BENEFICIOS_INSTITUCIONALES = [
     { icono: HeartPulse, titulo: 'Atención clínica organizada', texto: 'Consulta la información del paciente desde un entorno claro y seguro.' },
@@ -52,6 +53,7 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
             </section>
 
             <section className="acceso-formulario" aria-label="Acceso al sistema">
+                <div className="acceso-formulario__tema"><BotonTema /></div>
                 <div className="acceso-formulario__contenedor">
                     <div className="acceso-formulario__marca">
                         <span aria-hidden="true"><LockKeyhole size={22} /></span>
@@ -128,7 +130,6 @@ export default function PaginaAcceso({ alIngresar, enviando = false, error = nul
                             {enviando ? 'Verificando…' : 'Ingresar al sistema'} <span aria-hidden="true">→</span>
                         </button>
                     </form>
-                    <div className="ayuda-acceso"><span aria-hidden="true">i</span><p>¿Necesitas asistencia? Comunícate con el soporte de la clínica odontológica.</p></div>
                     <p className="acceso-formulario__pie">© 2026 Clínica Odontológica · Historia Clínica Digital</p>
                 </div>
             </section>

@@ -1,0 +1,126 @@
+{
+  "ejecucion": "verificacion-script-final",
+  "usuarios": 1,
+  "humo": true,
+  "metricas": {
+    "muestras_estables{operacion:autoguardado}": {
+      "valores": {
+        "count": 4,
+        "rate": 0.2905498128586815
+      },
+      "umbrales": {
+        "count>=1": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed": {
+      "valores": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 22
+      },
+      "umbrales": {
+        "rate<0.01": {
+          "ok": true
+        }
+      }
+    },
+    "integridad": {
+      "valores": {
+        "rate": 1,
+        "passes": 5,
+        "fails": 0
+      },
+      "umbrales": {
+        "rate==1": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{operacion:listado,fase:estable}": {
+      "valores": {
+        "avg": 208.27357999999998,
+        "med": 201.3674,
+        "p(95)": 273.90752,
+        "p(99)": 282.955984,
+        "max": 285.2181,
+        "count": 5
+      },
+      "umbrales": {
+        "p(95)<800": {
+          "ok": true
+        }
+      }
+    },
+    "fallos_servidor": {
+      "valores": {
+        "count": 0,
+        "rate": 0
+      },
+      "umbrales": {
+        "count==0": {
+          "ok": true
+        }
+      }
+    },
+    "muestras_estables{operacion:listado}": {
+      "valores": {
+        "rate": 0.36318726607335183,
+        "count": 5
+      },
+      "umbrales": {
+        "count>=1": {
+          "ok": true
+        }
+      }
+    },
+    "muestras_estables{operacion:lectura}": {
+      "valores": {
+        "count": 4,
+        "rate": 0.2905498128586815
+      },
+      "umbrales": {
+        "count>=1": {
+          "ok": true
+        }
+      }
+    },
+    "muestras_estables": {
+      "valores": {
+        "count": 19,
+        "rate": 1.380111611078737
+      }
+    },
+    "http_req_duration{operacion:lectura,fase:estable}": {
+      "valores": {
+        "p(99)": 302.672449,
+        "max": 307.4245,
+        "count": 4,
+        "avg": 179.7601,
+        "med": 147.1615,
+        "p(95)": 283.66424499999994
+      },
+      "umbrales": {
+        "p(95)<1200": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration{operacion:autoguardado,fase:estable}": {
+      "valores": {
+        "avg": 437.29095,
+        "med": 393.9059,
+        "p(95)": 548.54419,
+        "p(99)": 570.020278,
+        "max": 575.3893,
+        "count": 4
+      },
+      "umbrales": {
+        "p(95)<700": {
+          "ok": true
+        }
+      }
+    }
+  }
+}

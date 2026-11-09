@@ -17,6 +17,7 @@ use App\Identidad\Dominio\Contratos\VerificadorContrasena;
 use App\Identidad\Infraestructura\Acceso\ConsultaAccesosSql;
 use App\Identidad\Infraestructura\Acceso\GestorSesionLaravel;
 use App\Identidad\Infraestructura\Acceso\LimitadorIntentosLaravel;
+use App\Identidad\Infraestructura\Acceso\ProveedorCuentas;
 use App\Identidad\Infraestructura\Acceso\RegistradorIntentosAccesoSql;
 use App\Identidad\Infraestructura\Acceso\VerificadorContrasenaHash;
 use App\Identidad\Infraestructura\Persistencia\RepositorioAuditoriaSql;
@@ -25,8 +26,10 @@ use App\Identidad\Infraestructura\Persistencia\RepositorioIndicadoresSql;
 use App\Identidad\Infraestructura\Persistencia\RepositorioPermisosSql;
 use App\Identidad\Infraestructura\Persistencia\RepositorioRolesEloquent;
 use App\Identidad\Infraestructura\Persistencia\RepositorioUsuariosEloquent;
-use App\Identidad\Infraestructura\Acceso\ProveedorCuentas;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -53,6 +56,17 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        RateLimiter::for('cambios-equipo-estado', function (Request $solicitud) {
+            $cuenta = $solicitud->user()?->clave() ?? $solicitud->ip();
+            $respuesta = fn (Request $peticion, array $cabeceras) => response()->json([
+                'message' => 'Ha realizado demasiados cambios seguidos. Espere un minuto antes de volver a intentarlo.',
+            ], 429, $cabeceras);
+
+            return [
+                Limit::perMinute(30)->by('cambios-globales:'.$cuenta)->response($respuesta),
+                Limit::perMinute(6)->by('cambios-historia:'.$cuenta.':'.$solicitud->route('idHistoria'))->response($respuesta),
+            ];
+        });
         Auth::provider('cuentas', function ($app): ProveedorCuentas {
             return new ProveedorCuentas($app->make(RepositorioUsuarios::class));
         });

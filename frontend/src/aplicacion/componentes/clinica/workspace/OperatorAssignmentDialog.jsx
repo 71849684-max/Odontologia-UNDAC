@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 import BusquedaPersonal from '../../../formularios/datos-paciente/BusquedaPersonal.jsx';
 import useModalDialog from '../../interfaz/useModalDialog.js';
 
-export default function OperatorAssignmentDialog({ open, value, meta, fecha, triggerRef, onSelect, onClose, error = '' }) {
+export default function OperatorAssignmentDialog({ open, value, meta, fecha, triggerRef, onSelect, onClose, error = '', tipo = 'ALUMNO' }) {
   const dialogRef = useModalDialog(open, onClose, triggerRef);
 
   if (!open || typeof document === 'undefined') return null;
@@ -21,13 +21,13 @@ export default function OperatorAssignmentDialog({ open, value, meta, fecha, tri
       >
         <header className="clinical-operator-modal__header">
           <div>
-            <h3 id="titulo-cambiar-responsable">Cambiar asistente responsable</h3>
-            <p>Busque y seleccione al asistente responsable de esta historia clínica.</p>
+            <h3 id="titulo-cambiar-responsable">Cambiar {tipo === 'DOCENTE' ? 'profesional encargado' : 'asistente responsable'}</h3>
+            <p>Busque y seleccione al {tipo === 'DOCENTE' ? 'profesional encargado' : 'asistente responsable'} de esta historia clínica.</p>
           </div>
           <button type="button" className="hc-mini-button" onClick={onClose} aria-label="Cerrar"><X size={16} /></button>
         </header>
         {error ? <p className="hc-form-error" role="alert">{error}</p> : null}
-        <BusquedaPersonal value={value} meta={meta} fecha={fecha} onChange={onSelect} />
+        <BusquedaPersonal value={value} meta={meta} fecha={fecha} onChange={onSelect} tipo={tipo} />
       </section>
     </div>,
     document.body,

@@ -6,18 +6,22 @@ import { asignarPersonal, idHistoria, mensajeError } from '../../../servicios/se
 
 const MAX_ALERTAS = 4;
 
-export default function PatientContextBar({ onExit, navigationOpen = false, onToggleNavigation, navigationId, navigationTriggerRef, desktopNavigation = true, showNavigationToggle = true }) {
-  const { patient, history, formData, meta, updateSection, alerts = [] } = useHistoriaClinica();
+export default function PatientContextBar({ onExit, rol, navigationOpen = false, onToggleNavigation, navigationId, navigationTriggerRef, desktopNavigation = true, showNavigationToggle = true }) {
+  const { patient, history, formData, meta, actualizarEquipo, alerts = [] } = useHistoriaClinica();
+  const tipoAsignable = rol === 'alumno' ? 'DOCENTE' : 'ALUMNO';
+  const etiquetaResponsable = tipoAsignable === 'DOCENTE' ? 'Profesional encargado' : 'Asistente responsable';
+  const permiteAsignar = ['alumno', 'docente', 'administrador'].includes(rol);
+  const [guardandoAsignacion, setGuardandoAsignacion] = useState(false);
   const [asignacionAbierta, setAsignacionAbierta] = useState(false);
   const [personalBorrador, setPersonalBorrador] = useState(null);
   const [errorAsignacion, setErrorAsignacion] = useState('');
   const assignmentTriggerRef = useRef(null);
   const cerrarAsignacion = useCallback(() => { setAsignacionAbierta(false); setErrorAsignacion(''); }, []);
   const datosPaciente = formData['datos-paciente'] || {};
-  const operadorNombre = (datosPaciente.personal?.nombre || datosPaciente.operador || history.operador || 'Sin asignar').replace(/^Dr\.\s*/i, '');
+  const operadorNombre = (tipoAsignable === 'DOCENTE' ? history.docente : history.operador) || 'Sin asignar';
   const initials = String(patient.nombres ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
   function abrirAsignacion() {
-    setPersonalBorrador(datosPaciente.personal || null);
+    setPersonalBorrador(null);
     setAsignacionAbierta(true);
   }
   return <>
@@ -45,10 +49,10 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
           </div>
         </div>
 
-        <section className="clinical-care-summary" aria-label="Asistente responsable">
+        <section className="clinical-care-summary" aria-label={etiquetaResponsable}>
           <span className="clinical-care-summary__icon"><ShieldCheck size={18} aria-hidden="true" /></span>
-          <div><span>Asistente responsable</span><strong>{operadorNombre}</strong></div>
-          <button ref={assignmentTriggerRef} type="button" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={abrirAsignacion}>Cambiar asignación</button>
+          <div><span>{etiquetaResponsable}</span><strong>{operadorNombre}</strong></div>
+          {permiteAsignar ? <button ref={assignmentTriggerRef} type="button" aria-haspopup="dialog" aria-expanded={asignacionAbierta} onClick={abrirAsignacion}>Cambiar asignación</button> : null}
         </section>
       </div>
       {alerts.length ? <ul className="clinical-patient-bar__alert-strip" aria-label="Alertas clínicas">
@@ -61,27 +65,32 @@ export default function PatientContextBar({ onExit, navigationOpen = false, onTo
     </header>
     <OperatorAssignmentDialog
       open={asignacionAbierta}
+      tipo={tipoAsignable}
       value={personalBorrador}
       meta={meta}
       fecha={datosPaciente.fechaPaciente}
       triggerRef={assignmentTriggerRef}
-      onClose={cerrarAsignacion}
+      onClose={() => { if (!guardandoAsignacion) cerrarAsignacion(); }}
       onSelect={async (persona) => {
+        if (guardandoAsignacion) return;
         setPersonalBorrador(persona);
         setErrorAsignacion('');
         if (!persona) return;
         const servidor = idHistoria(history.id);
-        if (servidor && persona.id) {
-          try {
-            await asignarPersonal(servidor, persona.id);
-          } catch (error) {
-            setErrorAsignacion(mensajeError(error, 'No se pudo guardar la asignación.'));
-            return;
-          }
+        if (!servidor || !persona.id) {
+          setErrorAsignacion('La historia debe estar guardada en el servidor para cambiar su asignación.');
+          return;
         }
-        updateSection('datos-paciente', 'personal', persona);
-        updateSection('datos-paciente', 'operador', persona.nombre || '');
-        cerrarAsignacion();
+        setGuardandoAsignacion(true);
+        try {
+          const historia = await asignarPersonal(servidor, persona.id);
+          actualizarEquipo(historia);
+          cerrarAsignacion();
+        } catch (error) {
+          setErrorAsignacion(mensajeError(error, 'No se pudo guardar la asignación.'));
+        } finally {
+          setGuardandoAsignacion(false);
+        }
       }}
       error={errorAsignacion}
     />

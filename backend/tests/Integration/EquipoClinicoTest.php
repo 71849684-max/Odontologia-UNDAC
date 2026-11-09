@@ -68,6 +68,115 @@ class EquipoClinicoTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_el_asistente_asigna_profesional_sin_cambiar_operador_y_no_accede_a_historias_ajenas(): void
+    {
+        $alumno = $this->crearUsuario('asistente.asignacion', self::CLAVE, 'ALUMNO');
+        $otro = $this->crearUsuario('asistente.ajeno', self::CLAVE, 'ALUMNO');
+        $docente = $this->crearUsuario('profesional.asignacion', self::CLAVE, 'DOCENTE');
+        $id = $this->historia($alumno, '70000309');
+
+        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/asignacion", [
+            'personal' => 'DOCENTE-'.$docente->idActor(),
+        ])->assertOk();
+        $this->assertDatabaseHas('historia_docente', [
+            'id_historia_clinica' => $id, 'id_docente' => $docente->idActor(),
+            'tipo_participacion' => 'ENCARGADO', 'estado' => 1,
+        ]);
+        $this->assertDatabaseHas('historia_alumno', [
+            'id_historia_clinica' => $id, 'id_alumno' => $alumno->idActor(), 'estado' => 1,
+        ]);
+        $this->actingAs($alumno, 'web')->getJson("/api/historias/{$id}")
+            ->assertOk()->assertJsonPath('docente', $docente->nombreCompleto());
+        $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/asignacion", [
+            'personal' => 'DOCENTE-'.$docente->idActor(),
+        ])->assertUnprocessable()->assertJsonValidationErrors('personal');
+        $this->actingAs($otro, 'web')->putJson("/api/historias/{$id}/asignacion", [
+            'personal' => 'DOCENTE-'.$docente->idActor(),
+        ])->assertNotFound();
+    }
+
+    public function test_audita_edicion_y_completado_con_codigo_de_historia(): void
+    {
+        $alumno = $this->crearUsuario('asistente.auditoria', self::CLAVE, 'ALUMNO');
+        $admin = $this->crearUsuario('admin.auditoria.historia', self::CLAVE, 'ADMINISTRADOR');
+        $id = $this->historia($alumno, '70000319');
+        $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/expediente", [
+            'formData' => ['anamnesis' => ['motivoConsulta' => 'Control']],
+            'sectionStatus' => ['anamnesis' => 'complete'],
+        ])->assertOk();
+        foreach (['CREAR', 'EDITAR', 'MARCAR_COMPLETADO'] as $accion) {
+            $this->assertDatabaseHas('auditoria', ['accion' => $accion, 'id_registro' => (string) $id]);
+        }
+        $codigo = DB::table('historia_clinica')->where('id_historia_clinica', $id)->value('numero_historia');
+        $respuesta = $this->actingAs($admin, 'web')->getJson('/api/admin/auditoria?origen=acciones&q='.urlencode($codigo))->assertOk();
+        $eventos = collect($respuesta->json('data'))->where('registro', (string) $id);
+        $this->assertNotEmpty($eventos);
+        foreach ($eventos as $evento) {
+            $this->assertSame($codigo, $evento['historia']);
+        }
+    }
+
+    public function test_el_administrador_puede_seleccionar_y_cambiar_al_asistente_responsable(): void
+    {
+        $admin = $this->crearUsuario('admin.equipo.asistente', self::CLAVE, 'ADMINISTRADOR');
+        $primero = $this->crearUsuario('asistente.primero', self::CLAVE, 'ALUMNO');
+        $segundo = $this->crearUsuario('asistente.segundo', self::CLAVE, 'ALUMNO');
+        $id = $this->historia($admin, '70000329');
+        foreach ([$primero, $segundo] as $asistente) {
+            $this->actingAs($admin, 'web')->putJson("/api/historias/{$id}/asignacion", [
+                'personal' => 'ALUMNO-'.$asistente->idActor(),
+            ])->assertOk()->assertJsonPath('operador', $asistente->nombreCompleto());
+        }
+        $cambio = DB::table('auditoria')->where('id_registro', (string) $id)->where('accion', 'ASIGNAR_PERSONAL')->orderByDesc('id_auditoria')->first();
+        $this->assertSame(['asistente_responsable' => $primero->nombreCompleto()], json_decode($cambio->valores_anteriores, true));
+        $this->assertSame(['asistente_responsable' => $segundo->nombreCompleto()], json_decode($cambio->valores_nuevos, true));
+        $this->assertDatabaseHas('historia_alumno', [
+            'id_historia_clinica' => $id, 'id_alumno' => $primero->idActor(), 'estado' => 0,
+        ]);
+        $this->assertDatabaseHas('historia_alumno', [
+            'id_historia_clinica' => $id, 'id_alumno' => $segundo->idActor(), 'estado' => 1,
+        ]);
+        $this->actingAs($primero, 'web')->getJson("/api/historias/{$id}")->assertNotFound();
+        $this->actingAs($primero, 'web')->getJson("/api/historias/{$id}/expediente")->assertNotFound();
+        $this->actingAs($primero, 'web')->putJson("/api/historias/{$id}/expediente", [
+            'formData' => ['anamnesis' => ['motivoConsulta' => 'Cambio sin autorización']],
+        ])->assertNotFound();
+        $this->actingAs($primero, 'web')->getJson("/api/historias/{$id}/odontograma")->assertNotFound();
+        $this->actingAs($primero, 'web')->patchJson("/api/historias/{$id}/estado", ['codigo' => 'EN_PROCESO'])->assertNotFound();
+        $avisosPrevios = $this->actingAs($primero, 'web')->getJson('/api/notificaciones')->assertOk()->json('data');
+        foreach ($avisosPrevios as $avisoPrevio) {
+            $this->assertNull($avisoPrevio['historiaId']);
+        }
+        $aviso = $this->actingAs($primero, 'web')->getJson('/api/notificaciones')->assertOk()->json('data.0');
+        $this->assertSame('ASIGNACION_RETIRADA', $aviso['tipo']);
+        $this->assertNull($aviso['historiaId']);
+        $this->actingAs($admin, 'web')->putJson("/api/historias/{$id}/asignacion", [
+            'personal' => 'ALUMNO-'.$segundo->idActor(),
+        ])->assertOk();
+        $this->assertSame(1, DB::table('notificacion')->where('id_historia_clinica', $id)->where('tipo', 'ASIGNACION_RETIRADA')->count());
+        $this->assertDatabaseHas('notificacion', [
+            'id_historia_clinica' => $id, 'tipo_destinatario' => 'ALUMNO',
+            'id_destinatario' => $segundo->idActor(), 'tipo' => 'HISTORIA_ASIGNADA',
+        ]);
+        $this->actingAs($segundo, 'web')->getJson("/api/historias/{$id}")->assertOk();
+        $filaAnterior = DB::table('historia_alumno')->where('id_historia_clinica', $id)->where('id_alumno', $primero->idActor())->first();
+        foreach ([1, 2] as $intento) {
+            $this->actingAs($admin, 'web')->putJson("/api/historias/{$id}/asignacion", [
+                'personal' => 'ALUMNO-'.$primero->idActor(),
+            ])->assertOk();
+        }
+        $this->assertDatabaseHas('historia_alumno', [
+            'id_historia_alumno' => $filaAnterior->id_historia_alumno, 'estado' => 1,
+            'fecha_fin' => null, 'creado_en' => $filaAnterior->creado_en,
+        ]);
+        $this->assertSame(2, DB::table('historia_alumno')->where('id_historia_clinica', $id)->count());
+        $this->assertSame(1, DB::table('historia_alumno')->where('id_historia_clinica', $id)->where('estado', 1)->count());
+        $this->assertSame(3, DB::table('auditoria')->where('id_registro', (string) $id)->where('accion', 'ASIGNAR_PERSONAL')->count());
+        $this->assertSame(2, DB::table('notificacion')->where('id_historia_clinica', $id)->where('tipo', 'ASIGNACION_RETIRADA')->count());
+        $this->actingAs($segundo, 'web')->getJson("/api/historias/{$id}")->assertNotFound();
+        $this->actingAs($primero, 'web')->getJson("/api/historias/{$id}")->assertOk();
+    }
+
     public function test_filtra_historias_por_estado_y_lista_seguimientos(): void
     {
         $alumno = $this->crearUsuario('alumno.seguir', self::CLAVE, 'ALUMNO');

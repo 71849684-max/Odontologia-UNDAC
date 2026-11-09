@@ -2,6 +2,7 @@
 
 namespace Tests\Integration;
 
+use App\Clinica\Notificaciones\ServicioNotificaciones;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\CreaUsuarios;
@@ -100,6 +101,43 @@ class NotificacionesTest extends TestCase
             'accion' => 'REVISAR_SECCION',
             'id_registro' => (string) $id,
         ]);
+    }
+
+    public function test_notifica_asignacion_observacion_y_validacion_solo_a_sus_destinatarios(): void
+    {
+        $alumno = $this->crearUsuario('asistente.avisos', self::CLAVE, 'ALUMNO');
+        $docente = $this->crearUsuario('profesional.avisos', self::CLAVE, 'DOCENTE');
+        $ajeno = $this->crearUsuario('asistente.sin.avisos', self::CLAVE, 'ALUMNO');
+        $id = $this->historia($alumno, '70000409');
+        foreach ([1, 2] as $intento) {
+            $this->actingAs($alumno, 'web')->putJson("/api/historias/{$id}/asignacion", ['personal' => 'DOCENTE-'.$docente->idActor()])->assertOk();
+        }
+        $this->assertSame(1, DB::table('notificacion')->where('id_historia_clinica', $id)->where('tipo', 'HISTORIA_ASIGNADA')->count());
+        $this->actingAs($docente, 'web')->patchJson("/api/historias/{$id}/estado", ['codigo' => 'OBSERVADA', 'observacion' => 'Corregir antecedentes'])->assertOk();
+        $this->actingAs($docente, 'web')->putJson("/api/historias/{$id}/expediente", [
+            'formData' => ['anamnesis' => ['motivoConsulta' => 'Control']], 'sectionStatus' => ['anamnesis' => 'approved'],
+        ])->assertOk();
+        $avisos = $this->actingAs($alumno, 'web')->getJson('/api/notificaciones')->assertOk()->json('data');
+        $this->assertContains('Historia clínica con observaciones', array_column($avisos, 'titulo'));
+        $this->assertContains('Sección clínica validada', array_column($avisos, 'titulo'));
+        $this->actingAs($ajeno, 'web')->getJson('/api/notificaciones')->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAs($ajeno, 'web')->patchJson('/api/notificaciones/'.$avisos[0]['id'].'/leida')->assertNotFound();
+    }
+
+    public function test_agrupa_avisos_repetidos_sin_reactivar_lectura_y_conserva_eventos_distintos(): void
+    {
+        $alumno = $this->crearUsuario('asistente.antispam', self::CLAVE, 'ALUMNO');
+        $id = $this->historia($alumno, '70000419');
+        $servicio = app(ServicioNotificaciones::class);
+        $destinos = [['tipo_destinatario' => 'ALUMNO', 'id_destinatario' => $alumno->idActor()]];
+        $this->assertSame(1, $servicio->crear($destinos, 'ESTADO_HISTORIA', 'Historia observada', 'Primer aviso', $id));
+        $aviso = $servicio->listar($alumno)[0];
+        $servicio->marcarLeida($alumno, $aviso['id']);
+        $this->assertSame(0, $servicio->crear($destinos, 'ESTADO_HISTORIA', 'Historia observada', 'Último aviso', $id));
+        $this->assertDatabaseHas('notificacion', ['id_notificacion' => $aviso['id'], 'leida' => 1, 'mensaje' => 'Último aviso']);
+        $this->assertSame(1, $servicio->crear($destinos, 'ESTADO_HISTORIA', 'Historia validada', 'Validación', $id));
+        $this->travel(11)->minutes();
+        $this->assertSame(1, $servicio->crear($destinos, 'ESTADO_HISTORIA', 'Historia observada', 'Nueva observación', $id));
     }
 
     public function test_marcar_todas_las_notificaciones_como_leidas(): void

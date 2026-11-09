@@ -148,10 +148,7 @@ class RepositorioUsuariosEloquent implements RepositorioUsuarios
         $rol = $this->rolActivo((string) $datos['codigo_rol']);
 
         if ((string) $rol->tipo_usuario !== $actual->tipoCuenta()) {
-            throw new OperacionNoPermitida(
-                'codigo_rol',
-                'No se puede cambiar una cuenta de '.$actual->tipoCuenta().' a un rol de '.$rol->tipo_usuario.'.',
-            );
+            return $this->trasladarCuenta($actual, $datos, $rol);
         }
 
         try {
@@ -188,6 +185,86 @@ class RepositorioUsuariosEloquent implements RepositorioUsuarios
         }
 
         return $this->buscarPorId($actual->clave());
+    }
+
+    /** Traslada la identidad de acceso, sin borrar al actor de sus historias anteriores. */
+    private function trasladarCuenta(CuentaSistema $actual, array $datos, object $rol): Cuenta
+    {
+        $tipo = (string) $rol->tipo_usuario;
+        $destino = $tipo === 'ALUMNO' ? 'alumno' : 'docente';
+        $origen = $actual->tipoCuenta() === 'ALUMNO' ? 'alumno' : 'docente';
+        $columnaActor = 'id_'.$destino;
+        $columnaCuenta = 'id_usuario_'.$destino;
+
+        try {
+            $idNuevo = DB::transaction(function () use ($actual, $datos, $rol, $tipo, $destino, $origen, $columnaActor, $columnaCuenta) {
+                $cuenta = DB::table($actual->tablaCuenta())->where($actual->columnaId(), $actual->id())->lockForUpdate()->first();
+                if ($cuenta === null) {
+                    throw new OperacionNoPermitida('codigo_rol', 'La cuenta cambió. Actualice el listado antes de editarla.');
+                }
+                $persona = [
+                    'codigo_'.$destino => $this->codigoDisponible($destino, 'codigo_'.$destino, $tipo, $datos['numero_documento']),
+                    'tipo_documento' => $datos['tipo_documento'],
+                    'numero_documento' => $datos['numero_documento'],
+                    'nombres' => $datos['nombres'],
+                    'apellidos' => $datos['apellidos'],
+                    'correo' => $datos['correo'] ?? null,
+                    'telefono' => $datos['telefono'] ?? null,
+                    'estado' => 1,
+                    'creado_en' => now(),
+                ];
+                $existente = DB::table($destino)->where('tipo_documento', $datos['tipo_documento'])
+                    ->where('numero_documento', $datos['numero_documento'])->lockForUpdate()->first();
+                if ($existente !== null) {
+                    $idActor = $existente->{$columnaActor};
+                    if (DB::table('usuario_'.$destino)->where($columnaActor, $idActor)->exists()) {
+                        throw new OperacionNoPermitida('numero_documento', 'La persona ya tiene una cuenta en el rol de destino.');
+                    }
+                    unset($persona['codigo_'.$destino], $persona['creado_en']);
+                    DB::table($destino)->where($columnaActor, $idActor)->update($persona);
+                } else {
+                    $idActor = DB::table($destino)->insertGetId($persona);
+                }
+
+                // Las credenciales dejan de existir en origen antes de insertarlas:
+                // los triggers exigen un nombre único entre ambas tablas.
+                $accesos = DB::table('usuario_'.$origen.'_submodulo')->where($actual->columnaId(), $actual->id())->get();
+                $inicios = DB::table('login_historial_'.$origen)->where($actual->columnaId(), $actual->id())->get();
+                DB::table($actual->tablaCuenta())->where($actual->columnaId(), $actual->id())->delete();
+                $valores = (array) $cuenta;
+                unset($valores[$actual->columnaId()], $valores[$actual->columnaActor()]);
+                $valores[$columnaActor] = $idActor;
+                $valores['id_rol'] = $rol->id_rol;
+                $valores['nombre_usuario'] = $datos['nombre_usuario'];
+                $valores['estado'] = array_key_exists('estado', $datos) ? (int) $datos['estado'] : $cuenta->estado;
+                if (! empty($datos['contrasena'])) {
+                    $valores['contrasena_hash'] = Hash::make($datos['contrasena']);
+                    $valores['contrasena_cambiada_en'] = now();
+                    $valores['intentos_fallidos'] = 0;
+                    $valores['bloqueado_hasta'] = null;
+                }
+                $id = DB::table('usuario_'.$destino)->insertGetId($valores);
+                foreach ($accesos as $acceso) {
+                    DB::table('usuario_'.$destino.'_submodulo')->insert([
+                        $columnaCuenta => $id, 'id_submodulo' => $acceso->id_submodulo,
+                        'permitido' => $acceso->permitido, 'creado_en' => $acceso->creado_en,
+                    ]);
+                }
+                foreach ($inicios as $inicio) {
+                    $registro = (array) $inicio;
+                    unset($registro['id_login_'.$origen], $registro[$actual->columnaId()]);
+                    $registro[$columnaCuenta] = $id;
+                    DB::table('login_historial_'.$destino)->insert($registro);
+                    DB::table('login_historial_'.$origen)->where('id_login_'.$origen, $inicio->{'id_login_'.$origen})->delete();
+                }
+
+                return $id;
+            });
+        } catch (QueryException $excepcion) {
+            throw $this->traducirRestriccion($excepcion);
+        }
+
+        return $this->buscarPorId(ClaveCuenta::de($tipo, $idNuevo));
     }
 
     public function cambiarEstado(Cuenta $cuenta, bool $estado, int $idOperador): Cuenta

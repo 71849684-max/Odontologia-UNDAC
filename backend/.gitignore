@@ -3,6 +3,9 @@
 .env.backup
 .env.*.local
 .env.production
+.env.navegador
+.env.pruebas_*
+/storage/pruebas-*/
 /auth.json
 /storage/*.key
 

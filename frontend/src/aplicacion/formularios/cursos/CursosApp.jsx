@@ -47,9 +47,9 @@ function CourseDialog({ open, triggerRef, onClose, onSaved, curso }) {
         </header>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
         <div className="admin-dialogo__grid">
-          <label><span>Código</span><input value={formulario.codigo} onChange={(event) => change('codigo', event.target.value)} required /></label>
-          <label><span>Nombre</span><input value={formulario.nombre} onChange={(event) => change('nombre', event.target.value)} required /></label>
-          <label className="admin-dialogo__campo-ancho"><span>Descripción</span><textarea value={formulario.descripcion} onChange={(event) => change('descripcion', event.target.value)} rows="3" /></label>
+          <label><span>Código</span><input maxLength={30} value={formulario.codigo} onChange={(event) => change('codigo', event.target.value)} required /></label>
+          <label><span>Nombre</span><input maxLength={120} value={formulario.nombre} onChange={(event) => change('nombre', event.target.value)} required /></label>
+          <label className="admin-dialogo__campo-ancho"><span>Descripción</span><textarea maxLength={255} value={formulario.descripcion} onChange={(event) => change('descripcion', event.target.value)} rows="3" /></label>
           <label><span>Estado</span><select value={formulario.estado} onChange={(event) => change('estado', event.target.value)}><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></label>
         </div>
         <footer className="admin-dialogo__acciones">
@@ -64,9 +64,15 @@ function CourseDialog({ open, triggerRef, onClose, onSaved, curso }) {
 
 export default function CursosApp() {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
+  const [errorCarga, setErrorCarga] = useState('');
   useEffect(() => {
     let vigente = true;
-    sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch(() => { if (vigente) setEstado(obtenerEstadoAcademico()); });
+    sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch((error) => {
+      if (vigente) {
+        setEstado(obtenerEstadoAcademico());
+        setErrorCarga(mensajeError(error, 'No se pudieron cargar los datos académicos.'));
+      }
+    });
     return () => { vigente = false; };
   }, []);
   const [busqueda, setBusqueda] = useState('');
@@ -87,6 +93,16 @@ export default function CursosApp() {
       <button ref={triggerRef} type="button" className="hc-button hc-button--primary" onClick={() => { setCursoEditar(null); setDialogo(true); }}><Plus size={17} /> Nuevo curso</button>
     </header>
 
+    {errorCarga && <p className="hc-form-error" role="alert">{errorCarga} <button type="button" className="hc-button hc-button--ghost" onClick={async () => {
+      try {
+        await sincronizarAcademico();
+        setEstado(obtenerEstadoAcademico());
+        setErrorCarga('');
+      } catch (error) {
+        setErrorCarga(mensajeError(error, 'No se pudieron cargar los datos académicos.'));
+      }
+    }}>Reintentar carga</button></p>}
+    {estado.aviso && <p role="status">{estado.aviso}</p>}
     <div className="hc-filterbar">
       <label className="hc-search"><Search size={17} /><span className="sr-only">Buscar curso</span><input value={busqueda} onChange={(event) => setBusqueda(event.target.value)} placeholder="Buscar curso..." /></label>
       <label className="hc-select-filter"><span>Estado</span><select value={filtroEstado} onChange={(event) => setFiltroEstado(event.target.value)}><option value="">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></label>

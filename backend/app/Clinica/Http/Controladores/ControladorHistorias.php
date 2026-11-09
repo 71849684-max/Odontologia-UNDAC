@@ -10,6 +10,7 @@ use App\Clinica\Http\RespondeOperacion;
 use App\Clinica\Notificaciones\ServicioNotificaciones;
 use App\Clinica\Odontograma\ServicioOdontograma;
 use App\Http\Controllers\Controller;
+use App\Http\Validacion\ReglasBasicas;
 use App\Identidad\Dominio\Contratos\ConsultaAccesos;
 use App\Identidad\Dominio\Contratos\RegistradorAuditoria;
 use App\Identidad\Dominio\Cuenta;
@@ -17,6 +18,7 @@ use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
 use App\Identidad\Http\ContextoDesdePeticion;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ControladorHistorias extends Controller
 {
@@ -56,10 +58,7 @@ class ControladorHistorias extends Controller
         $actor = $solicitud->user();
         $datos = $solicitud->validate(['personal' => ['required', 'string', 'max:40']]);
 
-        $historia = $this->operacion(fn () => $this->equipo->asignar($idHistoria, $datos['personal'], $actor));
-        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'ASIGNAR_PERSONAL', null, [
-            'personal' => $datos['personal'],
-        ]);
+        $historia = $this->operacion(fn () => $this->equipo->asignar($idHistoria, $datos['personal'], $actor, ContextoDesdePeticion::de($solicitud)));
 
         return response()->json($historia);
     }
@@ -77,7 +76,7 @@ class ControladorHistorias extends Controller
         $actor = $solicitud->user();
         $datos = $solicitud->validate([
             'fecha' => ['required', 'date'],
-            'hora' => ['nullable', 'string', 'max:8'],
+            'hora' => ReglasBasicas::hora(),
             'detalle' => ['nullable', 'string', 'max:255'],
             'estado' => ['nullable', 'string', 'max:30'],
         ]);
@@ -91,7 +90,7 @@ class ControladorHistorias extends Controller
         $actor = $solicitud->user();
         $datos = $solicitud->validate([
             'fecha' => ['nullable', 'date'],
-            'hora' => ['nullable', 'string', 'max:8'],
+            'hora' => ReglasBasicas::hora(),
             'detalle' => ['nullable', 'string', 'max:255'],
             'estado' => ['nullable', 'string', 'max:30'],
         ]);
@@ -105,7 +104,7 @@ class ControladorHistorias extends Controller
         $actor = $solicitud->user();
         $datos = $solicitud->validate([
             'fecha' => ['nullable', 'date'],
-            'hora' => ['nullable', 'string', 'max:8'],
+            'hora' => ReglasBasicas::hora(),
             'detalle' => ['nullable', 'string', 'max:2000'],
             'estado' => ['nullable', 'string', 'max:30'],
         ]);
@@ -123,23 +122,25 @@ class ControladorHistorias extends Controller
         /** @var Cuenta $actor */
         $actor = $solicitud->user();
         $datos = $solicitud->validate([
-            'paciente_id' => ['nullable', 'integer'],
-            'pacienteId' => ['nullable', 'integer'],
-            'dni' => ['nullable', 'string', 'max:20'],
-            'nombres' => ['nullable', 'string', 'max:180'],
+            'paciente_id' => ['nullable', 'integer', 'min:1', 'exists:paciente,id_paciente'],
+            'pacienteId' => ['nullable', 'integer', 'min:1', 'exists:paciente,id_paciente'],
+            'tipoDocumento' => ['nullable', Rule::in(['DNI', 'CE', 'PAS'])],
+            'dni' => ['bail', 'required_without_all:paciente_id,pacienteId,numeroDocumento', 'nullable', 'string', ($solicitud->filled('paciente_id') || $solicitud->filled('pacienteId')) ? 'max:20' : ReglasBasicas::documento($solicitud->input('tipoDocumento') ?: 'DNI')],
+            'nombres' => ['required_without_all:paciente_id,pacienteId', 'nullable', 'string', 'max:180'],
             'apellidoPaterno' => ['nullable', 'string', 'max:120'],
             'apellidoMaterno' => ['nullable', 'string', 'max:120'],
-            'numeroDocumento' => ['nullable', 'string', 'max:20'],
-            'nacimiento' => ['nullable', 'date'],
-            'fechaNacimiento' => ['nullable', 'date'],
-            'sexo' => ['nullable', 'string', 'max:20'],
-            'celular' => ['nullable', 'string', 'max:30'],
-            'telefono' => ['nullable', 'string', 'max:30'],
+            'numeroDocumento' => ['bail', 'nullable', 'string', ($solicitud->filled('paciente_id') || $solicitud->filled('pacienteId')) ? 'max:20' : ReglasBasicas::documento($solicitud->input('tipoDocumento') ?: 'DNI')],
+            'nacimiento' => ['nullable', 'date', 'before_or_equal:today'],
+            'fechaNacimiento' => ['nullable', 'date', 'before_or_equal:today'],
+            'sexo' => ['nullable', Rule::in(['F', 'M', 'O'])],
+            'celular' => ReglasBasicas::telefono(),
+            'telefono' => ReglasBasicas::telefono(),
             'email' => ['nullable', 'email', 'max:150'],
             'correo' => ['nullable', 'email', 'max:150'],
         ]);
 
         $historia = $this->operacion(fn () => $this->historias->abrir($datos, $actor));
+        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $historia['id'], 'CREAR', null, ['codigo' => $historia['codigo']]);
 
         return response()->json($historia, 201);
     }
@@ -161,6 +162,9 @@ class ControladorHistorias extends Controller
             ['estado' => $antes],
             ['estado' => $datos['codigo'], 'observacion' => $datos['observacion'] ?? null],
         );
+        if ($antes !== $historia['codigoEstado'] || ! empty($datos['observacion'])) {
+            $this->notificaciones->notificarEstado($idHistoria, $historia['codigoEstado'], $actor);
+        }
 
         return response()->json($historia);
     }
@@ -191,15 +195,52 @@ class ControladorHistorias extends Controller
         $actor = $solicitud->user();
         $datos = $solicitud->validate([
             'formData' => ['required', 'array', 'max:40'],
+            'formData.*' => ['array'],
+            'formData.datos-paciente.dni' => ['nullable', 'string', 'max:20'],
+            'formData.datos-paciente.nombres' => ['nullable', 'string', 'max:180'],
+            'formData.datos-paciente.apellidos' => ['nullable', 'string', 'max:240'],
+            'formData.datos-paciente.correo' => ['nullable', 'email', 'max:150'],
+            'formData.datos-paciente.celular' => ReglasBasicas::telefono(),
+            'formData.datos-paciente.fechaNacimiento' => ['nullable', 'date', 'before_or_equal:today'],
+            'formData.datos-paciente.sexo' => ['nullable', Rule::in(['F', 'M', 'O'])],
+            'formData.anamnesis.motivoConsulta' => ['nullable', 'string', 'max:10000'],
+            'formData.anamnesis.enfermedadActual' => ['nullable', 'string', 'max:10000'],
+            'formData.examen-clinico.peso' => ReglasBasicas::numeroNoNegativo(),
+            'formData.examen-clinico.talla' => ReglasBasicas::numeroNoNegativo(),
+            'formData.examen-clinico.temperatura' => ReglasBasicas::numeroNoNegativo(),
+            'formData.examen-clinico.frecuenciaRespiratoria' => ReglasBasicas::numeroNoNegativo(),
+            'formData.examen-clinico.frecuenciaCardiaca' => ReglasBasicas::numeroNoNegativo(),
+            'formData.examen-clinico.pulso' => ReglasBasicas::numeroNoNegativo(),
             'sectionStatus' => ['nullable', 'array', 'max:40'],
+            'sectionStatus.*' => [Rule::in(['not-started', 'in-progress', 'complete', 'review', 'approved'])],
+            'revision' => ['nullable', 'string', 'size:64'],
         ]);
+        // Se validan formatos puntuales sin recortar el resto de los campos clínicos
+        // del borrador: el servicio conserva el mapeo de cada sección.
+        $datos['formData'] = $solicitud->input('formData');
 
+        $previo = $this->expediente->obtener($idHistoria);
         $estadosPrevios = $this->expediente->estadosSeccion($idHistoria);
         $resultado = $this->operacion(
-            fn () => $this->expediente->guardar($idHistoria, $datos['formData'], $datos['sectionStatus'] ?? [], $actor),
+            fn () => $this->expediente->guardar($idHistoria, $datos['formData'], $datos['sectionStatus'] ?? [], $actor, $datos['revision'] ?? null),
         );
 
         $actuales = $this->expediente->estadosSeccion($idHistoria);
+        $editadas = array_keys(array_filter($datos['formData'], fn ($valor, $codigo) => $valor !== ($previo['formData'][$codigo] ?? null), ARRAY_FILTER_USE_BOTH));
+        if ($editadas !== []) {
+            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'EDITAR',
+                array_intersect_key($previo['formData'] ?? [], array_flip($editadas)),
+                array_intersect_key($resultado['formData'] ?? [], array_flip($editadas)),
+            );
+        }
+        $completadas = array_filter(array_diff_assoc($actuales, $estadosPrevios), fn ($estado) => $estado === 'complete');
+        if ($completadas !== []) {
+            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'MARCAR_COMPLETADO', array_intersect_key($estadosPrevios, $completadas), $completadas);
+        }
+        $reabiertas = array_filter(array_intersect_key($actuales, array_filter($estadosPrevios, fn ($estado) => in_array($estado, ['approved', 'review', 'complete'], true))), fn ($estado) => $estado === 'in-progress');
+        if ($reabiertas !== []) {
+            $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_seccion_estado', $idHistoria, 'REABRIR_SECCION', array_intersect_key($estadosPrevios, $reabiertas), $reabiertas);
+        }
         $enviadas = [];
         foreach ($datos['sectionStatus'] ?? [] as $codigo => $estado) {
             if ($estado !== 'review' || ! is_string($codigo)) {
@@ -226,9 +267,17 @@ class ControladorHistorias extends Controller
         foreach (array_keys($enviadas) as $codigo) {
             $notificaciones += $this->notificaciones->notificarRevisionSeccion($idHistoria, $codigo, $actor);
         }
+        foreach (array_keys($aprobadas) as $codigo) {
+            $this->notificaciones->notificarEstado($idHistoria, 'approved', $actor, $codigo);
+        }
+        foreach (array_keys($reabiertas) as $codigo) {
+            if ($actor->tipoCuenta() === 'DOCENTE') {
+                $this->notificaciones->notificarEstado($idHistoria, 'in-progress', $actor, $codigo);
+            }
+        }
 
         return response()->json($resultado + [
-            'revisionNotificada' => $notificaciones > 0,
+            'revisionNotificada' => $notificaciones > 0 || ($enviadas !== [] && $this->notificaciones->docentesAsignados($idHistoria) !== []),
             'notificacionesCreadas' => $notificaciones,
             'seccionesEnviadas' => array_keys($enviadas),
         ]);
@@ -251,14 +300,15 @@ class ControladorHistorias extends Controller
         $original = json_decode($solicitud->getContent(), true, 64);
         $registro = is_array($original['registro'] ?? null) ? $original['registro'] : [];
 
-        return response()->json([
-            'registro' => $this->operacion(function () use ($idHistoria, $registro, $actor) {
-                if (! $this->acceso->seccionEditable($actor, $idHistoria, 'odontograma')) {
-                    throw new OperacionNoPermitida('registro', 'El odontograma ya fue aprobado por el cirujano dentista supervisor y no admite cambios.');
-                }
+        $guardado = $this->operacion(function () use ($idHistoria, $registro, $actor) {
+            if (! $this->acceso->seccionEditable($actor, $idHistoria, 'odontograma')) {
+                throw new OperacionNoPermitida('registro', 'El odontograma ya fue aprobado por el cirujano dentista supervisor y no admite cambios.');
+            }
 
-                return $this->odontograma->guardar($idHistoria, $registro, $actor);
-            }),
-        ]);
+            return $this->odontograma->guardar($idHistoria, $registro, $actor);
+        });
+        $this->auditoria->registrar(ContextoDesdePeticion::de($solicitud), 'historia_clinica', $idHistoria, 'EDITAR_ODONTOGRAMA', null, ['seccion' => 'odontograma']);
+
+        return response()->json(['registro' => $guardado]);
     }
 }

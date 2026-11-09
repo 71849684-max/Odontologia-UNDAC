@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { listarConfiguracion } from '../../../servicios/servicioAdministracion.js';
 import { idHistoria } from '../../../servicios/servicioClinico.js';
 import BotonEliminacionClinica from '../../../formularios/busqueda-historias/BotonEliminacionClinica.jsx';
-import { ArrowLeft, ArrowRight, BadgeCheck, CheckCircle2, Printer, Send, Undo2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, MessageSquare, Printer, Send, Undo2 } from 'lucide-react';
 import { componentesSeccion } from '../../../formularios/registroFormularios.js';
 import { useHistoriaClinica } from '../contexto/HistoriaClinicaContext.jsx';
 import { SECTION_STATUS, statusLabel } from '../logica/clinicalStatus.mjs';
@@ -11,6 +11,7 @@ import PatientContextBar from './PatientContextBar.jsx';
 import ClinicalMomentSidebar from './ClinicalMomentSidebar.jsx';
 import ClinicalSectionTabs from './ClinicalSectionTabs.jsx';
 import VistaPreviaImpresion from '../impresion/VistaPreviaImpresion.jsx';
+import DialogoObservaciones from './DialogoObservaciones.jsx';
 
 const DESKTOP_NAVIGATION_QUERY = '(min-width: 992px)';
 
@@ -20,13 +21,16 @@ function desktopNavigationMatches() {
 }
 
 export default function ClinicalWorkspace({ onExit, rol }) {
+  const [observacionesAbiertas, setObservacionesAbiertas] = useState(false);
+  const botonObservacionesRef = useRef(null);
+  const cerrarObservaciones = useCallback(() => setObservacionesAbiertas(false), []);
   const {
-    sections, patient, history, meta, activeSection, formData, updateActiveSection, navigateRelative, markCurrentComplete,
-    sendCurrentToReview, approveCurrent, returnCurrentToEdit, validationErrors = [], revisionAviso = '', sectionStatuses, autosaveStatus, lastSavedAt,
+    sections, patient, history, meta, activeSection, formData, updateActiveSection, navigateRelative,
+    sendCurrentToReview, approveCurrent, returnCurrentToEdit, validationErrors = [], revisionAviso = '', sectionStatuses, autosaveStatus, lastSavedAt, cargandoExpediente,
   } = useHistoriaClinica();
   const supervisa = rol === 'docente' || rol === 'administrador';
   const estadoActual = sectionStatuses[activeSection];
-  const soloLectura = rol === 'alumno' && estadoActual === SECTION_STATUS.APPROVED;
+  const soloLectura = rol === 'alumno' && (estadoActual === SECTION_STATUS.APPROVED || history.codigoEstado === 'VALIDADA');
   const active = sections.find((section) => section.id === activeSection) ?? sections[0];
   const index = sections.findIndex((section) => section.id === active?.id);
   const ActiveComponent = componentesSeccion[active.id];
@@ -105,6 +109,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
   return (
     <div className="clinical-workspace-shell" style={desktopNavigation ? { height: '100dvh', overflow: 'hidden', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)' } : undefined}>
       <PatientContextBar
+        rol={rol}
         onExit={onExit}
         navigationOpen={navigationOpen}
         onToggleNavigation={() => setNavigationOpen((current) => !current)}
@@ -140,7 +145,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
             {revisionAviso ? <p className="clinical-revision-aviso" role="status">{revisionAviso}</p> : null}
             {autosaveStatus === 'local' ? <p className="clinical-local-banner" role="status">Sin conexión al servidor; los datos no se guardaron en la clínica.</p> : null}
             {soloLectura ? <p className="clinical-readonly-note" role="note">Sección aprobada por el profesional encargado: solo lectura. Pida que la reabra si necesita corregirla.</p> : null}
-            <fieldset className="clinical-active-section__content" disabled={soloLectura}>
+            <fieldset className="clinical-active-section__content" disabled={soloLectura || cargandoExpediente}>
               {ActiveComponent ? <ActiveComponent
                 key={`${history.codigo}-${active.id}`}
                 values={formData[active.id] || {}}
@@ -156,17 +161,16 @@ export default function ClinicalWorkspace({ onExit, rol }) {
               /> : <div className="undac-card"><p>Sección preparada para implementación.</p></div>}
             </fieldset>
           </section>
-          <footer className="clinical-workspace-actions">
+          <footer className="clinical-workspace-actions" inert={cargandoExpediente ? true : undefined} aria-busy={cargandoExpediente}>
             <span className="clinical-workspace-actions__save"><AutoSaveIndicator status={autosaveStatus} lastSavedAt={lastSavedAt} /></span>
             <div>
+              <button ref={botonObservacionesRef} type="button" className="undac-btn undac-btn--ghost" aria-haspopup="dialog" aria-expanded={observacionesAbiertas} onClick={() => setObservacionesAbiertas(true)} disabled={cargandoExpediente}><MessageSquare size={16} />Ver observaciones</button>
               {index > 0 ? <button type="button" className="undac-btn undac-btn--ghost" onClick={() => navigateRelative(-1)}><ArrowLeft size={16} />Anterior</button> : null}
               {estadoActual === SECTION_STATUS.REVIEW ? <>
                 {supervisa ? <button type="button" className="undac-btn undac-btn--secondary" onClick={approveCurrent}><BadgeCheck size={16} />Aprobar sección</button> : null}
-                <button type="button" className="undac-btn undac-btn--ghost" onClick={returnCurrentToEdit}><Undo2 size={16} />{supervisa ? 'Devolver a edición' : 'Retomar edición'}</button>
               </> : estadoActual === SECTION_STATUS.APPROVED ? (
                 supervisa ? <button type="button" className="undac-btn undac-btn--ghost" onClick={returnCurrentToEdit}><Undo2 size={16} />Reabrir sección</button> : null
               ) : <>
-                <button type="button" className="undac-btn undac-btn--secondary" onClick={markCurrentComplete}><CheckCircle2 size={16} /><span className="clinical-action-label clinical-action-label--desktop">Marcar sección completa</span><span className="clinical-action-label clinical-action-label--mobile">Completar</span></button>
                 {rol === 'alumno' ? <button type="button" className="undac-btn undac-btn--ghost" onClick={sendCurrentToReview}><Send size={16} />Enviar a revisión</button> : null}
                 {supervisa ? <button type="button" className="undac-btn undac-btn--ghost" onClick={approveCurrent}><BadgeCheck size={16} />Aprobar sección</button> : null}
               </>}
@@ -177,6 +181,7 @@ export default function ClinicalWorkspace({ onExit, rol }) {
         </main>
       </div>
       {impresionAbierta ? <VistaPreviaImpresion seccionId={active.id} onClose={cerrarImpresion} /> : null}
+      {observacionesAbiertas ? <DialogoObservaciones historia={history} triggerRef={botonObservacionesRef} alCerrar={cerrarObservaciones} /> : null}
     </div>
   );
 }

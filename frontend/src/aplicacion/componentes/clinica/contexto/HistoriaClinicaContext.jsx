@@ -114,6 +114,43 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   const [validation, setValidation] = useState({ sectionId: null, errors: [] });
   const [revisionAviso, setRevisionAviso] = useState('');
   const hydrated = useRef(false);
+  const revisionServidor = useRef(null);
+  const conflictoServidor = useRef(false);
+  const colaGuardado = useRef(Promise.resolve());
+  const [sinAcceso, setSinAcceso] = useState(false);
+  const accesoRevocado = useRef(false);
+  const comprobarAcceso = useCallback((error) => {
+    if (![401, 403, 404].includes(error?.estado)) return;
+    accesoRevocado.current = true;
+    setSinAcceso(true);
+    setExpediente(null);
+    setFormData({});
+    setExplicitStatus({});
+    try { window.localStorage?.removeItem(storageKey); } catch { /* El acceso queda bloqueado aunque el navegador no permita borrar el borrador. */ }
+  }, [storageKey]);
+
+  const guardarEnOrden = useCallback((datos, estados) => {
+    const operacion = colaGuardado.current.catch(() => {}).then(async () => {
+      if (accesoRevocado.current) throw new Error('Ya no tiene acceso a esta historia clínica.');
+      if (conflictoServidor.current) throw new Error('Recargue la historia para resolver el conflicto entre sesiones.');
+      try {
+        const cuerpo = revisionServidor.current
+          ? await guardarExpediente(historiaServidor, datos, estados, revisionServidor.current)
+          : await guardarExpediente(historiaServidor, datos, estados);
+        revisionServidor.current = cuerpo?.revision ?? revisionServidor.current;
+        return cuerpo;
+      } catch (error) {
+        comprobarAcceso(error);
+        if (error?.errores?.revision) {
+          conflictoServidor.current = true;
+          setRevisionAviso('Otra sesión modificó el expediente. Sus cambios se conservan como borrador en este equipo. Recargue la historia antes de continuar.');
+        }
+        throw error;
+      }
+    });
+    colaGuardado.current = operacion;
+    return operacion;
+  }, [historiaServidor, comprobarAcceso]);
 
   useEffect(() => {
     if (!historiaServidor) {
@@ -125,29 +162,44 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     obtenerExpediente(historiaServidor).then((cuerpo) => {
       if (!vigente || !cuerpo?.formData) return;
       setExpediente(cuerpo);
+      revisionServidor.current = cuerpo.revision ?? null;
       const historia = cuerpo.historia ?? selectedHistory;
       setFormData((actual) => conFechaRegistroHistoria({ ...actual, ...cuerpo.formData }, historia));
       if (cuerpo.sectionStatus && typeof cuerpo.sectionStatus === 'object') {
         setExplicitStatus((actual) => ({ ...actual, ...cuerpo.sectionStatus }));
       }
-    }).catch(() => {}).finally(() => {
+    }).catch((error) => { if (vigente) comprobarAcceso(error); }).finally(() => {
       if (vigente) setCargandoExpediente(false);
     });
     return () => { vigente = false; };
-  }, [historiaServidor]);
+  }, [historiaServidor, comprobarAcceso]);
+
+  useEffect(() => {
+    if (!historiaServidor || sinAcceso || import.meta.env.MODE === 'test') return undefined;
+    const verificar = () => {
+      if (document.visibilityState === 'visible') obtenerExpediente(historiaServidor).catch(comprobarAcceso);
+    };
+    window.addEventListener('focus', verificar);
+    const intervalo = window.setInterval(verificar, 30000);
+    return () => { window.removeEventListener('focus', verificar); window.clearInterval(intervalo); };
+  }, [historiaServidor, sinAcceso, comprobarAcceso]);
 
   useEffect(() => {
     setActiveSection(safeInitial);
   }, [safeInitial, selectedHistory.codigo]);
 
   useEffect(() => {
+    if (accesoRevocado.current) return;
+    if (historiaServidor && cargandoExpediente) return;
     if (!hydrated.current) {
       hydrated.current = true;
       return;
     }
+    if (conflictoServidor.current) return;
     setAutosaveStatus('saving');
     let vigente = true;
     const timer = window.setTimeout(() => {
+      if (accesoRevocado.current) return;
       const now = new Date().toISOString();
       let guardadoLocal = false;
       try {
@@ -159,12 +211,12 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
           return;
         }
       }
-      if (!historiaServidor) {
+      if (!historiaServidor || !expediente) {
         setLastSavedAt(now);
         setAutosaveStatus('local');
         return;
       }
-      guardarExpediente(historiaServidor, formData, explicitStatus)
+      guardarEnOrden(formData, explicitStatus)
         .then(() => {
           if (!vigente) return;
           setLastSavedAt(new Date().toISOString());
@@ -184,7 +236,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
       vigente = false;
       window.clearTimeout(timer);
     };
-  }, [formData, explicitStatus, storageKey, historiaServidor]);
+  }, [formData, explicitStatus, storageKey, historiaServidor, cargandoExpediente, expediente, guardarEnOrden]);
 
   const updateSection = useCallback((sectionId, key, value) => {
     setFormData((current) => {
@@ -249,7 +301,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
       return true;
     }
     try {
-      const cuerpo = await guardarExpediente(historiaServidor, formData, siguientes);
+      const cuerpo = await guardarEnOrden(formData, siguientes);
       setAutosaveStatus('saved');
       setLastSavedAt(new Date().toISOString());
       if (cuerpo?.revisionNotificada) {
@@ -270,7 +322,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
       setRevisionAviso('No se pudo enviar la revisión al servidor.');
       return false;
     }
-  }, [activeSection, explicitStatus, formData, historiaServidor, persistirLocal, validarActual]);
+  }, [activeSection, explicitStatus, formData, historiaServidor, persistirLocal, validarActual, guardarEnOrden]);
 
   const approveCurrent = useCallback(() => {
     if (!validarActual()) return false;
@@ -311,6 +363,7 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
   const value = useMemo(() => ({
     patient: selectedPatient,
     history: selectedHistory,
+    actualizarEquipo: (historia) => setExpediente((actual) => ({ ...actual, historia })),
     meta: { ...metaHistoriaVacia, codigo: selectedHistory.codigo, estado: selectedHistory.estado, operador: selectedHistory.operador, docente: selectedHistory.docente },
     sections: seccionesVisibles,
     moments: momentosVisibles,
@@ -342,6 +395,8 @@ export function HistoriaClinicaProvider({ historiaId, initialSection = 'datos-pa
     subir: (campo, archivo, nombre) => subirArchivoClinico(historiaServidor, campo, archivo, nombre),
     eliminar: (adjunto) => eliminarArchivoClinico(historiaServidor, adjunto.archivoId),
   } : null), [enServidor, historiaServidor]);
+
+  if (sinAcceso) return <main className="hc-page"><div role="alert"><h1>Historia clínica no disponible</h1><p>Ya no tiene acceso a esta historia clínica. Los cambios no se guardaron.</p></div><a href="#/historias">Volver a historias clínicas</a></main>;
 
   return <HistoriaClinicaContext.Provider value={value}>
     <ArchivosClinicosContext.Provider value={archivos}>{children}</ArchivosClinicosContext.Provider>

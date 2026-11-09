@@ -9,6 +9,8 @@ use App\Clinica\Odontograma\ServicioOdontograma;
 use App\Clinica\Pacientes\ServicioPacientes;
 use App\Clinica\Soporte\Valores;
 use App\Identidad\Dominio\Cuenta;
+use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 class ServicioExpediente
@@ -81,6 +83,10 @@ class ServicioExpediente
             'seguimiento' => $this->leerSeguimiento($id),
         ];
 
+        // Adjuntos y odontograma tienen endpoints y persistencia independientes.
+        // Su lectura no debe invalidar la revisión del formulario autoguardado.
+        $estados = $this->estadosSeccion($id);
+        $revision = hash('sha256', json_encode([$form, $estados], JSON_THROW_ON_ERROR));
         foreach ($this->archivos->porSeccion($id) as $seccion => $campos) {
             $form[$seccion] = $campos + ($form[$seccion] ?? []);
         }
@@ -90,13 +96,12 @@ class ServicioExpediente
             $form['odontograma'] = ['registro' => $registro];
         }
 
-        $estados = $this->estadosSeccion($id);
-
         return [
             'historia' => $historia,
             'paciente' => $this->pacientes->serializar($paciente),
             'formData' => $form,
             'sectionStatus' => $estados,
+            'revision' => $revision,
         ];
     }
 
@@ -109,7 +114,7 @@ class ServicioExpediente
             ->all();
     }
 
-    public function guardar(int $id, array $formulario, array $estados, Cuenta $actor): array
+    public function guardar(int $id, array $formulario, array $estados, Cuenta $actor, ?string $revision = null): array
     {
         $this->historias->fila($id);
         $pacienteId = (int) DB::table('historia_clinica')->where('id_historia_clinica', $id)->value('id_paciente');
@@ -117,7 +122,14 @@ class ServicioExpediente
         $aprobadas = $this->acceso->seccionesBloqueadas($actor, $id);
         $formulario = array_diff_key($formulario, array_flip($aprobadas));
 
-        DB::transaction(function () use ($id, $pacienteId, $formulario, $estados, $actor, $aprobadas) {
+        return DB::transaction(function () use ($id, $pacienteId, $formulario, $estados, $actor, $aprobadas, $revision) {
+            DB::table('historia_clinica')->where('id_historia_clinica', $id)->lockForUpdate()->first();
+            if (! $this->acceso->puedeVer($actor, $id)) {
+                throw (new ModelNotFoundException)->setModel('historia_clinica', [$id]);
+            }
+            if ($revision !== null && ! hash_equals($this->obtener($id)['revision'], $revision)) {
+                throw new OperacionNoPermitida('revision', 'Otra sesión modificó el expediente. Sus cambios no se sobrescribieron. Recargue la historia antes de continuar.');
+            }
             if (isset($formulario['datos-paciente']) && is_array($formulario['datos-paciente'])) {
                 $this->pacientes->sincronizarFicha($pacienteId, $formulario['datos-paciente'], $actor);
             }
@@ -204,9 +216,9 @@ class ServicioExpediente
                 ]);
                 DB::table('paciente')->where('id_paciente', $pacienteId)->update(['estado_atencion' => 'En proceso']);
             }
-        });
 
-        return $this->obtener($id);
+            return $this->obtener($id);
+        });
     }
 
     private function datosPaciente(?object $paciente, ?object $contacto, array $historia): array

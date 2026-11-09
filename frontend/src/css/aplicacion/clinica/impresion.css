@@ -1,13 +1,3 @@
-:root {
-  --doc-ink: #111827;
-  --doc-muted: #4b5563;
-  --doc-line: #6b7280;
-  --doc-line-soft: #d1d5db;
-  --doc-paper: #ffffff;
-  --doc-canvas: #e5e7eb;
-  --doc-soft: #f3f4f6;
-}
-
 .doc-impresion-portal {
   position: fixed;
   inset: 0;

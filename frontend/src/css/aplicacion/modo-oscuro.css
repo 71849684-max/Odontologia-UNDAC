@@ -1,0 +1,124 @@
+/* Correcciones de contraste del tema oscuro sobre vistas heredadas. */
+:root[data-tema='oscuro'] .hc-switch i {
+    background: var(--color-interruptor-inactivo);
+    box-shadow: inset 0 0 0 1px var(--color-control-borde);
+}
+:root[data-tema='oscuro'] .hc-switch i::after {
+    background: var(--color-interruptor-control);
+}
+:root[data-tema='oscuro'] .hc-switch input:checked + i {
+    background: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+:root[data-tema='oscuro'] .hc-switch input:checked + i::after {
+    background: var(--color-primary);
+}
+:root[data-tema="oscuro"] .encabezado-panel__barra > div:first-child strong,
+:root[data-tema="oscuro"] .encabezado-panel__introduccion h1,
+:root[data-tema="oscuro"] .tarjeta-indicador__icono,
+:root[data-tema="oscuro"] .tarjeta-indicador > strong,
+:root[data-tema="oscuro"] .tarjeta-panel__encabezado h2,
+:root[data-tema="oscuro"] .avatar-paciente,
+:root[data-tema="oscuro"] .estado-visual strong,
+:root[data-tema="oscuro"] .dialogo-sesion h2,
+:root[data-tema="oscuro"] .breadcrumbs li[aria-current='page'],
+:root[data-tema="oscuro"] .notification-menu > button,
+:root[data-tema="oscuro"] .dashboard-hc > h2,
+:root[data-tema="oscuro"] .indicador p,
+:root[data-tema="oscuro"] .actividad-reciente h3,
+:root[data-tema="oscuro"] .progreso-historias > h3,
+:root[data-tema="oscuro"] .tarjeta-progreso h3,
+:root[data-tema="oscuro"] .progreso-valor > strong,
+:root[data-tema="oscuro"] .encabezado-modulo h1,
+:root[data-tema="oscuro"] .tarjeta-modulo__titulo h2,
+:root[data-tema="oscuro"] .recurso-clinico h3,
+:root[data-tema="oscuro"] .pagina-cabecera h2,
+:root[data-tema="oscuro"] .pagina-nueva > h2,
+:root[data-tema="oscuro"] .hc-header-resumen h2,
+:root[data-tema="oscuro"] .paciente-form h3,
+:root[data-tema="oscuro"] .paciente-detalle h3,
+:root[data-tema="oscuro"] .historias-relacionadas h4,
+:root[data-tema="oscuro"] .resumen-nueva-historia h3,
+:root[data-tema="oscuro"] .hc-progreso > strong,
+:root[data-tema="oscuro"] .hc-breadcrumb strong,
+:root[data-tema="oscuro"] .seccion-placeholder h3 {
+    color: var(--color-text);
+}
+
+:root[data-tema="oscuro"] .avatar-usuario,
+:root[data-tema="oscuro"] .herramientas-usuario > button:first-child:hover,
+:root[data-tema="oscuro"] .boton-salida:hover,
+:root[data-tema="oscuro"] .rotulo-panel,
+:root[data-tema="oscuro"] .rotulo-seccion,
+:root[data-tema="oscuro"] .tarjeta-indicador--clinico .tarjeta-indicador__icono,
+:root[data-tema="oscuro"] .boton-texto,
+:root[data-tema="oscuro"] .acciones-rapidas__cuadricula button:hover,
+:root[data-tema="oscuro"] .acciones-rapidas__icono,
+:root[data-tema="oscuro"] .estado-visual,
+:root[data-tema="oscuro"] .breadcrumbs button:hover,
+:root[data-tema="oscuro"] .notification-menu > button:hover,
+:root[data-tema="oscuro"] .user-menu__accion:hover,
+:root[data-tema="oscuro"] .agenda-seguimientos__hora,
+:root[data-tema="oscuro"] .recurso-clinico__icono,
+:root[data-tema="oscuro"] .recurso-clinico__categoria,
+:root[data-tema="oscuro"] .recurso-clinico button,
+:root[data-tema="oscuro"] .pagina-cabecera .acciones > button,
+:root[data-tema="oscuro"] .acciones > button,
+:root[data-tema="oscuro"] .acciones-form > button,
+:root[data-tema="oscuro"] .paciente-detalle button,
+:root[data-tema="oscuro"] .tabla-pacientes td button,
+:root[data-tema="oscuro"] .tabla-historias td button,
+:root[data-tema="oscuro"] .hc-navegacion-secciones button,
+:root[data-tema="oscuro"] .hc-secciones li.en-progreso small {
+    color: var(--color-accent);
+}
+
+
+/* Campos y estados nativos: evitar superficies claras del navegador. */
+:root[data-tema='oscuro'] :is(.hc-page, .permisos-page, .admin-dialogo, .acceso-formulario) :is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+    color: var(--color-text);
+    background-color: var(--color-control-fondo);
+    border-color: var(--color-control-borde);
+    caret-color: var(--color-accent);
+    color-scheme: dark;
+}
+:root[data-tema='oscuro'] :is(input, textarea)::placeholder {
+    color: var(--color-muted);
+    opacity: 1;
+}
+:root[data-tema='oscuro'] :is(select option, select optgroup) {
+    color: var(--color-text);
+    background-color: var(--color-control-fondo);
+}
+:root[data-tema='oscuro'] :is(input, select, textarea, button, a):focus-visible {
+    outline: 2px solid var(--color-foco);
+    outline-offset: 3px;
+}
+:root[data-tema='oscuro'] :is(input[type='checkbox'], input[type='radio']) {
+    accent-color: var(--color-accion-fondo);
+}
+:root[data-tema='oscuro'] :is(.hc-page, .permisos-page) :is(thead, th) {
+    color: var(--color-text);
+    background-color: var(--color-superficie-suave);
+}
+:root[data-tema='oscuro'] :is(.hc-page, .permisos-page) tbody tr:hover {
+    background-color: var(--color-superficie-suave);
+}
+:root[data-tema='oscuro'] :is(.hc-page, .permisos-page) [aria-selected='true'] {
+    color: var(--color-text);
+    background-color: var(--color-fila-seleccionada);
+}
+:root[data-tema='oscuro'] :is(.hc-page, .permisos-page, .admin-dialogo) :is(.hc-button--primary, .hc-button--primary:hover) {
+    color: var(--color-texto-inverso);
+    background-color: var(--color-accion-fondo);
+}
+:root[data-tema='oscuro'] :is(.hc-page, .permisos-page, .admin-dialogo) .hc-button--primary:hover {
+    background-color: var(--color-accion-hover);
+}
+:root[data-tema='oscuro'] .admin-dialogo {
+    color: var(--color-text);
+    background-color: var(--color-surface);
+}
+:root[data-tema='oscuro'] :is(.admin-dialogo, .hc-page) :is(.admin-error, .hc-form-error) {
+    color: var(--color-danger);
+}

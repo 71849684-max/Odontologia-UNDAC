@@ -76,6 +76,11 @@ export async function actualizarPaciente(id, paciente) {
     return clienteHttp.actualizar(`/pacientes/${id}`, cuerpoPaciente(paciente));
 }
 
+export async function obtenerHistoria(historiaId) {
+    sinRedEnPrueba();
+    return clienteHttp.obtener(`/historias/${historiaId}`);
+}
+
 export async function cambiarEstadoHistoria(historiaId, codigo, observacion) {
     sinRedEnPrueba();
     return clienteHttp.parchear(`/historias/${historiaId}/estado`, { codigo, observacion: observacion || null });
@@ -188,12 +193,21 @@ export function conTextosClausulas(formData) {
     return { ...formData, consentimiento: { ...consentimiento, textosClausulas } };
 }
 
-export async function guardarExpediente(historiaId, formData, sectionStatus) {
+export async function guardarExpediente(historiaId, formData, sectionStatus, revision) {
     sinRedEnPrueba();
     return clienteHttp.actualizar(`/historias/${historiaId}/expediente`, {
-        formData: conTextosClausulas(formData),
+        formData: formularioParaServidor(formData),
         sectionStatus,
+        ...(revision ? { revision } : {}),
     });
+}
+
+export function formularioParaServidor(formData) {
+    const formulario = { ...conTextosClausulas(formData) };
+    // El odontograma se guarda desde su propio endpoint; reenviar la copia
+    // cargada al abrir la ficha sobrescribiría hallazgos posteriores.
+    delete formulario.odontograma;
+    return formulario;
 }
 
 export async function subirArchivoClinico(historiaId, campo, archivo, nombre) {

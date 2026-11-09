@@ -71,7 +71,7 @@ class ServicioPacientes
             return $this->serializar($fila);
         }
 
-        if ($actor !== null && $this->acceso->restringido($actor)) {
+        if ($actor !== null && $this->acceso->visibilidadRestringida($actor)) {
             return [
                 'id' => (int) $fila->id_paciente,
                 'nombres' => trim($fila->nombres.' '.$fila->apellidos),

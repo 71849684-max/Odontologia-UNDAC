@@ -1,0 +1,72 @@
+name: Verificar aplicación
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, gd
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Instalar backend
+        working-directory: backend
+        run: |
+          composer install --no-interaction --prefer-dist
+          cp .env.example .env
+          php artisan key:generate
+      - name: Instalar frontend y navegadores
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium firefox
+      - name: Preparar base de PHPUnit
+        run: |
+          node frontend/scripts/esquemaPhpunit.mjs /tmp/esquema-unidad.sql
+          mysql --host=127.0.0.1 --user=root < /tmp/esquema-unidad.sql
+          cd backend
+          php artisan clinica:parches --bd=bd_clinica_undac_test
+      - name: Verificar backend
+        working-directory: backend
+        run: php artisan test
+      - name: Verificar frontend y compilar
+        working-directory: frontend
+        run: |
+          npm run verificar:tokens
+          npm run test
+          npm run build
+          npm run medir:compilacion
+      - name: Preparar navegador
+        working-directory: frontend
+        run: npm run pruebas:navegador:preparar
+      - name: Verificar navegador Chromium y Firefox
+        working-directory: frontend
+        run: |
+          npm run pruebas:navegador
+          npm run pruebas:navegador:firefox
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: informes-navegador
+          path: |
+            frontend/informes-navegador
+            frontend/resultados-navegador
+          retention-days: 7

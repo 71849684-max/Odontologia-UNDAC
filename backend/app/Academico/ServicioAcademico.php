@@ -70,32 +70,38 @@ class ServicioAcademico
 
     public function guardarMembresias(int $idGrupo, array $membresias): array
     {
-        $this->exigir('grupo_academico', 'id_grupo', $idGrupo, 'No se encontró el grupo.');
-        $creadas = [];
-        foreach ($membresias as $item) {
-            $idAlumno = $this->idAlumno($item['personaId'] ?? null);
-            $inicio = Valores::fecha($item['fechaInicio'] ?? null) ?? now()->toDateString();
-            $activa = DB::table('grupo_miembro')
-                ->where('id_grupo', $idGrupo)
-                ->where('id_alumno', $idAlumno)
-                ->where('estado', 'ACTIVA')
-                ->whereNull('fecha_fin')
-                ->exists();
-            if ($activa) {
-                throw new OperacionNoPermitida('personaId', 'La persona ya tiene una membresía activa en este grupo.');
+        return DB::transaction(function () use ($idGrupo, $membresias) {
+            $this->exigir('grupo_academico', 'id_grupo', $idGrupo, 'No se encontró el grupo.');
+            $creadas = [];
+            foreach ($membresias as $item) {
+                $idAlumno = $this->idAlumno($item['personaId'] ?? null);
+                $inicio = Valores::fecha($item['fechaInicio'] ?? null) ?? now()->toDateString();
+                $fin = Valores::fecha($item['fechaFin'] ?? null);
+                if ($fin !== null && $fin < $inicio) {
+                    throw new OperacionNoPermitida('fechaFin', 'La fecha final debe ser igual o posterior a la fecha inicial.');
+                }
+                $activa = DB::table('grupo_miembro')
+                    ->where('id_grupo', $idGrupo)
+                    ->where('id_alumno', $idAlumno)
+                    ->where('estado', 'ACTIVA')
+                    ->whereNull('fecha_fin')
+                    ->exists();
+                if ($activa) {
+                    throw new OperacionNoPermitida('personaId', 'La persona ya tiene una membresía activa en este grupo.');
+                }
+                $id = DB::table('grupo_miembro')->insertGetId([
+                    'id_grupo' => $idGrupo,
+                    'id_alumno' => $idAlumno,
+                    'fecha_inicio' => $inicio,
+                    'fecha_fin' => $fin,
+                    'estado' => 'ACTIVA',
+                    'creado_en' => now(),
+                ]);
+                $creadas[] = $this->membresia($id);
             }
-            $id = DB::table('grupo_miembro')->insertGetId([
-                'id_grupo' => $idGrupo,
-                'id_alumno' => $idAlumno,
-                'fecha_inicio' => $inicio,
-                'fecha_fin' => Valores::fecha($item['fechaFin'] ?? null),
-                'estado' => 'ACTIVA',
-                'creado_en' => now(),
-            ]);
-            $creadas[] = $this->membresia($id);
-        }
 
-        return $creadas;
+            return $creadas;
+        });
     }
 
     public function finalizarMembresia(int $id, string $fechaFin): array
@@ -118,6 +124,9 @@ class ServicioAcademico
 
     public function crearRotacion(array $datos): array
     {
+        $this->exigir('grupo_academico', 'id_grupo', (int) ($datos['grupoId'] ?? 0), 'Seleccione un grupo válido.');
+        $this->exigir('curso', 'id_curso', (int) ($datos['cursoId'] ?? 0), 'Seleccione un curso válido.');
+        $this->exigir('periodo_academico', 'id_periodo_academico', (int) ($datos['periodoId'] ?? 0), 'Seleccione un periodo válido.');
         $inicio = Valores::fecha($datos['fechaInicio'] ?? null);
         $fin = Valores::fecha($datos['fechaFin'] ?? null);
         if ($inicio === null || $fin === null || $fin < $inicio) {
@@ -138,51 +147,55 @@ class ServicioAcademico
 
     public function guardarDocentes(int $idRotacion, array $docentes): array
     {
-        $this->exigir('rotacion', 'id_rotacion', $idRotacion, 'No se encontró la rotación.');
-        $creados = [];
-        foreach ($docentes as $item) {
-            $idDocente = $this->idDocente($item['personaId'] ?? null);
-            if (DB::table('rotacion_docente')->where('id_rotacion', $idRotacion)->where('id_docente', $idDocente)->exists()) {
-                throw new OperacionNoPermitida('personaId', 'El docente ya está asignado a esta rotación.');
+        return DB::transaction(function () use ($idRotacion, $docentes) {
+            $this->exigir('rotacion', 'id_rotacion', $idRotacion, 'No se encontró la rotación.');
+            $creados = [];
+            foreach ($docentes as $item) {
+                $idDocente = $this->idDocente($item['personaId'] ?? null);
+                if (DB::table('rotacion_docente')->where('id_rotacion', $idRotacion)->where('id_docente', $idDocente)->exists()) {
+                    throw new OperacionNoPermitida('personaId', 'El docente ya está asignado a esta rotación.');
+                }
+                $funcion = $this->funcionDocente($item['funcion'] ?? null);
+                $id = DB::table('rotacion_docente')->insertGetId([
+                    'id_rotacion' => $idRotacion,
+                    'id_docente' => $idDocente,
+                    'funcion' => $funcion,
+                    'creado_en' => now(),
+                ]);
+                $creados[] = [
+                    'id' => $id,
+                    'rotacionId' => $idRotacion,
+                    'personaId' => 'docente-'.$idDocente,
+                    'funcion' => $this->funcionDocenteVisible($funcion),
+                ];
             }
-            $funcion = $this->funcionDocente($item['funcion'] ?? null);
-            $id = DB::table('rotacion_docente')->insertGetId([
-                'id_rotacion' => $idRotacion,
-                'id_docente' => $idDocente,
-                'funcion' => $funcion,
-                'creado_en' => now(),
-            ]);
-            $creados[] = [
-                'id' => $id,
-                'rotacionId' => $idRotacion,
-                'personaId' => 'docente-'.$idDocente,
-                'funcion' => $this->funcionDocenteVisible($funcion),
-            ];
-        }
 
-        return $creados;
+            return $creados;
+        });
     }
 
     public function guardarAsignaciones(int $idRotacion, array $personas): array
     {
-        $this->exigir('rotacion', 'id_rotacion', $idRotacion, 'No se encontró la rotación.');
-        $creadas = [];
-        foreach ($personas as $item) {
-            $idAlumno = $this->idAlumno($item['personaId'] ?? null);
-            if (DB::table('rotacion_alumno')->where('id_rotacion', $idRotacion)->where('id_alumno', $idAlumno)->exists()) {
-                throw new OperacionNoPermitida('personaId', 'La persona ya está asignada a esta rotación.');
+        return DB::transaction(function () use ($idRotacion, $personas) {
+            $this->exigir('rotacion', 'id_rotacion', $idRotacion, 'No se encontró la rotación.');
+            $creadas = [];
+            foreach ($personas as $item) {
+                $idAlumno = $this->idAlumno($item['personaId'] ?? null);
+                if (DB::table('rotacion_alumno')->where('id_rotacion', $idRotacion)->where('id_alumno', $idAlumno)->exists()) {
+                    throw new OperacionNoPermitida('personaId', 'La persona ya está asignada a esta rotación.');
+                }
+                $id = DB::table('rotacion_alumno')->insertGetId([
+                    'id_rotacion' => $idRotacion,
+                    'id_alumno' => $idAlumno,
+                    'tipo_asignacion' => 'EXCEPCIONAL',
+                    'estado' => 1,
+                    'creado_en' => now(),
+                ]);
+                $creadas[] = ['id' => $id, 'rotacionId' => $idRotacion, 'personaId' => 'alumno-'.$idAlumno];
             }
-            $id = DB::table('rotacion_alumno')->insertGetId([
-                'id_rotacion' => $idRotacion,
-                'id_alumno' => $idAlumno,
-                'tipo_asignacion' => 'EXCEPCIONAL',
-                'estado' => 1,
-                'creado_en' => now(),
-            ]);
-            $creadas[] = ['id' => $id, 'rotacionId' => $idRotacion, 'personaId' => 'alumno-'.$idAlumno];
-        }
 
-        return $creadas;
+            return $creadas;
+        });
     }
 
     private function personas(): array
@@ -369,6 +382,8 @@ class ServicioAcademico
             throw new OperacionNoPermitida('personaId', 'Selecciona un alumno válido.');
         }
 
+        $this->exigir('alumno', 'id_alumno', (int) $coincidencia[1], 'El asistente seleccionado no existe.');
+
         return (int) $coincidencia[1];
     }
 
@@ -377,6 +392,8 @@ class ServicioAcademico
         if (! preg_match('/^docente-(\d+)$/', (string) $personaId, $coincidencia)) {
             throw new OperacionNoPermitida('personaId', 'Selecciona un docente válido.');
         }
+
+        $this->exigir('docente', 'id_docente', (int) $coincidencia[1], 'El profesional seleccionado no existe.');
 
         return (int) $coincidencia[1];
     }

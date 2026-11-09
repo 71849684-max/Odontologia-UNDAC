@@ -19,7 +19,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test('crea la historia desde el modal sin pedir contexto académico duplicado', () => {
+test('crea la historia desde el modal sin pedir contexto académico duplicado', async () => {
   const onCreated = vi.fn();
   const onClose = vi.fn();
   render(<NuevaHistoriaModal open onCreated={onCreated} onClose={onClose} />);
@@ -31,6 +31,7 @@ test('crea la historia desde el modal sin pedir contexto académico duplicado', 
   fireEvent.change(screen.getByLabelText('Nombres'), { target: { value: 'Andrea' } });
   fireEvent.change(screen.getByLabelText('Apellido paterno'), { target: { value: 'Salazar' } });
   fireEvent.change(screen.getByLabelText('Apellido materno'), { target: { value: 'Huamán' } });
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Crear historia' })).toBeEnabled());
   fireEvent.click(screen.getByRole('button', { name: 'Crear historia' }));
 
   expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({

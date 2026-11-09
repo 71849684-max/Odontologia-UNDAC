@@ -14,6 +14,8 @@ import {
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
 import { problemaContrasena } from '../../servicios/servicioCuenta.js';
 import { formatearFechaHora } from '../../utilidades/fechas.mjs';
+import { TIPOS_DOCUMENTO } from './usuarios.config.mjs';
+import { problemaDocumento, problemaTelefono, problemaCorreo } from '../../utilidades/validacionesRegistro.mjs';
 
 const FORMULARIO_VACIO = {
     nombre_usuario: '',
@@ -107,6 +109,12 @@ export default function UsuariosApp() {
 
     async function guardar(evento) {
         evento.preventDefault();
+        const problemas = {};
+        for (const [campo, problema] of [
+            ['numero_documento', problemaDocumento(formulario.numero_documento, formulario.tipo_documento)],
+            ['telefono', problemaTelefono(formulario.telefono)], ['correo', problemaCorreo(formulario.correo)],
+        ]) if (problema) problemas[campo] = [problema];
+        if (Object.keys(problemas).length) { setErroresFormulario(problemas); return; }
         setGuardando(true);
         setErroresFormulario({});
         setError('');
@@ -302,7 +310,7 @@ export default function UsuariosApp() {
                             {[
                                 ['nombres', 'Nombres', 'text'],
                                 ['apellidos', 'Apellidos', 'text'],
-                                ['tipo_documento', 'Tipo de documento', 'text'],
+                                ['tipo_documento', 'Tipo de documento', 'select'],
                                 ['numero_documento', 'Número de documento', 'text'],
                                 ['nombre_usuario', 'Correo institucional', 'text'],
                                 ['contrasena', dialogo.modo === 'crear' ? 'Contraseña' : 'Nueva contraseña (opcional)', 'password'],
@@ -311,12 +319,21 @@ export default function UsuariosApp() {
                             ].map(([campo, etiqueta, tipo]) => (
                                 <label key={campo}>
                                     <span>{etiqueta}</span>
-                                    <input
+                                    {tipo === 'select' ? (
+                                        <select value={formulario[campo]} onChange={(evento) => actualizarCampo(campo, evento.target.value)} required>
+                                            {!TIPOS_DOCUMENTO.some((opcion) => opcion.valor === formulario[campo]) && formulario[campo] && (
+                                                <option value={formulario[campo]}>{formulario[campo]}</option>
+                                            )}
+                                            {TIPOS_DOCUMENTO.map((opcion) => <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>)}
+                                        </select>
+                                    ) : <input
                                         type={tipo}
+                                        maxLength={campo === 'nombres' ? 100 : campo === 'apellidos' || campo === 'nombre_usuario' ? 120 : campo === 'correo' ? 150 : campo === 'telefono' ? 30 : campo === 'numero_documento' ? (formulario.tipo_documento === 'DNI' ? 8 : 20) : 255}
+                                        minLength={campo === 'contrasena' ? 8 : undefined}
                                         value={formulario[campo]}
                                         onChange={(evento) => actualizarCampo(campo, evento.target.value)}
                                         required={campo !== 'correo' && campo !== 'telefono' && !(campo === 'contrasena' && dialogo.modo === 'editar')}
-                                    />
+                                    />}
                                     {erroresFormulario[campo] && <small className="admin-error">{erroresFormulario[campo][0]}</small>}
                                 </label>
                             ))}

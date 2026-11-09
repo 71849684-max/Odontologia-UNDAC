@@ -2,6 +2,7 @@
 
 namespace App\Identidad\Http\Solicitudes\Admin;
 
+use App\Http\Validacion\ReglasBasicas;
 use App\Identidad\Dominio\ClaveCuenta;
 use App\Identidad\Dominio\Contratos\RepositorioUsuarios;
 use Illuminate\Foundation\Http\FormRequest;
@@ -47,11 +48,13 @@ class SolicitudGuardarUsuario extends FormRequest
             'contrasena' => [$esCreacion ? 'required' : 'nullable', 'string', 'min:8', 'max:255'],
             'estado' => ['sometimes', 'boolean'],
             'codigo_rol' => ['required', 'string', Rule::exists('rol', 'codigo_rol')->where('estado', 1)],
-            'tipo_documento' => ['required', 'string', 'max:20'],
+            'tipo_documento' => ['required', Rule::in(['DNI', 'CE', 'PAS'])],
             'numero_documento' => [
+                'bail',
                 'required',
                 'string',
                 'max:20',
+                ReglasBasicas::documento($this->input('tipo_documento', 'DNI')),
                 function (string $atributo, mixed $valor, \Closure $fallo): void {
                     $tipo = (string) $this->input('tipo_documento');
                     $clave = (string) $this->route('idUsuario');
@@ -59,6 +62,13 @@ class SolicitudGuardarUsuario extends FormRequest
                     $idActor = $clave !== ''
                         ? app(RepositorioUsuarios::class)->idActorDe($clave)
                         : null;
+                    if ($clave !== '') {
+                        $actual = app(RepositorioUsuarios::class)->serializar(app(RepositorioUsuarios::class)->buscarPorId($clave));
+                        // Un traslado de rol conserva el actor histórico con el mismo documento.
+                        if ($actual['tipo_documento'] === $tipo && $actual['numero_documento'] === $valor) {
+                            return;
+                        }
+                    }
 
                     $enAlumno = DB::table('alumno')
                         ->where('tipo_documento', $tipo)
@@ -79,7 +89,7 @@ class SolicitudGuardarUsuario extends FormRequest
             'nombres' => ['required', 'string', 'max:100'],
             'apellidos' => ['required', 'string', 'max:120'],
             'correo' => ['nullable', 'email', 'max:150'],
-            'telefono' => ['nullable', 'string', 'max:30'],
+            'telefono' => ReglasBasicas::telefono(),
         ];
     }
 

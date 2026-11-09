@@ -1,125 +1,135 @@
 import { clienteHttp, ErrorHttp } from './clienteHttp.js';
+import { sinRedEnPrueba } from './servicioClinico.js';
 import * as local from './repositorioAcademicoLocal.js';
-
-const enPrueba = import.meta.env?.VITEST === true;
 
 let remoto = null;
 
-function esRed(error) {
-    return !(error instanceof ErrorHttp);
+function estadoVacio() {
+    return {
+        personas: [], cursos: [], periodos: [], grupos: [], membresias: [],
+        rotaciones: [], docentesRotacion: [], asignacionesExcepcionales: [],
+    };
 }
 
 export async function sincronizarAcademico() {
-    if (enPrueba) {
-        remoto = null;
-        return false;
-    }
+    sinRedEnPrueba();
     try {
         remoto = await clienteHttp.obtener('/academico');
         return true;
     } catch (error) {
-        if (esRed(error)) {
-            remoto = null;
-            return false;
-        }
-
-        remoto = {
-            personas: [],
-            cursos: [],
-            periodos: [],
-            grupos: [],
-            membresias: [],
-            rotaciones: [],
-            docentesRotacion: [],
-            asignacionesExcepcionales: [],
-        };
-        throw error;
+        remoto = null;
+        throw error instanceof ErrorHttp ? error : new ErrorHttp(
+            'No se pudo cargar la información académica. Compruebe la conexión y reintente.',
+        );
     }
 }
 
 export function obtenerEstadoAcademico() {
     const perfiles = local.obtenerEstadoAcademico();
-    if (!remoto) return perfiles;
+    const datos = remoto ?? estadoVacio();
 
     return {
-        personas: remoto.personas ?? [],
-        cursos: remoto.cursos ?? [],
-        periodos: remoto.periodos ?? [],
-        grupos: remoto.grupos ?? [],
-        membresias: remoto.membresias ?? [],
-        rotaciones: remoto.rotaciones ?? [],
-        docentesRotacion: remoto.docentesRotacion ?? [],
-        asignacionesExcepcionales: remoto.asignacionesExcepcionales ?? [],
+        personas: datos.personas ?? [],
+        cursos: datos.cursos ?? [],
+        periodos: datos.periodos ?? [],
+        grupos: datos.grupos ?? [],
+        membresias: datos.membresias ?? [],
+        rotaciones: datos.rotaciones ?? [],
+        docentesRotacion: datos.docentesRotacion ?? [],
+        asignacionesExcepcionales: datos.asignacionesExcepcionales ?? [],
+        aviso: datos.aviso ?? '',
         perfiles: perfiles.perfiles ?? {},
         perfil: perfiles.perfil,
     };
 }
 
-async function enServidor(accion, localFn) {
-    if (!remoto) return localFn();
-
+async function enServidor(accion, coleccion) {
+    let resultado;
     try {
-        const resultado = await accion();
-        await sincronizarAcademico();
-        return resultado;
+        resultado = await accion();
     } catch (error) {
-        if (esRed(error)) {
-            remoto = null;
-            return localFn();
-        }
-        throw error;
+        throw error instanceof ErrorHttp ? error : new ErrorHttp(
+            'No se pudo confirmar el guardado con el servidor. Compruebe la conexión y revise el listado antes de volver a guardar.',
+        );
     }
+    // La respuesta de escritura ya confirma la persistencia en el servidor.
+    const confirmado = { ...(remoto ?? estadoVacio()) };
+    confirmado[coleccion] = [...(confirmado[coleccion] ?? [])];
+    for (const guardado of Array.isArray(resultado) ? resultado : [resultado]) {
+        const indice = confirmado[coleccion].findIndex((item) => item.id === guardado.id);
+        if (indice < 0) confirmado[coleccion].push(guardado);
+        else confirmado[coleccion][indice] = guardado;
+    }
+    try {
+        await sincronizarAcademico();
+    } catch {
+        remoto = {
+            ...confirmado,
+            aviso: 'Los cambios se guardaron en el servidor, pero no se pudo actualizar el listado completo. Recargue la vista para actualizarlo.',
+        };
+    }
+    return resultado;
 }
 
-export function crearPeriodo(datos) {
-    return enServidor(() => clienteHttp.enviar('/academico/periodos', datos), () => local.crearPeriodo(datos));
+export async function crearPeriodo(datos) {
+    sinRedEnPrueba();
+    return enServidor(() => clienteHttp.enviar('/academico/periodos', datos), 'periodos');
 }
 
-export function crearCurso(datos) {
-    return enServidor(() => clienteHttp.enviar('/academico/cursos', datos), () => local.crearCurso(datos));
+export async function crearCurso(datos) {
+    sinRedEnPrueba();
+    return enServidor(() => clienteHttp.enviar('/academico/cursos', datos), 'cursos');
 }
 
-export function actualizarCurso(cursoId, datos) {
-    return enServidor(() => clienteHttp.actualizar(`/academico/cursos/${cursoId}`, datos), () => local.actualizarCurso(cursoId, datos));
+export async function actualizarCurso(cursoId, datos) {
+    sinRedEnPrueba();
+    return enServidor(() => clienteHttp.actualizar(`/academico/cursos/${cursoId}`, datos), 'cursos');
 }
 
-export function crearGrupo(datos) {
-    return enServidor(() => clienteHttp.enviar('/academico/grupos', datos), () => local.crearGrupo(datos));
+export async function crearGrupo(datos) {
+    sinRedEnPrueba();
+    return enServidor(() => clienteHttp.enviar('/academico/grupos', datos), 'grupos');
 }
 
-export function actualizarGrupo(grupoId, datos) {
-    return enServidor(() => clienteHttp.actualizar(`/academico/grupos/${grupoId}`, datos), () => local.actualizarGrupo(grupoId, datos));
+export async function actualizarGrupo(grupoId, datos) {
+    sinRedEnPrueba();
+    return enServidor(() => clienteHttp.actualizar(`/academico/grupos/${grupoId}`, datos), 'grupos');
 }
 
-export function guardarMembresias(grupoId, membresias) {
+export async function guardarMembresias(grupoId, membresias) {
+    sinRedEnPrueba();
     return enServidor(
         () => clienteHttp.enviar(`/academico/grupos/${grupoId}/miembros`, { membresias }),
-        () => local.guardarMembresias(grupoId, membresias),
+        'membresias',
     );
 }
 
-export function finalizarMembresia(membresiaId, fechaFin) {
+export async function finalizarMembresia(membresiaId, fechaFin) {
+    sinRedEnPrueba();
     return enServidor(
         () => clienteHttp.parchear(`/academico/miembros/${membresiaId}`, { fechaFin }),
-        () => local.finalizarMembresia(membresiaId, fechaFin),
+        'membresias',
     );
 }
 
-export function crearRotacion(datos) {
-    return enServidor(() => clienteHttp.enviar('/academico/rotaciones', datos), () => local.crearRotacion(datos));
+export async function crearRotacion(datos) {
+    sinRedEnPrueba();
+    return enServidor(() => clienteHttp.enviar('/academico/rotaciones', datos), 'rotaciones');
 }
 
-export function guardarDocentesRotacion(rotacionId, docentes) {
+export async function guardarDocentesRotacion(rotacionId, docentes) {
+    sinRedEnPrueba();
     return enServidor(
         () => clienteHttp.enviar(`/academico/rotaciones/${rotacionId}/docentes`, { docentes }),
-        () => local.guardarDocentesRotacion(rotacionId, docentes),
+        'docentesRotacion',
     );
 }
 
-export function guardarAsignacionesExcepcionales(rotacionId, personas) {
+export async function guardarAsignacionesExcepcionales(rotacionId, personas) {
+    sinRedEnPrueba();
     return enServidor(
         () => clienteHttp.enviar(`/academico/rotaciones/${rotacionId}/alumnos`, { personas }),
-        () => local.guardarAsignacionesExcepcionales(rotacionId, personas),
+        'asignacionesExcepcionales',
     );
 }
 

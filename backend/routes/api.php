@@ -72,8 +72,8 @@ Route::middleware(['auth', 'usuario.activo'])->group(function (): void {
         Route::middleware('historia.acceso')->prefix('historias/{idHistoria}')->whereNumber('idHistoria')->group(function (): void {
             Route::get('/', [ControladorHistorias::class, 'mostrar'])->name('historias.show');
             Route::delete('/', [ControladorHistorias::class, 'inactivar'])->name('historias.inactivar');
-            Route::put('asignacion', [ControladorHistorias::class, 'asignar'])->name('historias.asignacion');
-            Route::patch('estado', [ControladorHistorias::class, 'cambiarEstado'])->name('historias.estado');
+            Route::put('asignacion', [ControladorHistorias::class, 'asignar'])->middleware('throttle:cambios-equipo-estado')->name('historias.asignacion');
+            Route::patch('estado', [ControladorHistorias::class, 'cambiarEstado'])->middleware('throttle:cambios-equipo-estado')->name('historias.estado');
             Route::get('expediente', [ControladorHistorias::class, 'expediente'])->name('historias.expediente');
             Route::put('expediente', [ControladorHistorias::class, 'guardarExpediente'])->name('historias.expediente.update');
             Route::post('seguimientos', [ControladorHistorias::class, 'crearSeguimiento'])->name('historias.seguimientos.store');

@@ -2,12 +2,16 @@
 
 namespace App\Clinica\Odontograma;
 
+use App\Clinica\Historias\AccesoHistorias;
 use App\Identidad\Dominio\Cuenta;
 use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 class ServicioOdontograma
 {
+    public function __construct(private readonly AccesoHistorias $acceso) {}
+
     private const TAMANO_MAXIMO = 2 * 1024 * 1024;
 
     /** Estados del frontend cuyo código de catálogo no se obtiene en mayúsculas directas. */
@@ -55,6 +59,10 @@ class ServicioOdontograma
         $denticionDefecto = $this->denticionPorDefecto();
 
         DB::transaction(function () use ($idHistoria, $registro, $json, $actor, $denticionDefecto) {
+            DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->lockForUpdate()->first();
+            if (! $this->acceso->puedeModificar($actor, $idHistoria)) {
+                throw (new ModelNotFoundException)->setModel('historia_clinica', [$idHistoria]);
+            }
             $this->eliminar($idHistoria);
             $catalogo = $this->catalogo();
             $piezasCatalogo = DB::table('pieza_dental')->pluck('id_pieza_dental', 'codigo_fdi')->all();

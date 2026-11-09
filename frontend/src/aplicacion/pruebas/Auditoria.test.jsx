@@ -39,6 +39,8 @@ beforeEach(() => {
                     accion: 'INACTIVAR',
                     modulo: 'historia_clinica',
                     registro: '48',
+                    historia: 'HC-2026-048',
+                    historiaId: 48,
                     ip: '10.0.0.8',
                     tipo_usuario: 'ALUMNO',
                     agente: 'Vitest',
@@ -88,7 +90,7 @@ test('separa inicios de sesión y acciones, y muestra el detalle al ver más', a
     await usuario.click(screen.getByRole('button', { name: 'Ver más' }));
     const acceso = await screen.findByRole('dialog', { name: 'Detalle del acceso' });
     expect(within(acceso).getByText('127.0.0.1')).toBeInTheDocument();
-    expect(within(acceso).getByText('Vitest')).toBeInTheDocument();
+    expect(within(acceso).getByText('Navegador no identificado')).toBeInTheDocument();
     await usuario.click(within(acceso).getByRole('button', { name: 'Cerrar' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
@@ -96,15 +98,17 @@ test('separa inicios de sesión y acciones, y muestra el detalle al ver más', a
     await waitFor(() => expect(admin.listarAuditoria).toHaveBeenCalledWith(expect.objectContaining({ origen: 'acciones' })));
     const tablaAcciones = await screen.findByRole('table');
     expect(within(tablaAcciones).getByText('mquispe')).toBeInTheDocument();
-    expect(within(tablaAcciones).getByText('INACTIVAR')).toBeInTheDocument();
+    expect(within(tablaAcciones).getByText('Eliminar historia clínica (inactivar)')).toBeInTheDocument();
+    expect(within(tablaAcciones).getByText('HC-2026-048')).toBeInTheDocument();
     expect(screen.queryByText('admin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Historia clínica')).not.toBeInTheDocument();
+    expect(within(tablaAcciones).getByRole('columnheader', { name: 'Historia clínica' })).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: 'Ver más' }));
     const accion = await screen.findByRole('dialog', { name: 'Detalle de la acción' });
-    expect(within(accion).getByText('Historia clínica')).toBeInTheDocument();
+    expect(within(accion).getAllByText('Historia clínica').length).toBeGreaterThan(0);
+    expect(within(accion).getByText('HC-2026-048')).toBeInTheDocument();
     expect(within(accion).getByText('48')).toBeInTheDocument();
-    expect(within(accion).getByText(/"estado": "inactiva"/)).toBeInTheDocument();
+    expect(within(accion).getByText(/Inactiva/)).toBeInTheDocument();
 });
 
 test('oculta Ver más si la sesión no es de administrador', async () => {

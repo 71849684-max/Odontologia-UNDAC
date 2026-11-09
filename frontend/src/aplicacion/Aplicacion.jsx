@@ -1,23 +1,25 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, useCallback, useEffect, useState } from 'react';
+import CargaVista from './componentes/interfaz/CargaVista.jsx';
 import PaginaAcceso from './paginas/PaginaAcceso';
 import AppLayout from './disenos/AppLayout';
 import { menuParaSesion, perfilDesdeRoles } from './configuracion/menuPorRol';
 import { useSesion } from './autenticacion/ContextoSesion';
 import { puedeVerRuta } from './autenticacion/rutasProtegidas';
 import AccesoDenegado from './paginas/AccesoDenegado';
-import DashboardApp from './paginas/DashboardApp';
-import PacientesApp from './paginas/PacientesApp';
-import HistoriasApp from './paginas/HistoriasApp';
-import HistoriaClinicaApp from './paginas/HistoriaClinicaApp';
-import PermisosUsuariosApp from './paginas/PermisosUsuariosApp';
-import UsuariosApp from './paginas/UsuariosApp';
-import AuditoriaApp from './paginas/AuditoriaApp';
-import ConfiguracionApp from './paginas/ConfiguracionApp';
-import SeguimientoApp from './paginas/SeguimientoApp';
 import VistaNoDisponible from './paginas/VistaNoDisponible';
-import PerfilApp from './paginas/PerfilApp';
-import CursosApp from './paginas/CursosApp';
-import GruposAcademicosApp from './paginas/GruposAcademicosApp';
+
+const DashboardApp = lazy(() => import('./paginas/DashboardApp'));
+const PacientesApp = lazy(() => import('./paginas/PacientesApp'));
+const HistoriasApp = lazy(() => import('./paginas/HistoriasApp'));
+const HistoriaClinicaApp = lazy(() => import('./paginas/HistoriaClinicaApp'));
+const PermisosUsuariosApp = lazy(() => import('./paginas/PermisosUsuariosApp'));
+const UsuariosApp = lazy(() => import('./paginas/UsuariosApp'));
+const AuditoriaApp = lazy(() => import('./paginas/AuditoriaApp'));
+const ConfiguracionApp = lazy(() => import('./paginas/ConfiguracionApp'));
+const SeguimientoApp = lazy(() => import('./paginas/SeguimientoApp'));
+const PerfilApp = lazy(() => import('./paginas/PerfilApp'));
+const CursosApp = lazy(() => import('./paginas/CursosApp'));
+const GruposAcademicosApp = lazy(() => import('./paginas/GruposAcademicosApp'));
 
 const routeAliases = {
     dashboard: 'inicio',
@@ -233,20 +235,22 @@ export default function Aplicacion() {
                 sesion.cerrarSesion();
             }}
         >
-            <ComponenteVista
-                rol={perfil}
-                usuario={sesion.usuario}
-                permisos={sesion.permisos}
-                tipo={route === 'pendientes' ? 'pendientes' : 'seguimiento'}
-                historiaId={openHistoriaId}
-                seccionInicial={openSection}
-                pacienteInicial={pacienteInicialHistoria}
-                abrirNueva={abrirNuevaHistoria}
-                onNavigate={navigate}
-                onCreated={(historia) => {
-                    navigate({ view: 'historia-clinica', historiaId: historia.id, section: 'datos-paciente' });
-                }}
-            />
+            <CargaVista key={route}>
+                <ComponenteVista
+                    rol={perfil}
+                    usuario={sesion.usuario}
+                    permisos={sesion.permisos}
+                    tipo={route === 'pendientes' ? 'pendientes' : 'seguimiento'}
+                    historiaId={openHistoriaId}
+                    seccionInicial={openSection}
+                    pacienteInicial={pacienteInicialHistoria}
+                    abrirNueva={abrirNuevaHistoria}
+                    onNavigate={navigate}
+                    onCreated={(historia) => {
+                        navigate({ view: 'historia-clinica', historiaId: historia.id, section: 'datos-paciente' });
+                    }}
+                />
+            </CargaVista>
         </AppLayout>
     );
 }

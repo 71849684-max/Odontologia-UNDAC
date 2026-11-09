@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(fn (Request $solicitud) => $solicitud->is('api/*') ? null : '/');
         $middleware->web(append: [CabecerasSeguridad::class]);
         $middleware->alias([
             'rol' => AsegurarRol::class,

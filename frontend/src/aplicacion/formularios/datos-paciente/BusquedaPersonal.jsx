@@ -13,7 +13,7 @@ const mostrarFecha = (fecha) => {
   return partes.hora != null ? formatearFechaHora(fecha) : formatearFecha(fecha);
 };
 
-export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
+export default function BusquedaPersonal({ value, onChange, meta, fecha, tipo = null }) {
   const [busqueda, setBusqueda] = useState('');
   const [personal, setPersonal] = useState([]);
   const [buscando, setBuscando] = useState(false);
@@ -35,7 +35,7 @@ export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
     }, 250);
     return () => { vigente = false; clearTimeout(temporizador); };
   }, [busqueda]);
-  const resultados = terminos.length ? personal.filter((persona) => terminos.every((termino) => normalizar(`${persona.dni} ${persona.nombre}`).includes(termino))) : [];
+  const resultados = terminos.length ? personal.filter((persona) => (!tipo || persona.tipo === tipo) && terminos.every((termino) => normalizar(`${persona.dni} ${persona.nombre}`).includes(termino))) : [];
 
   return <div className="hc-personal-search" ref={contenedor}>
     <div className="hc-personal-search__input">
@@ -51,6 +51,6 @@ export default function BusquedaPersonal({ value, onChange, meta, fecha }) {
     {value ? <div className="hc-operator-summary" role="status" aria-label="Personal seleccionado">
       <div className="hc-operator-identity"><span className="hc-operator-avatar"><UserRound size={24} aria-hidden="true" /></span><div><strong>{value.nombre}</strong><span className="hc-operator-role">{etiquetaRol(value.rol, value.rol)}</span><small>Responsable de la historia clínica</small></div></div>
       <dl>{[['DNI', value.dni], ['C.O.P.', value.cop || 'No registrado'], ['Semestre', value.semestre || meta?.semestre], ['Año académico', meta?.anioAcademico], ['Fecha y hora de registro', mostrarFecha(fecha)], ['Profesional encargado', meta?.docente]].map(([label, dato]) => <div key={label}><dt>{label}</dt><dd>{dato || '—'}</dd></div>)}</dl>
-    </div> : <div className="hc-operator-empty"><UserRound size={20} aria-hidden="true" /><span>Seleccione al asistente responsable para ver su ficha.</span></div>}
+    </div> : <div className="hc-operator-empty"><UserRound size={20} aria-hidden="true" /><span>Seleccione al {tipo === 'DOCENTE' ? 'profesional encargado' : 'asistente responsable'} para ver su ficha.</span></div>}
   </div>;
 }

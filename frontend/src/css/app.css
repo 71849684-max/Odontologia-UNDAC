@@ -8,6 +8,7 @@
 @import './aplicacion/clinica/impresion.css';
 @import './aplicacion/claude-shell.css';
 @import './aplicacion/claude-vistas.css';
+@import './aplicacion/modo-oscuro.css';
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
@@ -46,5 +47,9 @@ select {
 }
 
 :focus-visible {
-    outline: 3px solid rgba(15, 113, 129, 0.35);
+    outline: 3px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+:root:not([data-tema="oscuro"]) :focus-visible{
+    outline: 3px solid var(--color-paleta-original-9d037136);
 }

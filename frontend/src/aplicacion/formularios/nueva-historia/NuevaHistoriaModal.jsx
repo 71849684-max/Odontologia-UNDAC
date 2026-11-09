@@ -3,6 +3,7 @@ import { Check, Search, UserPlus, X } from 'lucide-react';
 import { Field, SelectField } from '../compartidos/ControlesClinicos.jsx';
 import { listarPacientesLocales, registrarHistoriaDesdeFormulario } from '../../servicios/registroHistoriaClinica.js';
 import { abrirHistoria, buscarPacientePorDocumento, listarHistoriasRemotas, listarPacientes, mensajeError } from '../../servicios/servicioClinico.js';
+import { problemaDocumento, problemaTelefono, problemaCorreo, problemaFechaNacimiento } from '../../utilidades/validacionesRegistro.mjs';
 
 function nombresDePila(paciente) {
   const completo = String(paciente?.nombres ?? '').trim();
@@ -43,6 +44,7 @@ export default function NuevaHistoriaModal({ open, onClose, onCreated, pacienteI
     setResultados([]);
     setError('');
     setEnviando(false);
+    setUsaApi(null);
     let vigente = true;
     listarHistoriasRemotas()
       .then(() => { if (vigente) setUsaApi(true); })
@@ -98,6 +100,9 @@ export default function NuevaHistoriaModal({ open, onClose, onCreated, pacienteI
     setResultados([]);
   };
   const create = () => {
+    const problema = (!seleccionado?.id && (!form.nombres.trim() ? 'Ingrese los nombres del paciente.' : problemaDocumento(form.dni)))
+      || problemaTelefono(form.celular) || problemaCorreo(form.email) || problemaFechaNacimiento(form.nacimiento);
+    if (problema) { setError(problema); return; }
     setEnviando(true);
     setError('');
     const payload = {
@@ -146,8 +151,8 @@ export default function NuevaHistoriaModal({ open, onClose, onCreated, pacienteI
           ? <div className="hc-inline-callout" role="status"><span><Check size={20} /></span><div><strong>Paciente registrado seleccionado</strong><small>Se abrirá una nueva historia para {seleccionado.nombres}.</small></div></div>
           : <div className="hc-inline-callout"><span><UserPlus size={20} /></span><div><strong>¿Paciente nuevo?</strong><small>Complete los datos mínimos para abrir su historia.</small></div></div>}
         <div className="undac-form-grid mt-4">
-          <Field label="DNI" value={form.dni} onChange={set('dni')} />
-          <Field label="Nombres" value={form.nombres} onChange={set('nombres')} />
+          <Field label="DNI" value={form.dni} maxLength={8} inputMode="numeric" onChange={set('dni')} />
+          <Field label="Nombres" value={form.nombres} maxLength={180} onChange={set('nombres')} />
           <Field label="Apellido paterno" value={form.apellidoPaterno} onChange={set('apellidoPaterno')} />
           <Field label="Apellido materno" value={form.apellidoMaterno} onChange={set('apellidoMaterno')} />
           <Field label="Fecha de nacimiento" type="date" value={form.nacimiento} onChange={set('nacimiento')} />
@@ -158,7 +163,7 @@ export default function NuevaHistoriaModal({ open, onClose, onCreated, pacienteI
         {error ? <p className="hc-form-error" role="alert">{error}</p> : null}
         <footer className="admin-dialogo__acciones">
           <button type="button" className="hc-button hc-button--ghost" disabled={enviando} onClick={onClose}>Cancelar</button>
-          <button type="button" className="hc-button hc-button--primary" disabled={enviando} onClick={create}>Crear historia</button>
+          <button type="button" className="hc-button hc-button--primary" disabled={enviando || usaApi === null} onClick={create}>Crear historia</button>
         </footer>
       </div>
     </div>

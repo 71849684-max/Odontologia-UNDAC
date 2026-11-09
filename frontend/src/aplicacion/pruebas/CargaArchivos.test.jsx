@@ -126,7 +126,7 @@ test('las miniaturas se organizan como un carrusel de celdas de tamaño fijo', a
   const anterior = screen.getByRole('button', { name: 'Ver elementos anteriores' });
   const siguiente = screen.getByRole('button', { name: 'Ver elementos siguientes' });
   expect(anterior).toBeDisabled();
-  expect(siguiente).toBeEnabled();
+  await waitFor(() => expect(siguiente).toBeEnabled());
 
   fireEvent.click(siguiente);
   expect(anterior).toBeEnabled();

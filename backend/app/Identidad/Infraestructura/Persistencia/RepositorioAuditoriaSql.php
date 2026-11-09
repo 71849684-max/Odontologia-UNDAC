@@ -49,7 +49,7 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
                 'accesos_fallidos' => $this->contarAccesos(false),
                 'modificaciones' => DB::table('auditoria')
                     ->whereIn('tabla_afectada', self::TABLAS_HISTORIAS)
-                    ->whereIn('accion', ['EDITAR', 'CREAR', 'DESACTIVAR', 'ACTIVAR', 'RESTAURAR', 'INACTIVAR', 'CAMBIAR_ESTADO', 'ASIGNAR_PERSONAL', 'REVISAR_SECCION', 'SUBIR_ARCHIVO', 'ELIMINAR_ARCHIVO'])
+                    ->whereIn('accion', ['EDITAR', 'CREAR', 'DESACTIVAR', 'ACTIVAR', 'RESTAURAR', 'INACTIVAR', 'CAMBIAR_ESTADO', 'ASIGNAR_PERSONAL', 'REVISAR_SECCION', 'MARCAR_COMPLETADO', 'REABRIR_SECCION', 'EDITAR_ODONTOGRAMA', 'SUBIR_ARCHIVO', 'ELIMINAR_ARCHIVO'])
                     ->count(),
             ],
         ];
@@ -88,11 +88,15 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
         }
 
         $consulta = DB::table('auditoria')
+            ->leftJoin('historia_clinica as historia', function ($union) {
+                $union->on('historia.id_historia_clinica', '=', DB::raw("CASE WHEN auditoria.tabla_afectada = 'archivo_clinico' THEN COALESCE(JSON_UNQUOTE(JSON_EXTRACT(auditoria.valores_nuevos, '$.historia')), JSON_UNQUOTE(JSON_EXTRACT(auditoria.valores_anteriores, '$.historia'))) ELSE auditoria.id_registro END"));
+            })
+            ->select('auditoria.*', 'historia.numero_historia as historia_codigo', 'historia.id_historia_clinica as historia_id')
             ->whereIn('tabla_afectada', self::TABLAS_HISTORIAS)
-            ->orderByDesc('creado_en')
+            ->orderByDesc('auditoria.creado_en')
             ->orderByDesc('id_auditoria');
 
-        $this->aplicarBusqueda($consulta, $busqueda, ['nombre_usuario', 'tabla_afectada', 'id_registro', 'direccion_ip']);
+        $this->aplicarBusqueda($consulta, $busqueda, ['nombre_usuario', 'tabla_afectada', 'id_registro', 'direccion_ip', 'historia.numero_historia']);
 
         if ($accion !== '') {
             $consulta->where('accion', $accion);
@@ -103,6 +107,8 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
             'fecha' => $fila->creado_en,
             'usuario' => $fila->nombre_usuario,
             'accion' => $fila->accion,
+            'historia' => $fila->historia_codigo,
+            'historiaId' => $fila->historia_id,
             'modulo' => $fila->tabla_afectada,
             'registro' => $fila->id_registro,
             'ip' => $fila->direccion_ip,
@@ -184,6 +190,7 @@ class RepositorioAuditoriaSql implements RegistradorAuditoria, RepositorioAudito
             foreach ($columnas as $indice => $columna) {
                 if ($indice === 0) {
                     $q->where($columna, 'like', $patron);
+
                     continue;
                 }
                 $q->orWhere($columna, 'like', $patron);

@@ -8,15 +8,27 @@
         "build": "vite build",
         "preview": "vite preview",
         "test": "vitest run",
-        "test:watch": "vitest"
+        "test:watch": "vitest",
+        "pruebas:navegador:preparar": "node scripts/prepararEntorno.mjs navegador",
+        "pruebas:navegador:servidor": "vite preview --config vite.navegador.config.js",
+        "pruebas:navegador": "playwright test --project=chromium",
+        "pruebas:navegador:firefox": "playwright test --project=firefox",
+        "pruebas:navegador:interfaz": "playwright test --project=chromium --ui",
+        "pruebas:navegador:informe": "playwright show-report informes-navegador",
+        "pruebas:rendimiento:preparar": "node scripts/prepararEntorno.mjs rendimiento --usuarios=48 --historias=1000",
+        "verificar:tokens": "node scripts/verificarTokens.mjs",
+        "medir:compilacion": "node scripts/medirCompilacion.mjs"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.14.0",
+        "@playwright/test": "^1.65.0",
         "@tailwindcss/vite": "^4.0.0",
         "@testing-library/jest-dom": "^7.0.1",
         "@testing-library/react": "^16.3.2",
         "@testing-library/user-event": "^14.6.6",
         "@vitejs/plugin-react": "^6.1.0",
         "jsdom": "^30.0.1",
+        "postcss": "^8.5.32",
         "tailwindcss": "^4.0.0",
         "vite": "^8.0.0",
         "vitest": "^4.1.12"

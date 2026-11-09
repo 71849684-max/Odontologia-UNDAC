@@ -2,6 +2,9 @@
 
 namespace App\Clinica\Historias;
 
+use App\Clinica\Notificaciones\ServicioNotificaciones;
+use App\Identidad\Dominio\ContextoOperacion;
+use App\Identidad\Dominio\Contratos\RegistradorAuditoria;
 use App\Identidad\Dominio\Cuenta;
 use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -15,6 +18,8 @@ class ServicioEquipoClinico
     public function __construct(
         private readonly ServicioHistorias $historias,
         private readonly AccesoHistorias $acceso,
+        private readonly ServicioNotificaciones $notificaciones,
+        private readonly RegistradorAuditoria $auditoria,
     ) {}
 
     /**
@@ -69,12 +74,12 @@ class ServicioEquipoClinico
      *
      * @return array<string, mixed>
      */
-    public function asignar(int $idHistoria, string $personal, Cuenta $actor): array
+    public function asignar(int $idHistoria, string $personal, Cuenta $actor, ContextoOperacion $contexto): array
     {
         $this->historias->fila($idHistoria);
 
-        if ($actor->tipoCuenta() !== 'DOCENTE') {
-            throw new OperacionNoPermitida('personal', 'Solo un cirujano dentista puede cambiar la asignación de la historia.');
+        if (! $this->acceso->puedeVer($actor, $idHistoria)) {
+            throw (new ModelNotFoundException)->setModel('historia_clinica', [$idHistoria]);
         }
 
         if (! preg_match('/^(ALUMNO|DOCENTE)-(\d{1,18})$/', $personal, $partes)) {
@@ -82,6 +87,14 @@ class ServicioEquipoClinico
         }
 
         [$tipo, $id] = [$partes[1], (int) $partes[2]];
+        $permitido = match ($actor->tipoCuenta()) {
+            'ALUMNO' => $tipo === 'DOCENTE',
+            'DOCENTE' => $tipo === 'ALUMNO',
+            default => false,
+        };
+        if (! $permitido) {
+            throw new OperacionNoPermitida('personal', 'El asistente solo puede seleccionar al profesional encargado y el profesional solo puede seleccionar al asistente responsable.');
+        }
         $alumno = $tipo === 'ALUMNO';
         $tabla = $alumno ? 'historia_alumno' : 'historia_docente';
         $columna = $alumno ? 'id_alumno' : 'id_docente';
@@ -91,7 +104,19 @@ class ServicioEquipoClinico
             throw new OperacionNoPermitida('personal', 'El personal indicado no existe o está inactivo.');
         }
 
-        DB::transaction(function () use ($idHistoria, $tabla, $columna, $id, $participacion, $actor) {
+        DB::transaction(function () use ($idHistoria, $tabla, $columna, $id, $participacion, $actor, $contexto) {
+            DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->lockForUpdate()->first();
+            $tablaPersona = $columna === 'id_alumno' ? 'alumno' : 'docente';
+            $campo = $columna === 'id_alumno' ? 'asistente_responsable' : 'profesional_encargado';
+            $previos = DB::table($tabla.' as asignacion')->join($tablaPersona.' as persona', 'persona.'.$columna, '=', 'asignacion.'.$columna)
+                ->where('asignacion.id_historia_clinica', $idHistoria)->where('asignacion.tipo_participacion', $participacion)
+                ->where('asignacion.estado', 1)->get(['persona.nombres', 'persona.apellidos'])
+                ->map(fn ($persona) => trim($persona->nombres.' '.$persona->apellidos))->all();
+            $anteriores = DB::table($tabla)
+                ->where('id_historia_clinica', $idHistoria)
+                ->where('tipo_participacion', $participacion)
+                ->where('estado', 1)->where($columna, '!=', $id)
+                ->distinct()->pluck($columna);
             DB::table($tabla)
                 ->where('id_historia_clinica', $idHistoria)
                 ->where('tipo_participacion', $participacion)
@@ -107,16 +132,49 @@ class ServicioEquipoClinico
                 ->exists();
 
             if (! $vigente) {
-                DB::table($tabla)->insert([
+                $inicio = [
                     'id_historia_clinica' => $idHistoria,
                     $columna => $id,
-                    'tipo_participacion' => $participacion,
                     'fecha_asignacion' => now()->toDateString(),
+                ];
+                $asignacion = [
+                    'tipo_participacion' => $participacion,
                     'estado' => 1,
+                    'fecha_fin' => null,
                     'asignado_por_tipo' => $actor->tipoCuenta(),
                     'asignado_por_id' => $actor->id(),
-                    'creado_en' => now(),
-                ]);
+                ];
+                // La clave única admite una sola fila por persona, historia y día.
+                // Los cambios sucesivos del día quedan detallados en la auditoría.
+                if (DB::table($tabla)->where($inicio)->exists()) {
+                    DB::table($tabla)->where($inicio)->update($asignacion);
+                } else {
+                    DB::table($tabla)->insert($inicio + $asignacion + ['creado_en' => now()]);
+                }
+                $tipoDestino = $columna === 'id_alumno' ? 'ALUMNO' : 'DOCENTE';
+                if ($tipoDestino !== $actor->tipoCuenta() || $id !== $actor->idActor()) {
+                    $codigo = DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->value('numero_historia');
+                    $this->notificaciones->crear([
+                        ['tipo_destinatario' => $tipoDestino, 'id_destinatario' => $id],
+                    ], 'HISTORIA_ASIGNADA', 'Historia clínica asignada', "{$actor->nombreCompleto()} le asignó la historia {$codigo}.", $idHistoria);
+                }
+            }
+            $tipoDestino = $columna === 'id_alumno' ? 'ALUMNO' : 'DOCENTE';
+            $codigo = DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->value('numero_historia');
+            foreach ($anteriores as $idAnterior) {
+                if ($tipoDestino === $actor->tipoCuenta() && (int) $idAnterior === $actor->idActor()) {
+                    continue;
+                }
+                $this->notificaciones->crear([
+                    ['tipo_destinatario' => $tipoDestino, 'id_destinatario' => (int) $idAnterior],
+                ], 'ASIGNACION_RETIRADA', 'Cambio de responsable de historia clínica', "{$actor->nombreCompleto()} cambió al responsable de la historia {$codigo}. Usted ya no está asignado como ".($tipoDestino === 'ALUMNO' ? 'asistente responsable' : 'profesional encargado').'.', $idHistoria);
+            }
+            if (! $vigente || $anteriores->isNotEmpty()) {
+                $persona = DB::table($tablaPersona)->where($columna, $id)->first(['nombres', 'apellidos']);
+                $this->auditoria->registrar($contexto, 'historia_clinica', $idHistoria, 'ASIGNAR_PERSONAL',
+                    [$campo => $previos === [] ? 'Sin asignar' : implode(', ', $previos)],
+                    [$campo => trim($persona->nombres.' '.$persona->apellidos)],
+                );
             }
         });
 

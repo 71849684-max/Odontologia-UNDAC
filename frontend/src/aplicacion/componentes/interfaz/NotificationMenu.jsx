@@ -1,27 +1,29 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Bell, BellOff, CheckCheck } from 'lucide-react';
-import { listarNotificaciones, marcarNotificacionLeida, marcarTodasNotificacionesLeidas, sinRedEnPrueba } from '../../servicios/servicioClinico.js';
+import { listarNotificaciones, marcarNotificacionLeida, marcarTodasNotificacionesLeidas } from '../../servicios/servicioClinico.js';
 import { formatearFechaHora } from '../../utilidades/fechas.mjs';
 
 export default function NotificationMenu({ onNavigate }) {
     const [abierto, setAbierto] = useState(false);
     const [items, setItems] = useState([]);
     const [cargando, setCargando] = useState(false);
+    const [error, setError] = useState('');
 
     const cargar = useCallback(() => {
-        try { sinRedEnPrueba(); } catch { return; }
         setCargando(true);
         listarNotificaciones(40)
-            .then(setItems)
-            .catch(() => setItems([]))
+            .then((lista) => { setItems(lista); setError(''); })
+            .catch(() => setError('No se pudieron actualizar las notificaciones. Intente nuevamente.'))
             .finally(() => setCargando(false));
     }, []);
 
     useEffect(() => {
         cargar();
         if (import.meta.env.MODE === 'test') return undefined;
-        const id = window.setInterval(cargar, 60000);
-        return () => window.clearInterval(id);
+        const actualizar = () => { if (document.visibilityState === 'visible') cargar(); };
+        const id = window.setInterval(actualizar, 30000);
+        window.addEventListener('focus', actualizar);
+        return () => { window.clearInterval(id); window.removeEventListener('focus', actualizar); };
     }, [cargar]);
 
     useEffect(() => {
@@ -37,7 +39,7 @@ export default function NotificationMenu({ onNavigate }) {
             try {
                 await marcarNotificacionLeida(n.id);
                 setItems((actual) => actual.map((item) => (item.id === n.id ? { ...item, leida: true, leido: true } : item)));
-            } catch { /* ignore */ }
+            } catch { setError('No se pudo marcar el aviso como leído.'); return; }
         }
         setAbierto(false);
         if (n.historiaId) {
@@ -49,7 +51,7 @@ export default function NotificationMenu({ onNavigate }) {
         try {
             await marcarTodasNotificacionesLeidas();
             setItems((actual) => actual.map((item) => ({ ...item, leida: true, leido: true })));
-        } catch { /* ignore */ }
+        } catch { setError('No se pudieron marcar las notificaciones como leídas.'); }
     };
 
     return (
@@ -75,6 +77,7 @@ export default function NotificationMenu({ onNavigate }) {
                             </button>
                         ) : null}
                     </header>
+                    {error ? <p className="hc-form-error" role="alert">{error}</p> : null}
                     {cargando && !items.length ? (
                         <div className="notification-list__empty" role="status">
                             <span className="notification-list__empty-icon" aria-hidden="true"><Bell size={22} /></span>
@@ -95,7 +98,7 @@ export default function NotificationMenu({ onNavigate }) {
                                 </li>
                             ))}
                         </ul>
-                    ) : !cargando ? (
+                    ) : !cargando && !error ? (
                         <div className="notification-list__empty">
                             <span className="notification-list__empty-icon" aria-hidden="true"><BellOff size={22} /></span>
                             <strong>Sin notificaciones</strong>

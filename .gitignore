@@ -21,3 +21,8 @@ Desktop.ini
 /outputs/
 /output/
 /tmp/
+/frontend/informes-navegador/
+/frontend/resultados-navegador/
+/frontend/pruebas-navegador/.autenticacion/
+/backend/pruebas-rendimiento/manifiesto.json
+/backend/pruebas-rendimiento/resultados/

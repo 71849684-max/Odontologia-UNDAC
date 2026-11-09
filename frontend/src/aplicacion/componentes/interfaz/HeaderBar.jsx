@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import UserMenu from './UserMenu';
 import Breadcrumbs from './Breadcrumbs';
 import NotificationMenu from './NotificationMenu';
+import BotonTema from './BotonTema.jsx';
 
 export default function HeaderBar({ breadcrumb = [], usuario, rol, onNavigate, navegacionAbierta = true, onMostrarNavegacion }) {
     return (
@@ -22,6 +23,7 @@ export default function HeaderBar({ breadcrumb = [], usuario, rol, onNavigate, n
                 <Breadcrumbs items={breadcrumb} onNavigate={onNavigate} />
             </div>
             <div className="hc-header__derecha hc-header__actions">
+                <BotonTema />
                 <NotificationMenu onNavigate={onNavigate} />
                 <UserMenu usuario={usuario} rol={rol} onNavigate={onNavigate} />
             </div>
