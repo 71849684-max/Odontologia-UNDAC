@@ -102,6 +102,12 @@ class ServicioHistorias
     public function abrir(array $datos, Cuenta $actor): array
     {
         return DB::transaction(function () use ($datos, $actor) {
+            $anio = now()->year;
+            // El upsert toma el bloqueo exclusivo antes de tocar pacientes. INSERT
+            // IGNORE podía mantener bloqueos compartidos y bloquear su conversión
+            // simultánea al ejecutar SELECT FOR UPDATE en varias conexiones.
+            DB::table('historia_correlativo')->upsert(['anio' => $anio, 'ultimo' => 0], ['anio'], ['anio']);
+            $contador = DB::table('historia_correlativo')->where('anio', $anio)->lockForUpdate()->first();
             $idPaciente = isset($datos['paciente_id']) ? (int) $datos['paciente_id'] : (isset($datos['pacienteId']) ? (int) $datos['pacienteId'] : 0);
 
             if ($idPaciente === 0) {
@@ -114,9 +120,6 @@ class ServicioHistorias
                 $this->pacientes->fila($idPaciente);
             }
 
-            $anio = now()->year;
-            DB::table('historia_correlativo')->insertOrIgnore(['anio' => $anio, 'ultimo' => 0]);
-            $contador = DB::table('historia_correlativo')->where('anio', $anio)->lockForUpdate()->first();
             $correlativo = (int) $contador->ultimo + 1;
             DB::table('historia_correlativo')->where('anio', $anio)->update(['ultimo' => $correlativo]);
             $numero = sprintf('HC-%d-%03d', $anio, $correlativo);
