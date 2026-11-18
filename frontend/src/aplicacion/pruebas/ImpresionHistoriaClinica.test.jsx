@@ -79,7 +79,7 @@ test('abre la vista previa con el paciente seleccionado y no imprime hasta confi
   render(<HistoriaClinica historiaId="h1" initialSection="datos-paciente" />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }));
-  const dialogo = screen.getByRole('dialog', { name: /Vista previa de impresión/ });
+  const dialogo = await screen.findByRole('dialog', { name: /Vista previa de impresión/ });
   expect(within(dialogo).getAllByText('Torres Ríos, Ana').length).toBeGreaterThan(0);
   expect(within(dialogo).getAllByText('HC-2026-001').length).toBeGreaterThan(0);
   expect(within(dialogo).getAllByText('Luis Asistente').length).toBeGreaterThan(0);
@@ -90,12 +90,12 @@ test('abre la vista previa con el paciente seleccionado y no imprime hasta confi
   await waitFor(() => expect(imprimir).toHaveBeenCalledTimes(1));
 });
 
-test('cierra la vista previa con Escape y devuelve el foco al botón', () => {
+test('cierra la vista previa con Escape y devuelve el foco al botón', async () => {
   render(<HistoriaClinica historiaId="h1" initialSection="datos-paciente" />);
   const boton = screen.getByRole('button', { name: 'Imprimir' });
   boton.focus();
   fireEvent.click(boton);
-  expect(screen.getByRole('dialog', { name: /Vista previa de impresión/ })).toBeInTheDocument();
+  expect(await screen.findByRole('dialog', { name: /Vista previa de impresión/ })).toBeInTheDocument();
 
   fireEvent.keyDown(window, { key: 'Escape' });
   expect(screen.queryByRole('dialog', { name: /Vista previa de impresión/ })).not.toBeInTheDocument();

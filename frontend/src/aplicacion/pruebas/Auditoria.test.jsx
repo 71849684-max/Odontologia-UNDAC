@@ -39,6 +39,8 @@ beforeEach(() => {
                     accion: 'INACTIVAR',
                     modulo: 'historia_clinica',
                     registro: '48',
+                    historia: 'HC-2026-048',
+                    historiaId: 48,
                     ip: '10.0.0.8',
                     tipo_usuario: 'ALUMNO',
                     agente: 'Vitest',
@@ -88,7 +90,7 @@ test('separa inicios de sesión y acciones, y muestra el detalle al ver más', a
     await usuario.click(screen.getByRole('button', { name: 'Ver más' }));
     const acceso = await screen.findByRole('dialog', { name: 'Detalle del acceso' });
     expect(within(acceso).getByText('127.0.0.1')).toBeInTheDocument();
-    expect(within(acceso).getByText('Vitest')).toBeInTheDocument();
+    expect(within(acceso).getByText('Navegador no identificado')).toBeInTheDocument();
     await usuario.click(within(acceso).getByRole('button', { name: 'Cerrar' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
@@ -96,15 +98,17 @@ test('separa inicios de sesión y acciones, y muestra el detalle al ver más', a
     await waitFor(() => expect(admin.listarAuditoria).toHaveBeenCalledWith(expect.objectContaining({ origen: 'acciones' })));
     const tablaAcciones = await screen.findByRole('table');
     expect(within(tablaAcciones).getByText('mquispe')).toBeInTheDocument();
-    expect(within(tablaAcciones).getByText('INACTIVAR')).toBeInTheDocument();
+    expect(within(tablaAcciones).getByText('Eliminar historia clínica (inactivar)')).toBeInTheDocument();
+    expect(within(tablaAcciones).getByText('HC-2026-048')).toBeInTheDocument();
     expect(screen.queryByText('admin')).not.toBeInTheDocument();
-    expect(screen.queryByText('Historia clínica')).not.toBeInTheDocument();
+    expect(within(tablaAcciones).getByRole('columnheader', { name: 'Historia clínica' })).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: 'Ver más' }));
     const accion = await screen.findByRole('dialog', { name: 'Detalle de la acción' });
-    expect(within(accion).getByText('Historia clínica')).toBeInTheDocument();
+    expect(within(accion).getAllByText('Historia clínica').length).toBeGreaterThan(0);
+    expect(within(accion).getByText('HC-2026-048')).toBeInTheDocument();
     expect(within(accion).getByText('48')).toBeInTheDocument();
-    expect(within(accion).getByText(/"estado": "inactiva"/)).toBeInTheDocument();
+    expect(within(accion).getByText(/Inactiva/)).toBeInTheDocument();
 });
 
 test('oculta Ver más si la sesión no es de administrador', async () => {
@@ -114,4 +118,30 @@ test('oculta Ver más si la sesión no es de administrador', async () => {
     expect(await screen.findByRole('table')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ver más' })).not.toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Detalle' })).not.toBeInTheDocument();
+});
+
+test('muestra quién aprobó o reabrió y la sección en la tabla y el detalle', async () => {
+    admin.listarAuditoria.mockImplementation(async (filtros = {}) => ({
+        data: filtros.origen === 'acciones' ? [
+            { id: 101, usuario: 'profesional.aprobador', accion: 'APROBAR_SECCION', historia: 'HC-2026-001', modulo: 'historia_seccion_estado', valores_anteriores: { anamnesis: 'review' }, valores_nuevos: { anamnesis: 'approved' } },
+            { id: 102, usuario: 'administrador.reapertura', accion: 'REABRIR_SECCION', historia: 'HC-2026-001', modulo: 'historia_seccion_estado', valores_anteriores: { odontograma: 'approved' }, valores_nuevos: { odontograma: 'in-progress' } },
+        ] : [],
+        accesos_recientes: [], acciones: ['APROBAR_SECCION', 'REABRIR_SECCION'],
+    }));
+    const usuario = userEvent.setup();
+    renderizarAuditoria();
+    await usuario.click(screen.getByRole('tab', { name: 'Acciones en historias' }));
+    const tabla = await screen.findByRole('table');
+    expect(within(tabla).getByRole('columnheader', { name: 'Sección / submódulo' })).toBeInTheDocument();
+    const aprobacion = within(tabla).getByRole('row', { name: /profesional.aprobador/ });
+    expect(within(aprobacion).getByText('Aprobar sección')).toBeInTheDocument();
+    expect(within(aprobacion).getByText('Anamnesis y enfermedad actual')).toBeInTheDocument();
+    const reapertura = within(tabla).getByRole('row', { name: /administrador.reapertura/ });
+    expect(within(reapertura).getByText('Reabrir sección para corregirla')).toBeInTheDocument();
+    expect(within(reapertura).getByText('Odontograma digital')).toBeInTheDocument();
+    await usuario.click(within(reapertura).getByRole('button', { name: 'Ver más' }));
+    const detalle = await screen.findByRole('dialog', { name: 'Detalle de la acción' });
+    expect(within(detalle).getByText('administrador.reapertura')).toBeInTheDocument();
+    expect(within(detalle).getByText('Sección / submódulo')).toBeInTheDocument();
+    expect(within(detalle).getAllByText('Odontograma digital').length).toBeGreaterThan(0);
 });

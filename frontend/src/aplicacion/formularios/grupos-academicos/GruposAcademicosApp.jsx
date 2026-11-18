@@ -42,8 +42,8 @@ function PeriodDialog({ open, triggerRef, onClose, onCreated }) {
       <header className="admin-dialogo__cabecera"><h2 id="nuevo-periodo-titulo">Nuevo periodo</h2><button type="button" className="hc-mini-button" onClick={onClose} aria-label="Cerrar"><X size={16} /></button></header>
       {error && <p className="hc-form-error" role="alert">{error}</p>}
       <div className="admin-dialogo__grid">
-        <label><span>Código</span><input value={formulario.codigo} onChange={(event) => setFormulario({ ...formulario, codigo: event.target.value })} required /></label>
-        <label><span>Nombre</span><input value={formulario.nombre} onChange={(event) => setFormulario({ ...formulario, nombre: event.target.value })} required /></label>
+        <label><span>Código</span><input maxLength={30} value={formulario.codigo} onChange={(event) => setFormulario({ ...formulario, codigo: event.target.value })} required /></label>
+        <label><span>Nombre</span><input maxLength={120} value={formulario.nombre} onChange={(event) => setFormulario({ ...formulario, nombre: event.target.value })} required /></label>
         <label><span>Inicio</span><InputFecha required value={formulario.fechaInicio} onChange={(fechaInicio) => setFormulario({ ...formulario, fechaInicio })} /></label>
         <label><span>Fin</span><InputFecha required value={formulario.fechaFin} onChange={(fechaFin) => setFormulario({ ...formulario, fechaFin })} /></label>
       </div>
@@ -80,9 +80,9 @@ function GroupDialog({ open, triggerRef, onClose, onSaved, grupo }) {
         <header className="admin-dialogo__cabecera"><h2 id="nuevo-grupo-titulo">{grupo ? 'Editar grupo académico' : 'Nuevo grupo académico'}</h2><button type="button" className="hc-mini-button" onClick={onClose} aria-label="Cerrar"><X size={16} /></button></header>
         {error && <p className="hc-form-error" role="alert">{error}</p>}
         <div className="admin-dialogo__grid">
-          <label><span>Código del grupo</span><input value={formulario.codigo} onChange={(event) => setFormulario({ ...formulario, codigo: event.target.value })} required /></label>
-          <label><span>Nombre del grupo</span><input value={formulario.nombre} onChange={(event) => setFormulario({ ...formulario, nombre: event.target.value })} required /></label>
-          <label><span>Semestre</span><input value={formulario.semestre} onChange={(event) => setFormulario({ ...formulario, semestre: event.target.value })} required /></label>
+          <label><span>Código del grupo</span><input maxLength={30} value={formulario.codigo} onChange={(event) => setFormulario({ ...formulario, codigo: event.target.value })} required /></label>
+          <label><span>Nombre del grupo</span><input maxLength={120} value={formulario.nombre} onChange={(event) => setFormulario({ ...formulario, nombre: event.target.value })} required /></label>
+          <label><span>Semestre</span><input maxLength={30} value={formulario.semestre} onChange={(event) => setFormulario({ ...formulario, semestre: event.target.value })} required /></label>
           <label><span>Estado</span><select value={formulario.estado} onChange={(event) => setFormulario({ ...formulario, estado: event.target.value })}><option value="activo">Activo</option><option value="inactivo">Inactivo</option></select></label>
         </div>
         <footer className="admin-dialogo__acciones"><button type="button" className="hc-button hc-button--ghost" onClick={onClose}>Cancelar</button><button type="submit" className="hc-button hc-button--primary">Guardar grupo</button></footer>
@@ -269,9 +269,15 @@ function GroupHistoryTab({ estado, grupo }) {
 
 export default function GruposAcademicosApp() {
   const [estado, setEstado] = useState(() => obtenerEstadoAcademico());
+  const [errorCarga, setErrorCarga] = useState('');
   useEffect(() => {
     let vigente = true;
-    sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch(() => { if (vigente) setEstado(obtenerEstadoAcademico()); });
+    sincronizarAcademico().then(() => { if (vigente) setEstado(obtenerEstadoAcademico()); }).catch((error) => {
+      if (vigente) {
+        setEstado(obtenerEstadoAcademico());
+        setErrorCarga(mensajeError(error, 'No se pudieron cargar los datos académicos.'));
+      }
+    });
     return () => { vigente = false; };
   }, []);
   const [grupoId, setGrupoId] = useState(() => estado.grupos[0]?.id || null);
@@ -299,6 +305,16 @@ export default function GruposAcademicosApp() {
 
   return <div className="hc-page hc-academic-page space-y-5">
     <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="hc-kicker">Sistema</p><h1 className="hc-page-title">Grupos académicos</h1><p className="hc-page-subtitle">Gestión de grupos, rotaciones y periodos académicos.</p></div><button ref={triggerRef} type="button" className="hc-button hc-button--primary" onClick={() => { setGrupoEditar(null); setDialogo(true); }}><Plus size={17} /> Nuevo grupo</button></header>
+    {errorCarga && <p className="hc-form-error" role="alert">{errorCarga} <button type="button" className="hc-button hc-button--ghost" onClick={async () => {
+      try {
+        await sincronizarAcademico();
+        setEstado(obtenerEstadoAcademico());
+        setErrorCarga('');
+      } catch (error) {
+        setErrorCarga(mensajeError(error, 'No se pudieron cargar los datos académicos.'));
+      }
+    }}>Reintentar carga</button></p>}
+    {estado.aviso && <p role="status">{estado.aviso}</p>}
     <div className="hc-academic-layout">
       <ListaGrupos estado={estado} grupos={grupos} grupoId={grupoId} busqueda={busqueda} periodoId={filtroPeriodo} onBusquedaChange={setBusqueda} onPeriodoChange={setFiltroPeriodo} onSelect={(id) => { setGrupoId(id); setPestana('resumen'); }} />
       {grupo ? <article className="hc-panel-card hc-group-detail"><header><div className="hc-group-detail__identity"><div><span>{grupo.codigo}</span><h2>{grupo.nombre}</h2></div><small className="hc-status-pill is-active">{grupo.estado}</small><p><strong>Periodo:</strong> {periodoGrupo}<i />{integrantesGrupo} asistentes<i />{rotacionesGrupo.length} rotaciones</p></div><div className="hc-group-detail__actions"><button type="button" className="hc-button hc-button--ghost" onClick={() => { setGrupoEditar(grupo); setDialogo(true); }}><Pencil size={15} /> Editar grupo</button><button type="button" className="hc-button hc-button--primary" onClick={() => setPestana('rotaciones')}><Plus size={16} /> Nueva rotación</button><button ref={triggerPeriodoRef} type="button" className="hc-button hc-button--primary" onClick={() => setDialogoPeriodo(true)}><Plus size={16} /> Nuevo periodo</button></div></header>

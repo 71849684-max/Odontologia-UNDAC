@@ -50,6 +50,7 @@ export function findingTeeth(state, start, end) {
 export function addFinding(exam, { state: stateId, tooth, surface, endTooth, code, condition = 'good', note = '', points = [], representation = 'traced' }) {
   if (exam.status !== 'draft') throw new Error('La evaluación está cerrada.');
   const state = stateFor(stateId);
+  if (stateId === 'extraccion-programada') throw new Error('Registre la extracción prevista en el plan de tratamiento. El odontograma conserva hallazgos observados.');
   if (state.id === 'sin-registro') throw new Error('Seleccione un hallazgo.');
   if (state.options.length && !state.options.includes(code)) throw new Error('Seleccione la clasificación del hallazgo.');
   if (!['good','bad'].includes(condition)) throw new Error('Seleccione el estado del tratamiento.');

@@ -32,7 +32,9 @@ class ActualizarUsuario
         }
 
         $antes = $this->usuarios->serializar($cuenta);
+        $cuentaAnterior = $cuenta;
         $cuenta = $this->usuarios->actualizar($cuenta, $datos, (int) $contexto->idUsuario);
+        $this->accesos->olvidarMemoria($cuentaAnterior);
         $this->accesos->olvidarMemoria($cuenta);
         $despues = $this->usuarios->serializar($cuenta);
 

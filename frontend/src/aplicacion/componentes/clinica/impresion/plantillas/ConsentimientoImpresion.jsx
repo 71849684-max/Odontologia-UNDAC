@@ -30,7 +30,7 @@ export default function ConsentimientoImpresion({ values = {}, datos }) {
       <p className="doc-parrafo">Autorizo que el profesional encargado realice la intervención o procedimiento indicado, después de haber recibido la información necesaria para comprender su naturaleza, alternativas, riesgos y cuidados.</p>
       <ol className="doc-clausulas">
         {consentParagraphs.map((parrafo, indice) => <li key={indice}>
-          <div className="doc-clausula-texto">{parrafo}</div>
+          <div className="doc-clausula-texto">{values.textosClausulas?.[indice + 1] ?? parrafo}</div>
           <div className="doc-clausula-estado"><Opcion etiqueta="Aceptada" marcado={Boolean(values[`consent${indice + 1}`])} /></div>
         </li>)}
       </ol>

@@ -1,0 +1,24 @@
+{
+  "fecha": "2026-11-09",
+  "resultado": "aprobado",
+  "pruebasFrontend": 268,
+  "archivosFrontend": 34,
+  "recorridosNavegador": 56,
+  "navegadores": [
+    "Chromium",
+    "Firefox"
+  ],
+  "compilacion": "aprobada",
+  "entorno": "API y base exclusiva de navegador; cookies y CSRF reales",
+  "cobertura": [
+    "cierre fallido y recarga sin restauración automática",
+    "recuperación de red y cierre confirmado",
+    "autenticación explícita de otra cuenta",
+    "protección de cambios pendientes en salida e historial",
+    "confirmación nativa de recarga",
+    "guardar antes de salir",
+    "descarte explícito",
+    "protección inmediata al editar",
+    "indicador de salida con almacenamiento denegado"
+  ]
+}

@@ -1,3 +1,4 @@
+import EstadoCarga from '../../componentes/interfaz/EstadoCarga.jsx';
 import { useEffect, useState } from 'react';
 import { Building2, Check, LockKeyhole, Save, Settings2, Stethoscope } from 'lucide-react';
 import { guardarConfiguracion, listarConfiguracion } from '../../servicios/servicioAdministracion.js';
@@ -95,7 +96,7 @@ export default function ConfiguracionApp() {
             </div>
 
             {error && <p className="hc-inline-callout" role="alert">{error}</p>}
-            {cargando && <p role="status">Cargando configuración…</p>}
+            {cargando && <EstadoCarga mensaje="Cargando configuración…" />}
 
             {!cargando && (
                 <section className="hc-settings-grid">

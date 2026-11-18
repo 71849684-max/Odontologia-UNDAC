@@ -42,16 +42,17 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_CONFIG_CACHE" value="storage/framework/config-pruebas.php" force="true"/>
+        <env name="APP_ROUTES_CACHE" value="storage/framework/rutas-pruebas.php" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <!-- El esquema clinico viene de bd_clinica_undac.sql (MySQL), no de
-             migraciones, asi que las pruebas corren sobre una copia importada. -->
-        <env name="DB_CONNECTION" value="mysql"/>
-        <env name="DB_DATABASE" value="bd_clinica_undac_test"/>
-        <env name="DB_URL" value=""/>
+        <!-- Estructura y catálogos saneados, con parches; nunca datos operativos. -->
+        <env name="DB_CONNECTION" value="mysql" force="true"/>
+        <env name="DB_DATABASE" value="bd_clinica_undac_test" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

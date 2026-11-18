@@ -2,6 +2,8 @@
 
 namespace Tests\Soporte;
 
+use Illuminate\Testing\TestResponse;
+
 trait AbreHistoria
 {
     protected const CLAVE_PRUEBA = 'ClaveDePrueba123*';
@@ -22,7 +24,7 @@ trait AbreHistoria
     }
 
     /** @param  array<string, mixed>  $formData */
-    protected function guardarExpediente(object $usuario, int $idHistoria, array $formData, array $estados = []): \Illuminate\Testing\TestResponse
+    protected function guardarExpediente(object $usuario, int $idHistoria, array $formData, array $estados = []): TestResponse
     {
         $cuerpo = ['formData' => $formData];
         if ($estados !== []) {

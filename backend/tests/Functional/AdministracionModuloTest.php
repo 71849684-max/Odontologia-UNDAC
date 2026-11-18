@@ -2,6 +2,7 @@
 
 namespace Tests\Functional;
 
+use App\Identidad\Dominio\Contratos\RepositorioUsuarios;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -71,6 +72,40 @@ class AdministracionModuloTest extends TestCase
         ])->assertOk()
             ->assertJsonPath('codigo_rol', 'ALUMNO')
             ->assertJsonPath('nombres', 'Ana Maria');
+    }
+
+    public function test_cambiar_asistente_a_profesional_conserva_clave_accesos_e_historial(): void
+    {
+        $admin = $this->crearUsuario('admin.traslado', self::CLAVE, 'ADMINISTRADOR');
+        $alumno = $this->crearUsuario('persona.traslado', self::CLAVE, 'ALUMNO');
+        $datos = [
+            'nombre_usuario' => $alumno->nombreUsuario(), 'codigo_rol' => 'DOCENTE',
+            'tipo_documento' => $alumno->tipoDocumento, 'numero_documento' => $alumno->numeroDocumento,
+            'nombres' => 'Persona', 'apellidos' => 'Trasladada', 'estado' => true,
+        ];
+        DB::table('login_historial_alumno')->insert([
+            'id_usuario_alumno' => $alumno->id(), 'nombre_usuario' => $alumno->nombreUsuario(), 'exito' => 1,
+        ]);
+        $submodulo = DB::table('submodulo')->value('id_submodulo');
+        DB::table('usuario_alumno_submodulo')->insert([
+            'id_usuario_alumno' => $alumno->id(), 'id_submodulo' => $submodulo, 'permitido' => 0,
+        ]);
+        $respuesta = $this->actingAs($admin, 'web')->putJson('/api/admin/usuarios/'.$alumno->clave(), $datos)
+            ->assertOk()->assertJsonPath('codigo_rol', 'DOCENTE');
+        $nuevaClave = $respuesta->json('id');
+        $repositorio = app(RepositorioUsuarios::class);
+        $nueva = $repositorio->buscarPorId($nuevaClave);
+        $this->assertTrue(Hash::check(self::CLAVE, $nueva->contrasenaHash));
+        $this->assertDatabaseHas('alumno', ['id_alumno' => $alumno->idActor()]);
+        $this->assertDatabaseMissing('usuario_alumno', ['id_usuario_alumno' => $alumno->id()]);
+        $this->assertDatabaseHas('login_historial_docente', ['id_usuario_docente' => $nueva->id(), 'exito' => 1]);
+        $this->assertDatabaseHas('usuario_docente_submodulo', ['id_usuario_docente' => $nueva->id(), 'id_submodulo' => $submodulo, 'permitido' => 0]);
+        $this->actingAs($admin, 'web')->putJson('/api/admin/usuarios/'.$nuevaClave, $datos)->assertOk();
+        $datos['codigo_rol'] = 'ALUMNO';
+        $vuelta = $this->actingAs($admin, 'web')->putJson('/api/admin/usuarios/'.$nuevaClave, $datos)
+            ->assertOk()->assertJsonPath('codigo_rol', 'ALUMNO');
+        $this->assertSame($alumno->idActor(), $repositorio->buscarPorId($vuelta->json('id'))->idActor());
+        $this->assertDatabaseHas('auditoria', ['accion' => 'EDITAR', 'id_registro' => $nuevaClave]);
     }
 
     public function test_no_se_puede_desactivar_la_propia_cuenta(): void

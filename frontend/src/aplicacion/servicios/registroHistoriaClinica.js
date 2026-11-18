@@ -5,6 +5,7 @@ export const HISTORIAS_STORAGE_KEY = 'undac:historias:frontend:v1';
 let secuencia = 0;
 
 function leerLista(clave) {
+    if (import.meta.env.MODE !== 'test') return [];
     if (typeof localStorage === 'undefined') return [];
     try {
         const datos = JSON.parse(localStorage.getItem(clave) || '[]');
@@ -15,6 +16,7 @@ function leerLista(clave) {
 }
 
 function guardarLista(clave, lista) {
+    if (import.meta.env.MODE !== 'test') throw new Error('El registro clínico requiere confirmación del servidor.');
     localStorage.setItem(clave, JSON.stringify(lista));
 }
 
@@ -162,6 +164,11 @@ export function registrarPacienteMinimo(form) {
 }
 
 export function registrarHistoriaDesdeFormulario(form) {
-    const paciente = buscarPacientePorDocumento(form.dni) ?? registrarPacienteMinimo(form);
+    let paciente = buscarPacientePorDocumento(form.dni) ?? registrarPacienteMinimo(form);
+    const correo = texto(form.correo ?? form.email);
+    if (correo) {
+        paciente = { ...paciente, correo };
+        guardarLista(PACIENTES_STORAGE_KEY, listarPacientesLocales().map((item) => String(item.id) === String(paciente.id) ? paciente : item));
+    }
     return registrarHistoriaClinica(paciente);
 }

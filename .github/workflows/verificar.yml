@@ -1,0 +1,78 @@
+name: Verificar aplicación
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  pruebas:
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: pdo_mysql, pdo_sqlite, mbstring, fileinfo, gd, zip
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Instalar backend
+        working-directory: backend
+        run: |
+          composer install --no-interaction --prefer-dist
+          cp .env.example .env
+          php artisan key:generate
+      - name: Instalar frontend y navegadores
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium firefox
+      - name: Preparar base de PHPUnit
+        run: |
+          cd backend
+          php artisan pruebas:esquema bd_clinica_undac_test --recrear
+          php artisan clinica:parches --bd=bd_clinica_undac_test
+          composer audit
+      - name: Verificar backend
+        working-directory: backend
+        run: |
+          composer check-platform-reqs
+          php vendor/bin/pint --test
+          php artisan test
+      - name: Verificar correlativos concurrentes
+        working-directory: backend
+        run: node scripts/comprobarCorrelativo.mjs
+      - name: Verificar frontend y compilar
+        working-directory: frontend
+        run: |
+          npm run verificar:tokens
+          npm audit
+          npm run test
+          npm run build
+          npm run medir:compilacion
+      - name: Preparar navegador
+        working-directory: frontend
+        run: npm run pruebas:navegador:preparar
+      - name: Verificar navegador Chromium y Firefox
+        id: navegador
+        working-directory: frontend
+        run: npx playwright test
+      - uses: actions/upload-artifact@v7
+        if: ${{ always() && (steps.navegador.outcome == 'success' || steps.navegador.outcome == 'failure') }}
+        with:
+          name: informes-navegador
+          path: |
+            frontend/informes-navegador
+            frontend/resultados-navegador
+          retention-days: 7

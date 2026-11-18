@@ -5,6 +5,13 @@ import { ingresar, renderizarAplicacion, SESIONES } from './ayudas/sesionDePrueb
 import { cerrarSesion, iniciarSesion, obtenerSesion } from '../servicios/servicioAutenticacion';
 import * as admin from '../servicios/servicioAdministracion';
 
+// Estas pruebas de vistas usan un repositorio explícito en memoria/navegador.
+// La persistencia HTTP y sus fallos se verifican en servicioAcademico.test.jsx.
+vi.mock('../servicios/servicioAcademico.js', async () => ({
+    ...await import('../servicios/repositorioAcademicoLocal.js'),
+    sincronizarAcademico: vi.fn(async () => true),
+}));
+
 vi.mock('../servicios/servicioAutenticacion', () => ({
     iniciarSesion: vi.fn(),
     cerrarSesion: vi.fn(),
@@ -64,7 +71,7 @@ test('edita el perfil desde la cabecera y conserva los datos al remontar', async
 
     await ingresar(usuario);
     await usuario.click(await screen.findByRole('button', { name: 'Abrir mi perfil' }));
-    expect(screen.getByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Mi perfil' })).toBeInTheDocument();
 
     await usuario.clear(screen.getByLabelText('Correo electrónico'));
     await usuario.clear(screen.getByLabelText('Teléfono'));
@@ -89,7 +96,7 @@ test('crea un curso, lo conserva y muestra el error de código duplicado', async
 
     await ingresar(usuario);
     await usuario.click(await screen.findByRole('button', { name: 'Cursos' }));
-    expect(screen.getByRole('heading', { name: 'Cursos' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Cursos' })).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: 'Nuevo curso' }));
     await usuario.type(screen.getByLabelText('Código'), 'CIR-TEST');
@@ -126,7 +133,7 @@ test('edita un curso desde el catálogo paginado', async () => {
 
     const tarjeta = screen.getByText('Radiología').closest('article');
     await usuario.click(within(tarjeta).getByRole('button', { name: 'Editar' }));
-    expect(screen.getByRole('heading', { name: 'Editar curso' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Editar curso' })).toBeInTheDocument();
     const nombre = screen.getByLabelText('Nombre');
     await usuario.clear(nombre);
     await usuario.type(nombre, 'Radiología clínica');
@@ -155,13 +162,13 @@ test('crea un grupo sin precargar estudiantes, docentes ni rotaciones', async ()
 
     await ingresar(usuario);
     await usuario.click(await screen.findByRole('button', { name: 'Grupos académicos' }));
-    await usuario.click(screen.getByRole('button', { name: 'Nuevo grupo' }));
+    await usuario.click(await screen.findByRole('button', { name: 'Nuevo grupo' }));
     await usuario.type(screen.getByLabelText('Código del grupo'), 'ROT-A');
     await usuario.type(screen.getByLabelText('Nombre del grupo'), 'Rotación clínica A');
     await usuario.type(screen.getByLabelText('Semestre'), 'VIII');
     await usuario.click(screen.getByRole('button', { name: 'Guardar grupo' }));
 
-    expect(screen.getByRole('heading', { name: 'Rotación clínica A' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Rotación clínica A' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Paginación de grupos' })).toBeInTheDocument();
     expect(screen.getAllByText(/0 asistentes/)).toHaveLength(2);
     expect(screen.getAllByText(/0 rotaciones/)).toHaveLength(2);
@@ -184,7 +191,7 @@ test('muestra el selector lateral de grupos vacío al iniciar', async () => {
 test('muestra primero el acceso sin selector manual de perfil', async () => {
     await renderizarAplicacion();
 
-    expect(screen.getByRole('heading', { name: /historia clínica digital/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /historia clínica digital/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/perfil de demostración/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/perfil institucional/i)).not.toBeInTheDocument();
 });
@@ -201,7 +208,7 @@ test('el rol lo entrega el backend y permite cerrar sesión', async () => {
         contrasena: 'clave-de-prueba',
     });
     expect(await screen.findByRole('heading', { name: /elena/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /historias recientes/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /historias recientes/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ver todas/i })).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: /cerrar sesión/i }));
@@ -227,23 +234,23 @@ test('el sidebar despliega grupos y todas las vistas administrativas muestran co
     await usuario.click(gestion);
     expect(gestion).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Pacientes' }));
-    expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();
 
     const administracion = screen.getByRole('button', { name: 'Administración' });
     expect(gestion).toHaveAttribute('aria-expanded', 'true');
     expect(administracion).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Usuarios' }));
-    expect(screen.getByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Permisos por usuario' }));
-    expect(screen.getByRole('heading', { name: 'Permisos por usuario' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Permisos por usuario' })).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Auditoría' }));
-    expect(screen.getByRole('heading', { name: 'Auditoría del sistema' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Auditoría del sistema' })).toBeInTheDocument();
 
     const sistema = screen.getByRole('button', { name: 'Sistema' });
     expect(administracion).toHaveAttribute('aria-expanded', 'true');
     expect(sistema).toHaveAttribute('aria-expanded', 'true');
     await usuario.click(screen.getByRole('button', { name: 'Configuración' }));
-    expect(screen.getByRole('heading', { name: 'Configuración' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Configuración' })).toBeInTheDocument();
 });
 
 test('sincroniza la navegación con la URL y permite volver desde el breadcrumb', async () => {
@@ -255,13 +262,13 @@ test('sincroniza la navegación con la URL y permite volver desde el breadcrumb'
     await usuario.click(await screen.findByRole('button', { name: 'Pacientes' }));
 
     expect(window.location.hash).toBe('#/pacientes');
-    expect(screen.getByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Pacientes' })).toBeInTheDocument();
 
     const breadcrumb = screen.getByRole('navigation', { name: 'Breadcrumb' });
     await usuario.click(within(breadcrumb).getByRole('button', { name: 'Inicio' }));
 
     expect(window.location.hash).toBe('#/inicio');
-    expect(screen.getByRole('heading', { name: /carlos/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /carlos/i })).toBeInTheDocument();
 });
 
 test('abre una nueva historia con los datos del paciente recién registrado', async () => {

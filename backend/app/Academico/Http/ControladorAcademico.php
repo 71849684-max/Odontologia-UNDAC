@@ -50,8 +50,9 @@ class ControladorAcademico extends Controller
     public function membresias(Request $solicitud, int $idGrupo): JsonResponse
     {
         $datos = $solicitud->validate([
-            'membresias' => ['required', 'array'],
-            'membresias.*.personaId' => ['required', 'string'],
+            'membresias' => ['required', 'array', 'max:100'],
+            'membresias.*' => ['array'],
+            'membresias.*.personaId' => ['required', 'string', 'max:30', 'distinct', 'regex:/^alumno-[1-9][0-9]*$/D'],
             'membresias.*.fechaInicio' => $this->reglaFecha(false),
             'membresias.*.fechaFin' => $this->reglaFecha(false),
         ]);
@@ -69,9 +70,9 @@ class ControladorAcademico extends Controller
     public function crearRotacion(Request $solicitud): JsonResponse
     {
         $datos = $solicitud->validate([
-            'grupoId' => ['required', 'integer'],
-            'cursoId' => ['required', 'integer'],
-            'periodoId' => ['required', 'integer'],
+            'grupoId' => ['required', 'integer', 'min:1', 'exists:grupo_academico,id_grupo'],
+            'cursoId' => ['required', 'integer', 'min:1', 'exists:curso,id_curso'],
+            'periodoId' => ['required', 'integer', 'min:1', 'exists:periodo_academico,id_periodo_academico'],
             'fechaInicio' => $this->reglaFecha(true),
             'fechaFin' => $this->reglaFecha(true),
             'estado' => ['nullable', 'string', 'max:30'],
@@ -83,8 +84,9 @@ class ControladorAcademico extends Controller
     public function docentesRotacion(Request $solicitud, int $idRotacion): JsonResponse
     {
         $datos = $solicitud->validate([
-            'docentes' => ['required', 'array'],
-            'docentes.*.personaId' => ['required', 'string'],
+            'docentes' => ['required', 'array', 'max:100'],
+            'docentes.*' => ['array'],
+            'docentes.*.personaId' => ['required', 'string', 'max:30', 'distinct', 'regex:/^docente-[1-9][0-9]*$/D'],
             'docentes.*.funcion' => ['nullable', 'string', 'max:40'],
         ]);
 
@@ -94,8 +96,9 @@ class ControladorAcademico extends Controller
     public function asignaciones(Request $solicitud, int $idRotacion): JsonResponse
     {
         $datos = $solicitud->validate([
-            'personas' => ['required', 'array'],
-            'personas.*.personaId' => ['required', 'string'],
+            'personas' => ['required', 'array', 'max:100'],
+            'personas.*' => ['array'],
+            'personas.*.personaId' => ['required', 'string', 'max:30', 'distinct', 'regex:/^alumno-[1-9][0-9]*$/D'],
         ]);
 
         return response()->json($this->operacion(fn () => $this->academico->guardarAsignaciones($idRotacion, $datos['personas'])), 201);
@@ -106,6 +109,9 @@ class ControladorAcademico extends Controller
     {
         return [
             $requerida ? 'required' : 'nullable',
+            'bail',
+            'string',
+            'max:10',
             function (string $atributo, mixed $valor, \Closure $fallo): void {
                 if ($valor === null || $valor === '') {
                     return;

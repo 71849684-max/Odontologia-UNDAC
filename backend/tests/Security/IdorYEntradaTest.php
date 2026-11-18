@@ -34,7 +34,7 @@ class IdorYEntradaTest extends TestCase
         $this->guardarExpediente($alumno, $id, [
             'anamnesis' => ['motivoConsulta' => 'Control'],
             'id_alumno' => $otro->idActor(),
-        ])->assertOk();
+        ])->assertUnprocessable()->assertJsonValidationErrors('formData.id_alumno');
 
         $despues = DB::table('historia_alumno')->where('id_historia_clinica', $id)->where('estado', 1)->pluck('id_alumno')->all();
         $this->assertSame($antes, $despues);
@@ -52,7 +52,7 @@ class IdorYEntradaTest extends TestCase
         $this->getJson('/api/auth/yo')->assertUnauthorized();
         $this->getJson('/api/historias?q=71000302')->assertUnauthorized();
 
-        $this->actingAs($intrusa, 'web')->getJson("/api/historias?q=".urlencode("' OR 1=1 --"))
+        $this->actingAs($intrusa, 'web')->getJson('/api/historias?q='.urlencode("' OR 1=1 --"))
             ->assertOk()
             ->assertJsonCount(0, 'data');
 

@@ -1,13 +1,17 @@
+import { useLecturaClinica } from '../compartidos/LecturaClinicaContext.js';
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { CollapsibleSection, Field, SelectField, TextAreaField } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
 
-const PHASES = ['Preventiva','Restauradora','Periodontal','Endodóntica','Quirúrgica','Rehabilitadora','Mantenimiento','Otra'];
+import { fasesTratamiento as PHASES, indicacionesHistoricas } from './planTratamiento.config.mjs';
 
-export default function PlanTratamientoSection({ values, onChange }) {
+export default function PlanTratamientoSection({ values, onChange, allFormData = {} }) {
   const { get, set } = useSection(values, onChange);
+  const soloLectura = useLecturaClinica();
   const procedimientos = get('procedimientosPlan', []);
+  const indicaciones = indicacionesHistoricas(allFormData.odontograma?.registro).filter(indicacion => !procedimientos.some(item => item.pieza === indicacion.pieza && item.procedimiento === 'Extracción programada'));
+  const recuperar = () => set('procedimientosPlan')([...procedimientos, ...indicaciones.map(indicacion => ({ fase: 'Quirúrgica', pieza: indicacion.pieza, procedimiento: 'Extracción programada', prioridad: 'Media', estado: 'Pendiente', observaciones: `Indicación histórica de evaluación ${indicacion.fecha}. Revisar clínicamente antes de realizar.` }))]);
   const update = (index, key, value) => set('procedimientosPlan')(procedimientos.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
   const add = () => set('procedimientosPlan')([...procedimientos, { fase: 'Preventiva', pieza: '', procedimiento: '', prioridad: 'Media', estado: 'Pendiente', observaciones: '' }]);
   const remove = (index) => set('procedimientosPlan')(procedimientos.filter((_, itemIndex) => itemIndex !== index));
@@ -16,7 +20,7 @@ export default function PlanTratamientoSection({ values, onChange }) {
 
   return <div className="undac-section-stack clinical-treatment-flow">
     <CollapsibleSection title="Plan de tratamiento por fases" subtitle="Organice procedimientos en unidades que luego puedan seguirse durante la atención." defaultOpen status={procedimientos.length ? 'progress' : 'pending'} summary={procedimientos.length ? `${procedimientos.length} procedimiento${procedimientos.length === 1 ? '' : 's'}` : 'Sin procedimientos'}>
-      <div className="clinical-section-toolbar"><button type="button" className="undac-btn undac-btn--primary undac-btn--sm" onClick={add}><Plus size={16} />Añadir procedimiento</button></div>
+      <div className="clinical-section-toolbar"><button type="button" disabled={soloLectura} className="undac-btn undac-btn--primary undac-btn--sm" onClick={add}><Plus size={16} />Añadir procedimiento</button></div>
       {procedimientos.length === 0 ? <div className="clinical-empty-inline"><strong>No hay procedimientos planificados.</strong><span>Agregue un procedimiento y asígnelo a una fase clínica.</span></div> : null}
       <div className="clinical-treatment-phases">
         {grouped.map((group) => <section className="clinical-treatment-phase" key={group.phase}>
@@ -29,7 +33,7 @@ export default function PlanTratamientoSection({ values, onChange }) {
               <SelectField label="Prioridad" value={item.prioridad} onChange={(value) => update(item.index, 'prioridad', value)} options={['Alta','Media','Baja']} />
               <SelectField label="Estado" value={item.estado} onChange={(value) => update(item.index, 'estado', value)} options={['Pendiente','Programado','En curso','Completado','Suspendido']} />
               <Field label="Observaciones" value={item.observaciones} onChange={(value) => update(item.index, 'observaciones', value)} />
-              <button type="button" className="clinical-icon-action is-danger" onClick={() => remove(item.index)} aria-label={`Eliminar procedimiento ${item.index + 1}`}><Trash2 size={17} /></button>
+              <button type="button" disabled={soloLectura} className="clinical-icon-action is-danger" onClick={() => remove(item.index)} aria-label={`Eliminar procedimiento ${item.index + 1}`}><Trash2 size={17} /></button>
             </article>)}
           </div>
         </section>)}
@@ -39,5 +43,6 @@ export default function PlanTratamientoSection({ values, onChange }) {
     <CollapsibleSection title="Plan de tratamiento integral" subtitle="Campo institucional de planificación clínica abierta" summary={get('planIntegral') ? 'Resumen registrado' : 'Sin resumen'} status={get('planIntegral') ? 'progress' : 'pending'}>
       <TextAreaField label="Plan de tratamiento integral" value={get('planIntegral')} onChange={set('planIntegral')} rows={8} placeholder="Describa las fases, objetivos y consideraciones generales del plan..." />
     </CollapsibleSection>
+    {indicaciones.length ? <section className="clinical-context-note"><div><strong>Indicaciones históricas del odontograma</strong><p>Piezas: {indicaciones.map(item => item.pieza).join(', ')}. Revise estas indicaciones antes de incorporarlas al plan; no son hallazgos observados.</p><button type="button" disabled={soloLectura} className="undac-btn undac-btn--secondary" onClick={recuperar}>Incorporar al plan para revisión</button></div></section> : null}
   </div>;
 }

@@ -24,7 +24,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test('las vistas clínicas no muestran registros ficticios ni los conservados en el almacenamiento anterior', () => {
+test('las vistas clínicas no muestran registros ficticios ni los conservados en el almacenamiento anterior', async () => {
   render(<PacientesApp />);
 
   expect(screen.getByText('No hay pacientes en su listado')).toBeInTheDocument();
@@ -35,7 +35,9 @@ test('las vistas clínicas no muestran registros ficticios ni los conservados en
   cleanup();
   render(<HistoriasApp rol="administrador" />);
 
-  expect(screen.getByText('No hay historias para mostrar')).toBeInTheDocument();
+  expect(screen.getByText('Cargando historias clínicas…')).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Reintentar carga' })).toBeInTheDocument();
+  expect(screen.queryByText('No hay historias para mostrar')).not.toBeInTheDocument();
   expect(screen.queryByText('HC-2026-001')).not.toBeInTheDocument();
 });
 

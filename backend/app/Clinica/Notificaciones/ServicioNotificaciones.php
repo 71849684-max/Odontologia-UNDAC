@@ -2,12 +2,39 @@
 
 namespace App\Clinica\Notificaciones;
 
+use App\Clinica\Historias\AccesoHistorias;
 use App\Identidad\Dominio\Cuenta;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 class ServicioNotificaciones
 {
+    public function __construct(private readonly AccesoHistorias $acceso) {}
+
+    /** Avisos del equipo clínico, sin notificar al autor de la acción. */
+    public function notificarEstado(int $idHistoria, string $estado, Cuenta $autor, ?string $seccion = null): int
+    {
+        $titulo = match ($estado) {
+            'VALIDADA' => 'Historia clínica validada',
+            'OBSERVADA' => 'Historia clínica con observaciones',
+            'PENDIENTE_REVISION' => 'Historia clínica lista para revisión',
+            'approved' => 'Sección clínica validada',
+            'in-progress' => 'Sección devuelta para corrección',
+            default => null,
+        };
+        if ($titulo === null) {
+            return 0;
+        }
+        $destinos = $estado === 'PENDIENTE_REVISION' ? $this->docentesAsignados($idHistoria) : DB::table('historia_alumno')
+            ->where('id_historia_clinica', $idHistoria)->where('estado', 1)->distinct()->pluck('id_alumno')
+            ->map(fn ($id) => ['tipo_destinatario' => 'ALUMNO', 'id_destinatario' => (int) $id])->all();
+        $destinos = array_values(array_filter($destinos, fn ($destino) => $destino['tipo_destinatario'] !== $autor->tipoCuenta() || $destino['id_destinatario'] !== $autor->idActor()));
+        $codigo = DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->value('numero_historia');
+        $detalle = $seccion ? ' · '.str_replace('-', ' ', $seccion) : '';
+
+        return $this->crear($destinos, 'ESTADO_HISTORIA', $titulo, "{$autor->nombreCompleto()}: {$codigo}{$detalle}. Abra la historia para revisar los detalles.", $idHistoria, $seccion);
+    }
+
     /**
      * @param  list<array{tipo_destinatario: string, id_destinatario: int}>  $destinatarios
      */
@@ -19,27 +46,52 @@ class ServicioNotificaciones
         ?int $idHistoria = null,
         ?string $codigoSeccion = null,
     ): int {
-        $creadas = 0;
-        $ahora = now();
-        foreach ($destinatarios as $destino) {
-            if (! in_array($destino['tipo_destinatario'] ?? '', ['ALUMNO', 'DOCENTE'], true)) {
-                continue;
+        return DB::transaction(function () use ($destinatarios, $tipo, $titulo, $mensaje, $idHistoria, $codigoSeccion) {
+            // El mismo bloqueo se utiliza al reasignar o guardar la historia.
+            // Serializa el envío y evita duplicados entre solicitudes simultáneas.
+            if ($idHistoria !== null) {
+                DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->lockForUpdate()->first();
             }
-            DB::table('notificacion')->insert([
-                'tipo_destinatario' => $destino['tipo_destinatario'],
-                'id_destinatario' => (int) $destino['id_destinatario'],
-                'tipo' => mb_substr($tipo, 0, 40),
-                'titulo' => mb_substr($titulo, 0, 180),
-                'mensaje' => mb_substr($mensaje, 0, 500),
-                'id_historia_clinica' => $idHistoria,
-                'codigo_seccion' => $codigoSeccion !== null ? mb_substr($codigoSeccion, 0, 80) : null,
-                'leida' => 0,
-                'creado_en' => $ahora,
-            ]);
-            $creadas++;
-        }
+            $creadas = 0;
+            $ahora = now();
+            foreach ($destinatarios as $destino) {
+                if (! in_array($destino['tipo_destinatario'] ?? '', ['ALUMNO', 'DOCENTE'], true)) {
+                    continue;
+                }
+                if ($idHistoria === null) {
+                    $tabla = $destino['tipo_destinatario'] === 'ALUMNO' ? 'alumno' : 'docente';
+                    DB::table($tabla)->where('id_'.$tabla, $destino['id_destinatario'])->lockForUpdate()->first();
+                }
+                $anterior = DB::table('notificacion')
+                    ->where('tipo_destinatario', $destino['tipo_destinatario'])
+                    ->where('id_destinatario', (int) $destino['id_destinatario'])
+                    ->where('id_historia_clinica', $idHistoria)->where('codigo_seccion', $codigoSeccion)
+                    ->where('tipo', mb_substr($tipo, 0, 40))->where('titulo', mb_substr($titulo, 0, 180))
+                    ->where('creado_en', '>=', $ahora->copy()->subMinutes(10))
+                    ->orderByDesc('id_notificacion')->first();
+                if ($anterior !== null) {
+                    // Mantener fecha y lectura: repetir la acción no vuelve a encender la campana.
+                    DB::table('notificacion')->where('id_notificacion', $anterior->id_notificacion)
+                        ->update(['mensaje' => mb_substr($mensaje, 0, 500)]);
 
-        return $creadas;
+                    continue;
+                }
+                DB::table('notificacion')->insert([
+                    'tipo_destinatario' => $destino['tipo_destinatario'],
+                    'id_destinatario' => (int) $destino['id_destinatario'],
+                    'tipo' => mb_substr($tipo, 0, 40),
+                    'titulo' => mb_substr($titulo, 0, 180),
+                    'mensaje' => mb_substr($mensaje, 0, 500),
+                    'id_historia_clinica' => $idHistoria,
+                    'codigo_seccion' => $codigoSeccion !== null ? mb_substr($codigoSeccion, 0, 80) : null,
+                    'leida' => 0,
+                    'creado_en' => $ahora,
+                ]);
+                $creadas++;
+            }
+
+            return $creadas;
+        });
     }
 
     /**
@@ -65,7 +117,7 @@ class ServicioNotificaciones
      */
     public function notificarRevisionSeccion(int $idHistoria, string $codigoSeccion, Cuenta $autor): int
     {
-        $destinatarios = $this->docentesAsignados($idHistoria);
+        $destinatarios = array_values(array_filter($this->docentesAsignados($idHistoria), fn ($destino) => $destino['tipo_destinatario'] !== $autor->tipoCuenta() || $destino['id_destinatario'] !== $autor->idActor()));
         if ($destinatarios === []) {
             return 0;
         }
@@ -89,7 +141,7 @@ class ServicioNotificaciones
     {
         $limite = min(100, max(1, $limite));
 
-        return DB::table('notificacion as n')
+        $filas = DB::table('notificacion as n')
             ->leftJoin('historia_clinica as h', 'h.id_historia_clinica', '=', 'n.id_historia_clinica')
             ->where('n.tipo_destinatario', $actor->tipoCuenta())
             ->where('n.id_destinatario', $actor->idActor())
@@ -102,9 +154,20 @@ class ServicioNotificaciones
             ->orderByDesc('n.creado_en')
             ->orderByDesc('n.id_notificacion')
             ->limit($limite)
-            ->get(['n.*'])
-            ->map(fn ($fila) => $this->serializar($fila))
-            ->all();
+            ->get(['n.*']);
+        $historias = DB::table('historia_clinica as h')->whereNull('h.anulado_en')
+            ->whereIn('h.id_historia_clinica', $filas->pluck('id_historia_clinica')->filter());
+        $permitidas = $this->acceso->filtrar($historias, $actor)->pluck('h.id_historia_clinica')->map(fn ($id) => (int) $id)->all();
+
+        return $filas->map(function ($fila) use ($permitidas) {
+            $aviso = $this->serializar($fila);
+            if ($permitidas !== null && ! in_array($aviso['historiaId'], $permitidas, true)) {
+                $aviso['historiaId'] = null;
+                $aviso['seccion'] = null;
+            }
+
+            return $aviso;
+        })->all();
     }
 
     public function marcarLeida(Cuenta $actor, int $id): array
@@ -139,7 +202,8 @@ class ServicioNotificaciones
             'titulo' => $fila->titulo,
             'mensaje' => $fila->mensaje,
             'texto' => $fila->mensaje,
-            'historiaId' => $fila->id_historia_clinica !== null ? (int) $fila->id_historia_clinica : null,
+            // El destinatario saliente ya no tiene acceso: el aviso se lee sin abrir el expediente.
+            'historiaId' => $fila->tipo !== 'ASIGNACION_RETIRADA' && $fila->id_historia_clinica !== null ? (int) $fila->id_historia_clinica : null,
             'seccion' => $fila->codigo_seccion,
             'leida' => (bool) $fila->leida,
             'leido' => (bool) $fila->leida,

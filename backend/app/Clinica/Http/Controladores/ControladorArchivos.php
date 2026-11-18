@@ -3,6 +3,7 @@
 namespace App\Clinica\Http\Controladores;
 
 use App\Clinica\Archivos\ServicioArchivoClinico;
+use App\Clinica\Expediente\ServicioVersionesClinicas;
 use App\Clinica\Http\RespondeOperacion;
 use App\Http\Controllers\Controller;
 use App\Identidad\Dominio\Contratos\RegistradorAuditoria;
@@ -22,6 +23,7 @@ class ControladorArchivos extends Controller
     public function __construct(
         private readonly ServicioArchivoClinico $archivos,
         private readonly RegistradorAuditoria $auditoria,
+        private readonly ServicioVersionesClinicas $versiones,
     ) {}
 
     public function subir(Request $solicitud, int $idHistoria): JsonResponse
@@ -44,9 +46,13 @@ class ControladorArchivos extends Controller
         return response()->json($adjunto, 201);
     }
 
-    public function mostrar(int $idHistoria, int $idArchivo): BinaryFileResponse
+    public function mostrar(Request $solicitud, int $idHistoria, int $idArchivo): BinaryFileResponse
     {
-        $archivo = $this->archivos->descarga($idHistoria, $idArchivo);
+        $version = $solicitud->validate(['version' => ['nullable', 'integer', 'min:1']])['version'] ?? null;
+        if ($version !== null) {
+            abort_unless($this->versiones->contieneArchivo($idHistoria, (int) $version, $idArchivo), 404);
+        }
+        $archivo = $this->operacion(fn () => $this->archivos->descarga($idHistoria, $idArchivo, $version !== null));
         $disposicion = HeaderUtils::makeDisposition(
             $archivo['imagen'] ? HeaderUtils::DISPOSITION_INLINE : HeaderUtils::DISPOSITION_ATTACHMENT,
             $archivo['nombre'],
@@ -58,7 +64,7 @@ class ControladorArchivos extends Controller
             'Content-Disposition' => $disposicion,
             'X-Content-Type-Options' => 'nosniff',
             'Content-Security-Policy' => "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox",
-            'Cache-Control' => 'private, max-age=300',
+            'Cache-Control' => 'private, no-store',
         ]);
     }
 

@@ -1,7 +1,7 @@
 # Plan de pruebas — Sistema de Historia Clínica Odontológica UNDAC
 
 **Producto:** Odontologia-UNDAC (clínica odontológica universitaria)  
-**Versión del plan:** 1.0  
+**Versión del plan:** 1.1 (infraestructura automatizada actualizada el 8 de noviembre de 2026)
 **Fecha:** 19 de octubre de 2026  
 **Alcance:** frontend React + API Laravel + base MySQL `bd_clinica_undac`  
 **Normativa de referencia clínica:** formato institucional de historia clínica (17 secciones / 6 momentos) y NTS N.° 188-MINSA/DGIESP-2022 (odontograma)
@@ -107,7 +107,7 @@ Verificar funciones puras y reglas de negocio **sin red ni base de datos**: vali
 ### 5.2 Herramientas
 
 - Frontend: Vitest + Testing Library (cuando el SUT es un componente pequeño).
-- Backend: PHPUnit en `backend/tests/Unit` (**suite a crear**; hoy `phpunit.xml` solo declara Feature).
+- Backend: PHPUnit en `backend/tests/Unit` (suite existente y declarada en `phpunit.xml`).
 
 ### 5.3 Cobertura actual
 
@@ -283,13 +283,13 @@ Cada historia de usuario clínica tiene un caso feliz, uno de validación y uno 
 
 ### 8.1 Objetivo
 
-Ejercitar el sistema **como en consultorio**: navegador real + API real + MySQL de staging, sin mocks. Hoy **no hay suite E2E** (ni Playwright ni Cypress). Se introduce Playwright (encaja con Vite, permite traza y video).
+Ejercitar el sistema **como en consultorio**: navegador real + API real + MySQL de staging, sin mocks. La suite Playwright de `frontend/pruebas-navegador/` ejecuta navegador y API reales. `backend/tests/E2E` conserva la cobertura de flujo de API; consultar `docs/PRUEBAS_NAVEGADOR.md` para preparación y evidencias.
 
 ### 8.2 Herramienta propuesta
 
 - Playwright (Chromium + un pases en Firefox).
-- Proyecto: `frontend/e2e/`.
-- Arranque: API Laravel en `8000` + Vite preview o `vite dev`.
+- Proyecto: `frontend/pruebas-navegador/`.
+- Arranque de pruebas: API Laravel en `8011` + Vite preview en `5183`, con base y almacenamiento exclusivos.
 - Datos: seeder de laboratorio o el mismo `CreaUsuarios` vía artisan.
 
 ### 8.3 Escenarios E2E (caminos críticos)
@@ -449,7 +449,7 @@ Medir tiempos bajo carga **esperada de clínica** (no de saturación). Meta: el 
 
 ### 11.3 Herramienta propuesta
 
-k6 (scripts en `backend/tests/performance/`) contra staging. Alternativa académica: Apache JMeter.
+k6 (escenarios en `backend/pruebas-rendimiento/`) contra el entorno exclusivo. Consultar `docs/RENDIMIENTO.md`. Alternativa académica: Apache JMeter.
 
 ### 11.4 Casos
 
@@ -634,7 +634,7 @@ Que **coordinación de clínica, docentes responsables y un representante de alu
 
 1. Este plan (`docs/PLAN_PRUEBAS.md`).
 2. Informe de ejecución por tipo (fecha, ambiente, pasados/fallados, defectos).
-3. Colección Playwright (cuando se implemente) y reportes k6.
+3. Suite Playwright implementada e informes de navegador y k6 por ejecución.
 4. Acta de UAT (anexo B).
 5. Registro de defectos (crítico / alto / medio / bajo) con ID de caso.
 
@@ -642,9 +642,9 @@ Que **coordinación de clínica, docentes responsables y un representante de alu
 
 | Riesgo | Impacto | Mitigación |
 | --- | --- | --- |
-| `phpunit.xml` no tiene suite Unit | reglas de `AccesoHistorias` solo se ven por Feature | crear `tests/Unit` y extraer casos UNI-16..19 |
-| No hay E2E real | regresiones de SPA+cookie se escapan | Playwright en CI nightly (sección 8) |
-| Autoguardado concurrente no cubierto | pérdida de sección | INT-21 + STR-02 |
+| Suite unitaria existente | mantener la cobertura de reglas de acceso | ejecutar PHPUnit en cada entrega |
+| E2E de navegador implementado | mantener cookies y CSRF reales | Playwright en CI con Chromium y Firefox |
+| Clientes antiguos sin revisión del expediente | sobrescritura entre sesiones | actualizar clientes para enviar `revision`; pruebas de conflicto y carga |
 | UAT con datos reales | filtración | solo staging anonimizado |
 | Odontograma local vs servidor | ficha distinta entre PC del laboratorio | FUN-17 + E2E-04 |
 | Arquitectura.md desactualizada | pruebas contra un diseño viejo | este plan manda sobre docs de 2026-08 |

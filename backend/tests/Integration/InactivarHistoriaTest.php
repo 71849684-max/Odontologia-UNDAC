@@ -25,6 +25,7 @@ class InactivarHistoriaTest extends TestCase
             'sexo' => 'F',
         ])->assertCreated();
         $id = (int) $historia->json('id');
+        $this->asignarProfesionalPrueba($docente, $id);
         DB::table('configuracion_sistema')->where('clave', 'ELIMINACION_CLINICA_PERMITIDA')->update(['valor' => '0']);
 
         $this->actingAs($admin, 'web')->deleteJson("/api/historias/{$id}")->assertUnprocessable();

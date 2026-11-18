@@ -16,7 +16,7 @@ class AccesoHistoriasReglasTest extends TestCase
 
     public function test_solo_el_alumno_esta_restringido(): void
     {
-        $acceso = new AccesoHistorias;
+        $acceso = app(AccesoHistorias::class);
 
         $this->assertTrue($acceso->restringido(new CuentaFalsa('ALUMNO')));
         $this->assertFalse($acceso->restringido(new CuentaFalsa('DOCENTE')));
@@ -32,7 +32,7 @@ class AccesoHistoriasReglasTest extends TestCase
 
         $this->assertTrue($acceso->puedeVer($duena, $id));
         $this->assertFalse($acceso->puedeVer($ajena, $id));
-        $this->assertTrue($acceso->puedeVer($docente, $id));
+        $this->assertFalse($acceso->puedeVer($docente, $id));
 
         DB::table('historia_clinica')->where('id_historia_clinica', $id)->update(['anulado_en' => now()]);
         $this->assertFalse($acceso->puedeVer($duena, $id));
@@ -44,6 +44,11 @@ class AccesoHistoriasReglasTest extends TestCase
         $alumno = $this->crearUsuario('uni.acceso.validada', self::CLAVE_PRUEBA, 'ALUMNO');
         $docente = $this->crearUsuario('uni.acceso.validada.doc', self::CLAVE_PRUEBA, 'DOCENTE');
         $id = $this->abrirHistoria($alumno, '71000002');
+        DB::table('historia_docente')->insert([
+            'id_historia_clinica' => $id, 'id_docente' => $docente->idActor(),
+            'tipo_participacion' => 'ENCARGADO', 'fecha_asignacion' => now()->toDateString(),
+            'estado' => 1, 'creado_en' => now(),
+        ]);
         $acceso = app(AccesoHistorias::class);
 
         $this->assertTrue($acceso->puedeModificar($alumno, $id));
@@ -70,9 +75,9 @@ class AccesoHistoriasReglasTest extends TestCase
         $acceso = app(AccesoHistorias::class);
 
         $this->assertSame(['anamnesis'], $acceso->seccionesBloqueadas($alumno, $id));
-        $this->assertSame([], $acceso->seccionesBloqueadas($docente, $id));
+        $this->assertSame(['anamnesis'], $acceso->seccionesBloqueadas($docente, $id));
         $this->assertFalse($acceso->seccionEditable($alumno, $id, 'anamnesis'));
         $this->assertTrue($acceso->seccionEditable($alumno, $id, 'odontograma'));
-        $this->assertTrue($acceso->seccionEditable($docente, $id, 'anamnesis'));
+        $this->assertFalse($acceso->seccionEditable($docente, $id, 'anamnesis'));
     }
 }

@@ -1,0 +1,15 @@
+{
+  "modulos": [
+    {
+      "archivo": "/assets/index-B4EqkQQA.js",
+      "bytes": 263845,
+      "gzip": 82320
+    },
+    {
+      "archivo": "/assets/clienteHttp-CzyPsaN6.js",
+      "bytes": 13255,
+      "gzip": 5280
+    }
+  ],
+  "gzipInicial": 87600
+}

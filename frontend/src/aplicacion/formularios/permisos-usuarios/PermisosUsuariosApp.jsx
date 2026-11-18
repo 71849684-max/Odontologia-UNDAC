@@ -1,3 +1,4 @@
+import EstadoCarga from '../../componentes/interfaz/EstadoCarga.jsx';
 import { useEffect, useMemo, useState } from 'react';
 import ListaUsuariosPermisos from './ListaUsuariosPermisos.jsx';
 import ListaRolesPermisos from './ListaRolesPermisos.jsx';
@@ -213,7 +214,7 @@ export default function PermisosUsuariosApp({ onNavigate }) {
                     ? <ListaRolesPermisos roles={ROLES_BASE} seleccionado={rolCodigo} onSelect={seleccionarRol} />
                     : <ListaUsuariosPermisos usuarios={filtrados} roles={roles} seleccionadoId={usuarioId} busqueda={busqueda} rol={filtroRol} onBusquedaChange={setBusqueda} onRolChange={setFiltroRol} onSelect={seleccionarUsuario} />}
                 <div className="permisos-columna">
-                    {cargando && <section className="permisos-card" aria-label="Editor de permisos"><p role="status" style={{ padding: 24 }}>Cargando permisos…</p></section>}
+                    {cargando && <section className="permisos-card" aria-label="Editor de permisos"><EstadoCarga mensaje="Cargando permisos…" compacto /></section>}
                     {!cargando && modo === 'roles' && rolActual && <EditorPermisosUsuario alcance="rol" usuario={{ nombre: rolActual.nombre, nombre_usuario: rolActual.descripcion || 'Módulos compartidos por el rol', estado: true }} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onSave={guardar} />}
                     {!cargando && modo === 'usuarios' && usuarioActual && <EditorPermisosUsuario usuario={usuarioActual} catalogo={catalogo} delRol={delRol} efectivos={efectivos} grupoAbierto={grupoAbierto} guardando={guardando} mensaje={mensaje} onToggleGroup={setGrupoAbierto} onTogglePermission={cambiarPermiso} onRestore={restaurarRol} onSave={guardar} onViewProfile={() => setFichaAbierta(true)} />}
                     {fichaAbierta && usuarioId && <FichaUsuario id={usuarioId} onClose={() => setFichaAbierta(false)} onManage={onNavigate ? () => onNavigate('usuarios') : undefined} />}

@@ -1,3 +1,4 @@
+import EstadoCarga from '../../componentes/interfaz/EstadoCarga.jsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, Download, Eye, Search, X } from 'lucide-react';
@@ -9,6 +10,8 @@ import { useSesion } from '../../autenticacion/ContextoSesion.jsx';
 import { listarAuditoria } from '../../servicios/servicioAdministracion.js';
 import { ErrorHttp } from '../../servicios/clienteHttp.js';
 import { formatearFechaHora } from '../../utilidades/fechas.mjs';
+import { nombreAccion, historiaDelEvento, seccionesDelEvento } from './auditoria.config.mjs';
+import { agenteLegible, valoresLegibles } from './detalleAuditoria.mjs';
 
 const POR_PAGINA = 10;
 const ACCIONES_ACCESO = ['INICIAR SESIÓN', 'ACCESO FALLIDO'];
@@ -114,11 +117,11 @@ export default function AuditoriaApp() {
         const filas = [
             esSesiones
                 ? ['Fecha', 'Usuario', 'Acción', 'IP', 'Motivo', 'Agente']
-                : ['Fecha', 'Usuario', 'Acción', 'Módulo', 'Registro', 'IP'],
+                : ['Fecha', 'Usuario', 'Acción', 'Historia clínica', 'Sección / submódulo', 'Módulo', 'Registro', 'IP'],
             ...eventos.map((item) => (
                 esSesiones
                     ? [formatearFecha(item.fecha), item.usuario ?? '', item.accion ?? '', item.ip ?? '', item.motivo ?? '', item.agente ?? '']
-                    : [formatearFecha(item.fecha), item.usuario ?? '', item.accion ?? '', nombreModulo(item.modulo), item.registro ?? '', item.ip ?? '']
+                    : [formatearFecha(item.fecha), item.usuario ?? '', nombreAccion(item.accion), historiaDelEvento(item), seccionesDelEvento(item), nombreModulo(item.modulo), item.registro ?? '', item.ip ?? '']
             )),
         ];
         const csv = filas.map((fila) => fila.map((celda) => `"${String(celda).replaceAll('"', '""')}"`).join(',')).join('\n');
@@ -178,14 +181,14 @@ export default function AuditoriaApp() {
                     <select value={accion} onChange={(evento) => setAccion(evento.target.value)}>
                         <option value="">Todas</option>
                         {opcionesAccion.map((item) => (
-                            <option key={item} value={item}>{item}</option>
+                            <option key={item} value={item}>{nombreAccion(item)}</option>
                         ))}
                     </select>
                 </label>
             </div>
 
             {error && <p className="hc-inline-callout" role="alert">{error}</p>}
-            {cargando && <p role="status">Cargando auditoría…</p>}
+            {cargando && <EstadoCarga mensaje="Cargando auditoría…" />}
 
             {!cargando && eventos.length === 0 && (
                 <EstadoVacio titulo={vacio.titulo} descripcion={vacio.descripcion} />
@@ -199,6 +202,8 @@ export default function AuditoriaApp() {
                                 <th>Fecha y hora</th>
                                 <th>Usuario</th>
                                 <th>Acción</th>
+                                {!esSesiones ? <th>Historia clínica</th> : null}
+                                {!esSesiones ? <th>Sección / submódulo</th> : null}
                                 {esAdministrador ? <th><span className="sr-only">Detalle</span></th> : null}
                             </tr>
                         </thead>
@@ -207,7 +212,9 @@ export default function AuditoriaApp() {
                                 <tr key={evento.id}>
                                     <td data-label="Fecha y hora">{formatearFecha(evento.fecha)}</td>
                                     <td data-label="Usuario"><strong>{evento.usuario || '—'}</strong></td>
-                                    <td data-label="Acción"><StatusBadge status={evento.accion} /></td>
+                                    <td data-label="Acción"><StatusBadge status={nombreAccion(evento.accion)} /></td>
+                                    {!esSesiones ? <td data-label="Historia clínica">{historiaDelEvento(evento)}</td> : null}
+                                    {!esSesiones ? <td data-label="Sección / submódulo">{seccionesDelEvento(evento)}</td> : null}
                                     {esAdministrador ? (
                                         <td data-label="Detalle">
                                             <button
@@ -273,21 +280,23 @@ function DetalleEvento({ evento, esSesion, triggerRef, onClose }) {
         ? [
             ['Fecha y hora', formatearFecha(evento.fecha)],
             ['Usuario', evento.usuario || '—'],
-            ['Acción', evento.accion || '—'],
+            ['Acción', nombreAccion(evento.accion)],
             ['Tipo de cuenta', etiquetaCodigoRol(evento.tipo_usuario, evento.tipo_usuario || '—')],
             ['IP', evento.ip || '—'],
             ['Motivo', evento.motivo || '—'],
-            ['Agente', evento.agente || '—'],
+            ['Agente', agenteLegible(evento.agente)],
         ]
         : [
             ['Fecha y hora', formatearFecha(evento.fecha)],
             ['Usuario', evento.usuario || '—'],
-            ['Acción', evento.accion || '—'],
+            ['Acción', nombreAccion(evento.accion)],
+            ['Historia clínica', historiaDelEvento(evento)],
+            ['Sección / submódulo', seccionesDelEvento(evento)],
             ['Módulo', nombreModulo(evento.modulo)],
             ['Registro', evento.registro || '—'],
             ['Tipo de usuario', etiquetaCodigoRol(evento.tipo_usuario, evento.tipo_usuario || '—')],
             ['IP', evento.ip || '—'],
-            ['Agente', evento.agente || '—'],
+            ['Agente', agenteLegible(evento.agente)],
             ['Valores anteriores', evento.valores_anteriores, true],
             ['Valores nuevos', evento.valores_nuevos, true],
         ];
@@ -311,11 +320,11 @@ function DetalleEvento({ evento, esSesion, triggerRef, onClose }) {
                 <dl className="permisos-ficha__datos hc-audit-detalle__datos">
                     {filas.map(([etiqueta, valor, amplio]) => {
                         const texto = textoDetalle(valor);
-                        const esBloque = amplio && texto !== '—';
+                        const esBloque = amplio;
                         return (
                             <div key={etiqueta} className={esBloque ? 'hc-audit-detalle__ancho' : undefined}>
                                 <dt>{etiqueta}</dt>
-                                <dd>{esBloque ? <pre>{texto}</pre> : texto}</dd>
+                                <dd>{esBloque ? valoresLegibles(valor).map((fila, indice) => <p key={indice}>{fila.etiqueta ? <><strong>{fila.etiqueta}:</strong>{' '}</> : null}{fila.valor}</p>) : texto}</dd>
                             </div>
                         );
                     })}

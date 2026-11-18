@@ -1,4 +1,5 @@
 import React from 'react';
+import * as servicioClinico from '../servicios/servicioClinico.js';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import HistoriaClinica from '../componentes/clinica/HistoriaClinica.jsx';
@@ -9,7 +10,7 @@ beforeEach(() => {
   const data = new Map();
   vi.stubGlobal('localStorage', { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => data.set(key, String(value)) });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 test('la entrevista comienza directamente en el formulario sin resumen duplicado', () => {
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" />);
@@ -34,10 +35,10 @@ test('el cuestionario comienza en las preguntas y conserva el detalle al cambiar
   expect(screen.getByLabelText(/¿Hace qué tiempo/)).toHaveValue('Dos semanas');
 });
 
-test.each(clinicalSections)('abre la sección $id con sus dependencias independientes', ({ id, label }) => {
+test.each(clinicalSections)('abre la sección $id con sus dependencias independientes', async ({ id, label }) => {
   expect(componentesSeccion[id]).toBeTypeOf('function');
   render(<HistoriaClinica historiaId="1" initialSection={id} />);
-  expect(screen.getByRole('heading', { name: label, level: 2 })).toBeInTheDocument();
+  expect(await screen.findByRole('heading', { name: label, level: 2 })).toBeInTheDocument();
   expect(screen.queryByText('Sección preparada para implementación.')).not.toBeInTheDocument();
 });
 
@@ -124,7 +125,7 @@ test('la cabecera clínica no inventa datos de paciente u operador cuando no exi
 });
 
 test('el selector de operador cierra con Escape y devuelve el foco al botón que lo abrió', () => {
-  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" rol="docente" />);
 
   const trigger = screen.getByRole('button', { name: 'Cambiar asignación' });
   trigger.focus();
@@ -137,13 +138,20 @@ test('el selector de operador cierra con Escape y devuelve el foco al botón que
 });
 
 test('el selector de operador se monta fuera de la cabecera fija', () => {
-  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" />);
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" rol="docente" />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Cambiar asignación' }));
   const dialog = screen.getByRole('dialog', { name: 'Cambiar asistente responsable' });
 
   expect(dialog.parentElement).toHaveClass('clinical-operator-modal-overlay');
   expect(dialog.parentElement?.parentElement).toBe(document.body);
+});
+
+test('el asistente abre la selección de profesional encargado', () => {
+  render(<HistoriaClinica historiaId="1" initialSection="datos-paciente" rol="alumno" />);
+  expect(screen.getByRole('region', { name: 'Profesional encargado' })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Cambiar asignación' }));
+  expect(screen.getByRole('dialog', { name: 'Cambiar profesional encargado' })).toBeInTheDocument();
 });
 
 test('mantiene fijo el contexto de escritorio y desplaza únicamente el contenido clínico', () => {
@@ -250,9 +258,10 @@ test('el resumen terapéutico distingue pendiente, respuesta negativa y detalle 
   expect(summary).not.toHaveTextContent('No refiere');
 });
 
-test('no marca la sección completa mientras falten datos obligatorios', () => {
-  render(<HistoriaClinica historiaId="1" initialSection="anamnesis" />);
-  fireEvent.click(screen.getByRole('button', { name: /Marcar sección completa/ }));
+test('no aprueba la sección mientras falten datos obligatorios', () => {
+  render(<HistoriaClinica historiaId="1" initialSection="anamnesis" rol="docente" />);
+  expect(screen.queryByRole('button', { name: /Marcar sección completa|Completar/ })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Aprobar sección' }));
   const resumen = screen.getByRole('alert');
   expect(resumen).toHaveTextContent('El motivo de consulta es obligatorio.');
   expect(screen.getByText('Pendiente', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
@@ -260,9 +269,9 @@ test('no marca la sección completa mientras falten datos obligatorios', () => {
   fireEvent.change(screen.getByLabelText('Motivo de consulta'), { target: { value: 'Dolor en molar' } });
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   fireEvent.change(screen.getByLabelText(/Historia de la enfermedad/i), { target: { value: 'Dolor de tres días' } });
-  fireEvent.click(screen.getByRole('button', { name: /Marcar sección completa/ }));
+  fireEvent.click(screen.getByRole('button', { name: 'Aprobar sección' }));
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-  expect(screen.getByText('Completo', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
+  expect(screen.getByText('Aprobado', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
 });
 
 test('la pregunta 21 solo aparece cuando el paciente refiere diabetes', () => {
@@ -284,38 +293,45 @@ test('calcula el IMC a partir del peso y la talla', () => {
 
 test('el alumno envía la sección a revisión y el docente la aprueba', async () => {
   const { unmount } = render(<HistoriaClinica historiaId="1" initialSection="anamnesis" rol="alumno" />);
+  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toBeEnabled());
   fireEvent.change(screen.getByLabelText('Motivo de consulta'), { target: { value: 'Control' } });
   fireEvent.change(screen.getByLabelText(/Historia de la enfermedad/i), { target: { value: 'Sin molestias' } });
   expect(screen.queryByRole('button', { name: /Aprobar sección/ })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /Enviar a revisión/ }));
   expect(screen.getByText('En revisión', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Retomar edición/ })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /Retomar edición/ })).not.toBeInTheDocument();
   expect(await screen.findByText(/Sección marcada para revisión|sin servidor no se notifica/i)).toBeInTheDocument();
   await screen.findByText('Guardado solo en este equipo', {}, { timeout: 2000 });
   unmount();
 
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" rol="docente" />);
+  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toBeEnabled());
   expect(screen.getByText('En revisión', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /Aprobar sección/ }));
   expect(screen.getByText('Aprobado', { selector: '.clinical-active-section__state' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: /Reabrir sección/ })).toBeInTheDocument();
-  expect(screen.getByLabelText('Motivo de consulta')).toBeEnabled();
+  expect(screen.queryByRole('button', { name: /Devolver a edición|Retomar edición/ })).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toHaveAttribute('readonly'));
   await screen.findByText('Guardado solo en este equipo', {}, { timeout: 2000 });
   cleanup();
 
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" rol="alumno" />);
   expect(screen.getByRole('note')).toHaveTextContent('solo lectura');
-  expect(screen.getByLabelText('Motivo de consulta')).toBeDisabled();
+  expect(screen.getByLabelText('Motivo de consulta')).toHaveAttribute('readonly');
   expect(screen.queryByRole('button', { name: /Marcar sección completa/ })).not.toBeInTheDocument();
 });
 
 test('muestra el estado real del autoguardado y permite imprimir', async () => {
+  vi.spyOn(servicioClinico, 'registrarImpresionClinica').mockResolvedValue({ registrado: true });
   const imprimir = vi.fn();
   vi.stubGlobal('print', imprimir);
   render(<HistoriaClinica historiaId="1" initialSection="anamnesis" />);
+  await waitFor(() => expect(screen.getByLabelText('Motivo de consulta')).toBeEnabled());
   fireEvent.change(screen.getByLabelText('Motivo de consulta'), { target: { value: 'Control' } });
   expect(await screen.findByText('Guardado solo en este equipo', {}, { timeout: 2000 })).toBeInTheDocument();
+  vi.spyOn(servicioClinico, 'obtenerExpediente').mockResolvedValue({ formData: { anamnesis: { motivoConsulta: 'Control' } } });
   fireEvent.click(screen.getByRole('button', { name: 'Imprimir' }));
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Imprimir documento' })).toBeEnabled());
   expect(screen.getByRole('dialog', { name: /Vista previa de impresión/ })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Imprimir documento' }));
   await waitFor(() => expect(imprimir).toHaveBeenCalled());

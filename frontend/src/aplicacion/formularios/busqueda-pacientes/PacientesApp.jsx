@@ -85,6 +85,7 @@ export default function PacientesApp({ onNavigate }) {
     }
 
     function guardarEdicion(patient) {
+        if (!usaApi && import.meta.env.MODE !== 'test') { setPersistenciaError('Se necesita conexión con el servidor para guardar el paciente.'); return; }
         if (usaApi) {
             actualizarPaciente(editando.id, patient)
                 .then(async () => {
@@ -120,7 +121,7 @@ export default function PacientesApp({ onNavigate }) {
                     if (crearHistoria) go({ view: 'historias', abrirNueva: true, paciente: creado });
                 })
                 .catch((error) => {
-                    if (esFalloDeRed(error)) {
+                    if (esFalloDeRed(error) && import.meta.env.MODE === 'test') {
                         setUsaApi(false);
                         guardarPacienteLocal(patient, { crearHistoria });
                         return;
@@ -133,6 +134,7 @@ export default function PacientesApp({ onNavigate }) {
     }
 
     function guardarPacienteLocal(patient, { crearHistoria = false } = {}) {
+        if (import.meta.env.MODE !== 'test') { setPersistenciaError('No se guardó el paciente. Verifique la conexión e intente nuevamente.'); return; }
         const actualizados = [...listarPacientesLocales(), patient];
         try {
             localStorage.setItem(PACIENTES_STORAGE_KEY, JSON.stringify(actualizados));

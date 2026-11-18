@@ -40,6 +40,7 @@ class HumoReleaseTest extends TestCase
         ])->assertOk()->assertJsonPath('es_administrador', true);
 
         $id = $this->abrirHistoria($alumno, '71000201', 'Paciente Humo');
+        $this->asignarProfesionalPrueba($docente, $id);
         $this->guardarExpediente($alumno, $id, [
             'anamnesis' => ['motivoConsulta' => 'Control de release', 'historiaEnfermedad' => 'Sin dolor'],
         ])->assertOk();
@@ -49,6 +50,7 @@ class HumoReleaseTest extends TestCase
                 'version' => 1,
                 'examinations' => [[
                     'id' => 'exam-humo',
+                    'date' => now()->toDateString(),
                     'status' => 'draft',
                     'teeth' => ['16' => ['surfaces' => ['oclusal' => ['state' => 'caries', 'findings' => []]]]],
                 ]],

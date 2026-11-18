@@ -38,19 +38,20 @@ test('al abrir una historia del servidor se muestra el odontograma guardado aunq
 
   await waitFor(() => expect(screen.getByText(/Registro de hallazgos \(1\)/)).toBeInTheDocument());
   expect(servicio.obtenerOdontograma).toHaveBeenCalledWith(7);
-  expect(JSON.parse(almacen.get('undac:odontograma:nts188:v1:HC-0007')).patientId).toBe('HC-0007');
+  expect(almacen.has('undac:odontograma:nts188:v1:HC-0007')).toBe(false);
   expect(servicio.guardarOdontograma).not.toHaveBeenCalled();
 });
 
-test('si el registro local es más reciente se conserva y se sincroniza con el servidor', async () => {
+test('una copia local posterior no reemplaza el registro del servidor', async () => {
   const local = registroConCaries('HC-0008', '2026-10-15T12:00:00.000Z');
   almacen.set('undac:odontograma:nts188:v1:HC-0008', JSON.stringify(local));
   servicio.obtenerOdontograma.mockResolvedValue({ ...createRecord('HC-0008'), savedAt: '2026-10-15T09:00:00.000Z' });
 
   render(<Odontograma patientId="HC-0008" historyId="8" />);
 
-  await waitFor(() => expect(servicio.guardarOdontograma).toHaveBeenCalledWith(8, expect.objectContaining({ savedAt: local.savedAt })));
-  expect(screen.getByText(/Registro de hallazgos \(1\)/)).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByLabelText('N.° COP')).toHaveValue(''));
+  expect(servicio.guardarOdontograma).not.toHaveBeenCalled();
+  expect(JSON.parse(almacen.get('undac:odontograma:nts188:v1:HC-0008')).savedAt).toBe(local.savedAt);
 });
 
 test('si el local está corrupto muestra el aviso y no sobrescribe el JSON original', async () => {
@@ -60,6 +61,6 @@ test('si el local está corrupto muestra el aviso y no sobrescribe el JSON origi
   render(<Odontograma patientId="HC-0009" historyId="9" />);
 
   await waitFor(() => expect(screen.getByText(/Registro de hallazgos \(1\)/)).toBeInTheDocument());
-  expect(screen.getByRole('alert')).toHaveTextContent('No se pudo leer el odontograma guardado');
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   expect(almacen.get('undac:odontograma:nts188:v1:HC-0009')).toBe('{');
 });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { InputFecha } from '../compartidos/ControlesClinicos.jsx';
+import { problemaDocumento, problemaTelefono, problemaCorreo, problemaFechaNacimiento } from '../../utilidades/validacionesRegistro.mjs';
 
 function calcularEdad(fechaNacimiento) {
     if (!fechaNacimiento) return '';
@@ -43,6 +44,11 @@ export default function PacienteForm({ onCancel, onSave, inicial = null }) {
         if (!form.nombres.trim()) erroresActuales.nombres = 'Ingrese los nombres.';
         if (!form.apellidoPaterno.trim()) erroresActuales.apellidoPaterno = 'Ingrese el apellido paterno.';
         if (!form.numeroDocumento.trim()) erroresActuales.numeroDocumento = 'Ingrese el número de documento.';
+        for (const [campo, problema] of [
+            ['numeroDocumento', problemaDocumento(form.numeroDocumento, form.tipoDocumento)],
+            ['telefono', problemaTelefono(form.telefono)], ['correo', problemaCorreo(form.correo)],
+            ['fechaNacimiento', problemaFechaNacimiento(form.fechaNacimiento)],
+        ]) if (problema) erroresActuales[campo] = problema;
         setErrores(erroresActuales);
         if (Object.keys(erroresActuales).length) return;
 
@@ -70,7 +76,7 @@ export default function PacienteForm({ onCancel, onSave, inicial = null }) {
             <label>Apellido paterno<input name="apellidoPaterno" maxLength={120} value={form.apellidoPaterno} onChange={cambiar} aria-invalid={Boolean(errores.apellidoPaterno)} /></label>
             <label>Apellido materno<input name="apellidoMaterno" maxLength={120} value={form.apellidoMaterno} onChange={cambiar} /></label>
             <label>Tipo documento<select name="tipoDocumento" value={form.tipoDocumento} onChange={cambiar}><option>DNI</option><option>CE</option><option>PAS</option></select></label>
-            <label>Número documento<input name="numeroDocumento" maxLength={20} value={form.numeroDocumento} onChange={cambiar} inputMode="numeric" aria-invalid={Boolean(errores.numeroDocumento)} /></label>
+            <label>Número documento<input name="numeroDocumento" maxLength={form.tipoDocumento === 'DNI' ? 8 : 20} value={form.numeroDocumento} onChange={cambiar} inputMode={form.tipoDocumento === 'DNI' ? 'numeric' : 'text'} aria-invalid={Boolean(errores.numeroDocumento)} /></label>
             <label>Fecha de nacimiento<InputFecha max={new Date().toISOString().slice(0, 10)} value={form.fechaNacimiento} onChange={(fechaNacimiento) => setForm((actual) => ({ ...actual, fechaNacimiento }))} /></label>
             <label>Sexo<select name="sexo" value={form.sexo} onChange={cambiar}><option value="F">F</option><option value="M">M</option><option value="O">Otro</option></select></label>
             <label>Teléfono<input name="telefono" maxLength={30} value={form.telefono} onChange={cambiar} /></label>

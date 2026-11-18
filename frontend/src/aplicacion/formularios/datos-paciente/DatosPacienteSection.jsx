@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import { Info } from 'lucide-react';
 import { CollapsibleSection, Field, SelectField, ChoiceGroup } from '../compartidos/ControlesClinicos.jsx';
 import useSection from '../compartidos/useSection.js';
-import departamentos from './ubigeo/departamentos.json';
-import provincias from './ubigeo/provincias.json';
-import distritos from './ubigeo/distritos.json';
+import catalogoUbigeo from './ubigeo/catalogoFormulario.json';
 import './datos-paciente.css';
+
+const { departamentos, provincias, distritos } = catalogoUbigeo;
 
 export function fechaRegistroActual() {
   const hoy = new Date();

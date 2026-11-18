@@ -31,6 +31,7 @@ interface RepositorioUsuarios
     /**
      * @param  array<string, mixed>  $datos
      */
+    /** El cambio de tipo traslada la cuenta y devuelve su nueva clave; conserva los actores históricos. */
     public function actualizar(Cuenta $cuenta, array $datos, int $idOperador): Cuenta;
 
     public function cambiarEstado(Cuenta $cuenta, bool $estado, int $idOperador): Cuenta;

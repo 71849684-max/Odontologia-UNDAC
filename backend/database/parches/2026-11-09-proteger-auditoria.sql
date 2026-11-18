@@ -1,0 +1,2 @@
+CREATE TRIGGER IF NOT EXISTS proteger_auditoria_actualizacion BEFORE UPDATE ON auditoria FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La bitácora de auditoría no se puede modificar';
+CREATE TRIGGER IF NOT EXISTS proteger_auditoria_eliminacion BEFORE DELETE ON auditoria FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La bitácora de auditoría no se puede eliminar desde la aplicación';

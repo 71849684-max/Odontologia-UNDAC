@@ -5,6 +5,7 @@ namespace App\Clinica\Http\Controladores;
 use App\Clinica\Http\RespondeOperacion;
 use App\Clinica\Pacientes\ServicioPacientes;
 use App\Http\Controllers\Controller;
+use App\Http\Validacion\ReglasBasicas;
 use App\Identidad\Dominio\Cuenta;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,18 +72,18 @@ class ControladorPacientes extends Controller
             'apellidoPaterno' => ['required', 'string', 'max:120'],
             'apellidoMaterno' => ['nullable', 'string', 'max:120'],
             'tipoDocumento' => ['nullable', 'string', Rule::in(self::TIPOS_DOCUMENTO)],
-            'numeroDocumento' => ['required_without:dni', 'nullable', 'string', 'max:20'],
-            'dni' => ['nullable', 'string', 'max:20'],
+            'numeroDocumento' => ['bail', 'required_without:dni', 'nullable', 'string', ReglasBasicas::documento($solicitud->input('tipoDocumento') ?: 'DNI')],
+            'dni' => ['bail', 'nullable', 'string', ReglasBasicas::documento($solicitud->input('tipoDocumento') ?: 'DNI')],
             'fechaNacimiento' => ['nullable', 'date', 'before_or_equal:today'],
             'nacimiento' => ['nullable', 'date', 'before_or_equal:today'],
-            'sexo' => ['nullable', 'string', 'max:20'],
-            'telefono' => ['nullable', 'string', 'max:30'],
-            'celular' => ['nullable', 'string', 'max:30'],
+            'sexo' => ['nullable', Rule::in(['F', 'M', 'O'])],
+            'telefono' => ReglasBasicas::telefono(),
+            'celular' => ReglasBasicas::telefono(),
             'correo' => ['nullable', 'email', 'max:150'],
             'email' => ['nullable', 'email', 'max:150'],
             'direccion' => ['nullable', 'string', 'max:250'],
             'ocupacion' => ['nullable', 'string', 'max:120'],
-            'observaciones' => ['nullable', 'string'],
+            'observaciones' => ['nullable', 'string', 'max:5000'],
         ]);
 
         $paciente = $this->operacion(fn () => $this->pacientes->crear($datos));
@@ -100,12 +101,12 @@ class ControladorPacientes extends Controller
             'apellidoMaterno' => ['nullable', 'string', 'max:120'],
             'apellidos' => ['nullable', 'string', 'max:120'],
             'tipoDocumento' => ['nullable', 'string', Rule::in(self::TIPOS_DOCUMENTO)],
-            'numeroDocumento' => ['nullable', 'string', 'max:20'],
-            'dni' => ['nullable', 'string', 'max:20'],
+            'numeroDocumento' => ['bail', 'nullable', 'string', ReglasBasicas::documento($solicitud->input('tipoDocumento') ?: 'DNI')],
+            'dni' => ['bail', 'nullable', 'string', ReglasBasicas::documento($solicitud->input('tipoDocumento') ?: 'DNI')],
             'fechaNacimiento' => ['nullable', 'date', 'before_or_equal:today'],
-            'sexo' => ['nullable', 'string', 'max:20'],
-            'telefono' => ['nullable', 'string', 'max:30'],
-            'celular' => ['nullable', 'string', 'max:30'],
+            'sexo' => ['nullable', Rule::in(['F', 'M', 'O'])],
+            'telefono' => ReglasBasicas::telefono(),
+            'celular' => ReglasBasicas::telefono(),
             'correo' => ['nullable', 'email', 'max:150'],
             'direccion' => ['nullable', 'string', 'max:250'],
             'domicilio' => ['nullable', 'string', 'max:250'],

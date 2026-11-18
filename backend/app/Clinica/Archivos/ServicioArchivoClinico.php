@@ -39,6 +39,7 @@ class ServicioArchivoClinico
      * Los campos con máximo 1 reemplazan el archivo anterior.
      */
     public const CAMPOS = [
+        'constanciaDecisionConsentimiento' => ['consentimiento', 'imagen', 1],
         'fotosExtraorales' => ['examen-extraoral', 'imagen', 5],
         'fotosIntraorales' => ['examen-intraoral', 'imagen', 6],
         'fotosModelos' => ['modelos', 'imagen', 4],
@@ -61,7 +62,7 @@ class ServicioArchivoClinico
     {
         $this->historia($idHistoria);
         [$seccion, $tipo, $maximo] = self::CAMPOS[$campo] ?? throw new OperacionNoPermitida('campo', 'El campo de archivo no existe.');
-        $this->exigirEditable($actor, $idHistoria, $seccion);
+        $this->exigirEditable($actor, $idHistoria, $seccion, $campo);
 
         if (! $archivo->isValid()) {
             throw new OperacionNoPermitida('archivo', 'El archivo no se recibió completo.');
@@ -95,6 +96,8 @@ class ServicioArchivoClinico
         }
 
         $id = DB::transaction(function () use ($idHistoria, $archivo, $campo, $seccion, $maximo, $activos, $nombreGuardado, $ruta, $extension, $mime, $actor) {
+            DB::table('historia_clinica')->where('id_historia_clinica', $idHistoria)->lockForUpdate()->first();
+            $this->exigirEditable($actor, $idHistoria, $seccion, $campo);
             if ($maximo === 1 && $activos->isNotEmpty()) {
                 DB::table('archivo_clinico')->whereIn('id_archivo', $activos->pluck('id_archivo'))->update(['estado' => 0]);
             }
@@ -124,15 +127,18 @@ class ServicioArchivoClinico
     /**
      * @return array{ruta: string, mime: string, nombre: string, imagen: bool}
      */
-    public function descarga(int $idHistoria, int $idArchivo): array
+    public function descarga(int $idHistoria, int $idArchivo, bool $historico = false): array
     {
         $fila = DB::table('archivo_clinico')
             ->where('id_archivo', $idArchivo)
             ->where('id_historia_clinica', $idHistoria)
-            ->where('estado', 1)
+            ->when(! $historico, fn ($consulta) => $consulta->where('estado', 1))
             ->first();
         if ($fila === null || ! Storage::disk(self::DISCO)->exists($fila->ruta)) {
             throw (new ModelNotFoundException)->setModel('archivo_clinico', [$idArchivo]);
+        }
+        if (! hash_equals((string) $fila->hash_sha256, hash_file('sha256', Storage::disk(self::DISCO)->path($fila->ruta)))) {
+            throw new OperacionNoPermitida('archivo', 'El archivo no supera la comprobación de integridad. Solicite su recuperación desde un respaldo verificado.');
         }
 
         return [
@@ -157,8 +163,14 @@ class ServicioArchivoClinico
         $consulta->update(['estado' => 0]);
     }
 
-    private function exigirEditable(Cuenta $actor, int $idHistoria, string $seccion): void
+    private function exigirEditable(Cuenta $actor, int $idHistoria, string $seccion, ?string $campo = null): void
     {
+        if (! $this->acceso->puedeModificar($actor, $idHistoria)) {
+            throw (new ModelNotFoundException)->setModel('historia_clinica', [$idHistoria]);
+        }
+        if ($campo === 'constanciaDecisionConsentimiento' && $this->acceso->puedeAprobar($actor)) {
+            return;
+        }
         if (! $this->acceso->seccionEditable($actor, $idHistoria, $seccion)) {
             throw new OperacionNoPermitida('archivo', 'La sección ya fue aprobada por el cirujano dentista supervisor y no admite cambios.');
         }

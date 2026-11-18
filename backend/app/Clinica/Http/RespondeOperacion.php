@@ -31,6 +31,12 @@ trait RespondeOperacion
 
             // 1406: texto demasiado largo; 1264: número fuera de rango; 1292/1366: valor con formato inválido.
             $codigoMysql = (int) ($excepcion->errorInfo[1] ?? 0);
+            if (($codigoMysql === 1062 && str_contains($excepcion->getMessage(), 'uq_historia_numero'))
+                || ($codigoMysql === 1146 && str_contains($excepcion->getMessage(), 'historia_correlativo'))) {
+                throw ValidationException::withMessages([
+                    'datos' => 'No se pudo reservar el número de historia. Solicite al administrador verificar los parches y el correlativo antes de reintentar.',
+                ]);
+            }
             if (in_array($codigoMysql, [1406, 1264, 1292, 1366], true)) {
                 throw ValidationException::withMessages([
                     'datos' => 'Un dato supera la longitud permitida o tiene un formato inválido. Revise los campos editados.',

@@ -3,7 +3,6 @@
 namespace Tests\Integration;
 
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Support\Facades\DB;
 use Tests\CreaUsuarios;
 use Tests\TestCase;
 
@@ -20,6 +19,7 @@ class ObservarHistoriaTest extends TestCase
         $id = (int) $this->actingAs($alumno, 'web')->postJson('/api/historias', [
             'dni' => '70000999', 'nombres' => 'Paciente Observado', 'sexo' => 'F',
         ])->assertCreated()->json('id');
+        $this->asignarProfesionalPrueba($docente, $id);
 
         $this->actingAs($alumno, 'web')->patchJson("/api/historias/{$id}/estado", ['codigo' => 'PENDIENTE_REVISION'])->assertOk();
 

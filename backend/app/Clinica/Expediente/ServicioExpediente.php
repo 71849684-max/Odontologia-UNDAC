@@ -9,6 +9,8 @@ use App\Clinica\Odontograma\ServicioOdontograma;
 use App\Clinica\Pacientes\ServicioPacientes;
 use App\Clinica\Soporte\Valores;
 use App\Identidad\Dominio\Cuenta;
+use App\Identidad\Dominio\Excepciones\OperacionNoPermitida;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 class ServicioExpediente
@@ -37,6 +39,7 @@ class ServicioExpediente
         private readonly ServicioOdontograma $odontograma,
         private readonly ServicioArchivoClinico $archivos,
         private readonly AccesoHistorias $acceso,
+        private readonly ServicioVersionesClinicas $versiones,
     ) {}
 
     public function obtener(int $id): array
@@ -81,6 +84,33 @@ class ServicioExpediente
             'seguimiento' => $this->leerSeguimiento($id),
         ];
 
+        // Adjuntos y odontograma tienen endpoints y persistencia independientes.
+        // Su lectura no debe invalidar la revisión del formulario autoguardado.
+        $decisionActual = $form['consentimiento'];
+        $estados = $this->estadosSeccion($id);
+        $conservadas = DB::table('historia_seccion_estado as s')
+            ->join('historia_documento_version as v', 'v.id_version', '=', 's.id_version_aprobada')
+            ->where('s.id_historia_clinica', $id)->where('s.estado', 'approved')
+            ->whereColumn('v.id_historia_clinica', 's.id_historia_clinica')
+            ->get(['s.codigo_seccion', 'v.*']);
+        foreach ($conservadas as $conservada) {
+            if (! hash_equals($conservada->hash_integridad, ServicioVersionesClinicas::huella((array) $conservada))) {
+                throw new OperacionNoPermitida('integridad', 'La versión aprobada no supera la verificación de integridad. Solicite su recuperación desde un respaldo verificado.');
+            }
+            $documento = json_decode($conservada->contenido, true, 64, JSON_THROW_ON_ERROR);
+            if (isset($documento['formData'][$conservada->codigo_seccion])) {
+                $form[$conservada->codigo_seccion] = $documento['formData'][$conservada->codigo_seccion];
+            }
+        }
+        if (isset($form['consentimiento'])) {
+            $decision = $decisionActual;
+            foreach (['estadoConsentimiento', 'versionConsentimiento'] as $clave) {
+                if (isset($decision[$clave])) {
+                    $form['consentimiento'][$clave] = $decision[$clave];
+                }
+            }
+        }
+        $revision = hash('sha256', json_encode([$form, $estados], JSON_THROW_ON_ERROR));
         foreach ($this->archivos->porSeccion($id) as $seccion => $campos) {
             $form[$seccion] = $campos + ($form[$seccion] ?? []);
         }
@@ -90,13 +120,12 @@ class ServicioExpediente
             $form['odontograma'] = ['registro' => $registro];
         }
 
-        $estados = $this->estadosSeccion($id);
-
         return [
             'historia' => $historia,
             'paciente' => $this->pacientes->serializar($paciente),
             'formData' => $form,
             'sectionStatus' => $estados,
+            'revision' => $revision,
         ];
     }
 
@@ -109,15 +138,37 @@ class ServicioExpediente
             ->all();
     }
 
-    public function guardar(int $id, array $formulario, array $estados, Cuenta $actor): array
+    public function guardar(int $id, array $formulario, array $estados, Cuenta $actor, ?string $revision = null, ?string $motivo = null): array
     {
-        $this->historias->fila($id);
-        $pacienteId = (int) DB::table('historia_clinica')->where('id_historia_clinica', $id)->value('id_paciente');
-        // El autoguardado envía todo el expediente: lo aprobado se omite en silencio en vez de rechazar el guardado entero.
-        $aprobadas = $this->acceso->seccionesBloqueadas($actor, $id);
-        $formulario = array_diff_key($formulario, array_flip($aprobadas));
+        return $this->guardarConVersion($id, $formulario, $estados, $actor, $revision, $motivo)['resultado'];
+    }
 
-        DB::transaction(function () use ($id, $pacienteId, $formulario, $estados, $actor, $aprobadas) {
+    /** @return array{previo: array, resultado: array} */
+    public function guardarConVersion(int $id, array $formulario, array $estados, Cuenta $actor, ?string $revision = null, ?string $motivo = null): array
+    {
+        $historia = $this->historias->fila($id);
+        $pacienteId = (int) $historia->id_paciente;
+
+        // El autoguardado envía todo el expediente: lo aprobado se omite en silencio en vez de rechazar el guardado entero.
+        return DB::transaction(function () use ($id, $pacienteId, $formulario, $estados, $actor, $revision, $motivo) {
+            DB::table('historia_clinica')->where('id_historia_clinica', $id)->lockForUpdate()->first();
+            if (! $this->acceso->puedeVer($actor, $id)) {
+                throw (new ModelNotFoundException)->setModel('historia_clinica', [$id]);
+            }
+            $previo = $this->obtener($id);
+            if ($revision !== null && ! hash_equals($previo['revision'], $revision)) {
+                throw new OperacionNoPermitida('revision', 'Otra sesión modificó el expediente. Sus cambios no se sobrescribieron. Recargue la historia antes de continuar.');
+            }
+            $aprobadas = array_keys(array_filter($previo['sectionStatus'], fn ($estado) => $estado === 'approved'));
+            $reabiertas = array_intersect($aprobadas, array_keys(array_filter($estados, fn ($estado) => $estado === 'in-progress')));
+            if ($reabiertas !== [] && (! $this->acceso->puedeAprobar($actor) || mb_strlen(trim($motivo ?? '')) < 10)) {
+                throw new OperacionNoPermitida('motivo', 'La reapertura requiere un profesional con COP y un motivo de al menos 10 caracteres.');
+            }
+            $aprobadas = array_diff($aprobadas, $reabiertas);
+            $formulario = array_diff_key($formulario, array_flip($aprobadas));
+            // Los formularios envían todo el expediente; solo se reescriben secciones
+            // modificadas. Las firmas conservan la vinculación de adjuntos independientes.
+            $formulario = array_filter($formulario, fn ($datos, $codigo) => in_array($codigo, ['consentimiento', 'reporte-operatorio', 'seguimiento'], true) || $datos != ($previo['formData'][$codigo] ?? []), ARRAY_FILTER_USE_BOTH);
             if (isset($formulario['datos-paciente']) && is_array($formulario['datos-paciente'])) {
                 $this->pacientes->sincronizarFicha($pacienteId, $formulario['datos-paciente'], $actor);
             }
@@ -170,7 +221,11 @@ class ServicioExpediente
                 $this->odontograma->guardar($id, $formulario['odontograma']['registro'], $actor);
             }
 
-            $puedeAprobar = ! $this->acceso->restringido($actor);
+            $puedeAprobar = $this->acceso->puedeAprobar($actor);
+            $nuevasAprobaciones = array_filter($estados, fn ($estado, $codigo) => $estado === 'approved' && ($previo['sectionStatus'][$codigo] ?? null) !== 'approved', ARRAY_FILTER_USE_BOTH);
+            if (! $puedeAprobar && $actor->tipoCuenta() === 'DOCENTE' && $nuevasAprobaciones !== []) {
+                throw new OperacionNoPermitida('profesional', 'La aprobación requiere una cuenta profesional con número COP registrado.');
+            }
 
             foreach ($estados as $codigo => $estado) {
                 if (! is_string($codigo) || ! in_array($estado, self::ESTADOS_SECCION, true)) {
@@ -186,6 +241,7 @@ class ServicioExpediente
                         'tipo_usuario' => $actor->tipoCuenta(),
                         'id_usuario' => $actor->id(),
                         'actualizado_en' => now(),
+                        ...(($previo['sectionStatus'][$codigo] ?? null) !== $estado ? ['id_version_aprobada' => null] : []),
                     ],
                 );
             }
@@ -204,9 +260,20 @@ class ServicioExpediente
                 ]);
                 DB::table('paciente')->where('id_paciente', $pacienteId)->update(['estado_atencion' => 'En proceso']);
             }
-        });
 
-        return $this->obtener($id);
+            $resultado = $this->obtener($id);
+            foreach ($estados as $codigo => $estado) {
+                if ($estado === 'approved' && ($previo['sectionStatus'][$codigo] ?? null) !== 'approved' && $puedeAprobar) {
+                    $version = $this->versiones->conservarAprobacion($id, $codigo, $resultado, $actor, $motivo);
+                    DB::table('historia_seccion_estado')->where('id_historia_clinica', $id)->where('codigo_seccion', $codigo)->update(['id_version_aprobada' => $version]);
+                }
+            }
+            if ($nuevasAprobaciones !== [] && $puedeAprobar) {
+                $resultado = $this->obtener($id);
+            }
+
+            return ['resultado' => $resultado, 'previo' => $previo];
+        });
     }
 
     private function datosPaciente(?object $paciente, ?object $contacto, array $historia): array
@@ -863,6 +930,31 @@ class ServicioExpediente
             'firma_anio' => $this->corto($datos['firmaAnio'] ?? null, 4),
             'estado' => 'BORRADOR',
         ];
+        $fila['texto_documento'] = json_encode(array_intersect_key($datos, array_flip(['representanteTipo', 'representacionSustento', 'riesgosPersonalizados', 'alternativas', 'autorizacionImagenes'])), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        if ($existente && $existente->estado !== 'BORRADOR') {
+            $previos = $this->leerConsentimiento($id);
+            $distintos = array_filter($datos, function ($valor, $clave) use ($previos) {
+                if (in_array($clave, ['textosClausulas', 'estadoConsentimiento', 'versionConsentimiento', 'constanciaDecisionConsentimiento'], true)) {
+                    return false;
+                }
+                if (in_array($clave, ['firmaPaciente', 'huellaDactilar', 'firmaDocente', 'firmaAcompanante'], true)) {
+                    return false;
+                }
+
+                return ($previos[$clave] ?? '') != $valor;
+            }, ARRAY_FILTER_USE_BOTH);
+            foreach (['PACIENTE' => 'firmaPaciente', 'HUELLA_PACIENTE' => 'huellaDactilar', 'DOCENTE' => 'firmaDocente', 'ACOMPANANTE' => 'firmaAcompanante'] as $tipo => $campo) {
+                $guardado = DB::table('firma_consentimiento')->where('id_consentimiento', $existente->id_consentimiento)->where('tipo_firmante', $tipo)->value('id_archivo');
+                if ($guardado != $this->archivos->vigente($id, $campo)) {
+                    $distintos[$campo] = true;
+                }
+            }
+            if ($distintos === []) {
+                return;
+            }
+            $version = (int) $existente->version_documento + 1;
+            $existente = null;
+        }
         if ($existente) {
             DB::table('consentimiento_informado')->where('id_consentimiento', $existente->id_consentimiento)->update($fila);
             $idConsentimiento = (int) $existente->id_consentimiento;
@@ -870,7 +962,7 @@ class ServicioExpediente
         } else {
             $idConsentimiento = (int) DB::table('consentimiento_informado')->insertGetId($fila + [
                 'id_historia_clinica' => $id,
-                'version_documento' => 1,
+                'version_documento' => $version ?? 1,
                 'creado_en' => now(),
             ]);
         }
@@ -997,6 +1089,8 @@ class ServicioExpediente
             return [];
         }
         $datos = [
+            'estadoConsentimiento' => $fila->estado,
+            'versionConsentimiento' => (int) $fila->version_documento,
             'fecha' => $fila->fecha_consentimiento,
             'intervencionAutorizada' => $fila->intervencion_autorizada ?? '',
             'domicilio' => $fila->domicilio_acto ?? '',
@@ -1005,8 +1099,13 @@ class ServicioExpediente
             'firmaMes' => $fila->firma_mes ?? '',
             'firmaAnio' => $fila->firma_anio ?? '',
         ];
+        $adicionales = json_decode((string) $fila->texto_documento, true);
+        if (is_array($adicionales)) {
+            $datos += $adicionales;
+        }
         foreach (DB::table('consentimiento_clausula')->where('id_consentimiento', $fila->id_consentimiento)->orderBy('numero')->get() as $clausula) {
             $datos['consent'.$clausula->numero] = (bool) $clausula->aceptada;
+            $datos['textosClausulas'][(int) $clausula->numero] = (string) $clausula->texto;
         }
         $acompanante = DB::table('firma_consentimiento')
             ->where('id_consentimiento', $fila->id_consentimiento)

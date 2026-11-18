@@ -1,23 +1,27 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, useCallback, useEffect, useRef, useState } from 'react';
+import { solicitarSalidaClinica } from './utilidades/salidaClinica.js';
+import CargaVista from './componentes/interfaz/CargaVista.jsx';
+import EstadoCarga from './componentes/interfaz/EstadoCarga.jsx';
 import PaginaAcceso from './paginas/PaginaAcceso';
 import AppLayout from './disenos/AppLayout';
 import { menuParaSesion, perfilDesdeRoles } from './configuracion/menuPorRol';
 import { useSesion } from './autenticacion/ContextoSesion';
 import { puedeVerRuta } from './autenticacion/rutasProtegidas';
 import AccesoDenegado from './paginas/AccesoDenegado';
-import DashboardApp from './paginas/DashboardApp';
-import PacientesApp from './paginas/PacientesApp';
-import HistoriasApp from './paginas/HistoriasApp';
-import HistoriaClinicaApp from './paginas/HistoriaClinicaApp';
-import PermisosUsuariosApp from './paginas/PermisosUsuariosApp';
-import UsuariosApp from './paginas/UsuariosApp';
-import AuditoriaApp from './paginas/AuditoriaApp';
-import ConfiguracionApp from './paginas/ConfiguracionApp';
-import SeguimientoApp from './paginas/SeguimientoApp';
 import VistaNoDisponible from './paginas/VistaNoDisponible';
-import PerfilApp from './paginas/PerfilApp';
-import CursosApp from './paginas/CursosApp';
-import GruposAcademicosApp from './paginas/GruposAcademicosApp';
+
+const DashboardApp = lazy(() => import('./paginas/DashboardApp'));
+const PacientesApp = lazy(() => import('./paginas/PacientesApp'));
+const HistoriasApp = lazy(() => import('./paginas/HistoriasApp'));
+const HistoriaClinicaApp = lazy(() => import('./paginas/HistoriaClinicaApp'));
+const PermisosUsuariosApp = lazy(() => import('./paginas/PermisosUsuariosApp'));
+const UsuariosApp = lazy(() => import('./paginas/UsuariosApp'));
+const AuditoriaApp = lazy(() => import('./paginas/AuditoriaApp'));
+const ConfiguracionApp = lazy(() => import('./paginas/ConfiguracionApp'));
+const SeguimientoApp = lazy(() => import('./paginas/SeguimientoApp'));
+const PerfilApp = lazy(() => import('./paginas/PerfilApp'));
+const CursosApp = lazy(() => import('./paginas/CursosApp'));
+const GruposAcademicosApp = lazy(() => import('./paginas/GruposAcademicosApp'));
 
 const routeAliases = {
     dashboard: 'inicio',
@@ -86,8 +90,8 @@ const VIEW_COMPONENTS = {
 
 function PantallaCargandoSesion() {
     return (
-        <main className="pantalla-sesion" role="status" aria-live="polite">
-            <p>Verificando tu sesión…</p>
+        <main className="pantalla-sesion">
+            <EstadoCarga mensaje="Verificando tu sesión…" detalle="Estamos comprobando tu acceso al sistema." />
         </main>
     );
 }
@@ -100,6 +104,12 @@ export default function Aplicacion() {
     const [openSection, establecerSeccionAbierta] = useState(destinoInicial.seccion);
     const [pacienteInicialHistoria, setPacienteInicialHistoria] = useState(null);
     const [abrirNuevaHistoria, setAbrirNuevaHistoria] = useState(false);
+    const navegacionActual = useRef({ hash: window.location.hash, indice: window.history.state?.indiceUndac ?? 0 });
+    const solicitudHistorica = useRef(null);
+
+    useEffect(() => {
+        window.history.replaceState({ ...window.history.state, indiceUndac: navegacionActual.current.indice }, '', window.location.href);
+    }, []);
 
     const navigate = useCallback((payload, opciones = {}) => {
         if (!payload) return;
@@ -125,23 +135,31 @@ export default function Aplicacion() {
         }
 
         if (!nextRoute) return;
-        setRoute(nextRoute);
-        setOpenHistoriaId(historiaId);
-        establecerSeccionAbierta(seccion);
-        const esListaHistorias = nextRoute === 'historias' || nextRoute === 'mis-historias';
-        setPacienteInicialHistoria(esListaHistorias ? pacienteInicial : null);
-        setAbrirNuevaHistoria(esListaHistorias && abrirNueva);
+        const hash = crearHashNavegacion(nextRoute, historiaId, seccion);
+        const continuar = () => {
+            setRoute(nextRoute);
+            setOpenHistoriaId(historiaId);
+            establecerSeccionAbierta(seccion);
+            const esListaHistorias = nextRoute === 'historias' || nextRoute === 'mis-historias';
+            setPacienteInicialHistoria(esListaHistorias ? pacienteInicial : null);
+            setAbrirNuevaHistoria(esListaHistorias && abrirNueva);
 
-        if (typeof window !== 'undefined') {
-            const hash = crearHashNavegacion(nextRoute, historiaId, seccion);
-            if (window.location.hash !== hash) {
-                window.history[opciones.reemplazar ? 'replaceState' : 'pushState'](
-                    { ruta: nextRoute },
-                    '',
-                    hash,
-                );
+            if (typeof window !== 'undefined') {
+                if (window.location.hash !== hash) {
+                    const indice = navegacionActual.current.indice + (opciones.reemplazar ? 0 : 1);
+                    navegacionActual.current = { hash, indice };
+                    window.history[opciones.reemplazar ? 'replaceState' : 'pushState'](
+                        { ruta: nextRoute, indiceUndac: indice },
+                        '',
+                        hash,
+                    );
+                }
             }
-        }
+            navegacionActual.current = { hash, indice: window.history.state?.indiceUndac ?? navegacionActual.current.indice };
+            opciones.alNavegar?.();
+        };
+        if (hash !== navegacionActual.current.hash && !solicitarSalidaClinica(continuar)) return;
+        continuar();
     }, []);
 
     useEffect(() => {
@@ -170,13 +188,32 @@ export default function Aplicacion() {
     }, [navigate]);
 
     useEffect(() => {
-        function sincronizarConNavegador() {
+        function sincronizarConNavegador(evento) {
+            const hash = window.location.hash;
+            if (hash === navegacionActual.current.hash) return;
+            if (hash === solicitudHistorica.current) return;
+            solicitudHistorica.current = hash;
             const destino = leerDestinoActual();
-            setRoute(destino.ruta);
-            setOpenHistoriaId(destino.historiaId);
-            establecerSeccionAbierta(destino.seccion);
-            setPacienteInicialHistoria(null);
-            setAbrirNuevaHistoria(false);
+            const indiceConocido = Number.isInteger(window.history.state?.indiceUndac);
+            const entradaNueva = !indiceConocido && evento.type === 'hashchange';
+            const indice = indiceConocido ? window.history.state.indiceUndac : navegacionActual.current.indice + 1;
+            if (!indiceConocido) window.history.replaceState({ ...window.history.state, indiceUndac: indice }, '', window.location.href);
+            const continuar = () => {
+                solicitudHistorica.current = null;
+                navegacionActual.current = { hash, indice };
+                setRoute(destino.ruta);
+                setOpenHistoriaId(destino.historiaId);
+                establecerSeccionAbierta(destino.seccion);
+                setPacienteInicialHistoria(null);
+                setAbrirNuevaHistoria(false);
+            };
+            const cancelar = () => {
+                solicitudHistorica.current = null;
+                const distancia = navegacionActual.current.indice - indice;
+                if (distancia && (indiceConocido || entradaNueva)) window.history.go(distancia);
+                else window.history.replaceState({ ...window.history.state, indiceUndac: navegacionActual.current.indice }, '', navegacionActual.current.hash);
+            };
+            if (solicitarSalidaClinica(continuar, cancelar)) continuar();
         }
 
         window.addEventListener('popstate', sincronizarConNavegador);
@@ -189,7 +226,9 @@ export default function Aplicacion() {
 
     useEffect(() => {
         if (sesion.autenticado && !window.location.hash) {
-            window.history.replaceState({ ruta: route }, '', crearHashNavegacion(route, openHistoriaId, openSection));
+            const hash = crearHashNavegacion(route, openHistoriaId, openSection);
+            navegacionActual.current.hash = hash;
+            window.history.replaceState({ ruta: route, indiceUndac: navegacionActual.current.indice }, '', hash);
         }
     }, [sesion.autenticado, route, openHistoriaId, openSection]);
 
@@ -207,6 +246,7 @@ export default function Aplicacion() {
             <PaginaAcceso
                 enviando={sesion.enviando}
                 error={sesion.error}
+                alReintentarSalida={sesion.salidaPendiente ? sesion.cerrarSesion : null}
                 alIngresar={async (credenciales) => {
                     if (await sesion.iniciarSesion(credenciales)) navigate('inicio', { reemplazar: true });
                 }}
@@ -229,24 +269,25 @@ export default function Aplicacion() {
             modoClinico={route === 'historia-clinica'}
             onNavigate={navigate}
             onLogout={() => {
-                navigate('inicio', { reemplazar: true });
-                sesion.cerrarSesion();
+                navigate('inicio', { reemplazar: true, alNavegar: () => sesion.cerrarSesion() });
             }}
         >
-            <ComponenteVista
-                rol={perfil}
-                usuario={sesion.usuario}
-                permisos={sesion.permisos}
-                tipo={route === 'pendientes' ? 'pendientes' : 'seguimiento'}
-                historiaId={openHistoriaId}
-                seccionInicial={openSection}
-                pacienteInicial={pacienteInicialHistoria}
-                abrirNueva={abrirNuevaHistoria}
-                onNavigate={navigate}
-                onCreated={(historia) => {
-                    navigate({ view: 'historia-clinica', historiaId: historia.id, section: 'datos-paciente' });
-                }}
-            />
+            <CargaVista key={route}>
+                <ComponenteVista
+                    rol={perfil}
+                    usuario={sesion.usuario}
+                    permisos={sesion.permisos}
+                    tipo={route === 'pendientes' ? 'pendientes' : 'seguimiento'}
+                    historiaId={openHistoriaId}
+                    seccionInicial={openSection}
+                    pacienteInicial={pacienteInicialHistoria}
+                    abrirNueva={abrirNuevaHistoria}
+                    onNavigate={navigate}
+                    onCreated={(historia) => {
+                        navigate({ view: 'historia-clinica', historiaId: historia.id, section: 'datos-paciente' });
+                    }}
+                />
+            </CargaVista>
         </AppLayout>
     );
 }

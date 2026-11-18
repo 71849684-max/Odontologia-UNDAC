@@ -1,0 +1,450 @@
+[
+  {
+    "archivo": "humo.json",
+    "ejecucion": "humo-local",
+    "usuarios": 1,
+    "humo": true,
+    "nota": "Ensayo preliminar local con servidor PHP de desarrollo. Anterior a la separación de fases en el script final.",
+    "metricas": {
+      "integridad": {
+        "valores": {
+          "rate": 1,
+          "passes": 7,
+          "fails": 0
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:autoguardado}": {
+        "valores": {
+          "p(99)": 180.44211199999998,
+          "max": 182.3288,
+          "count": 7,
+          "avg": 143.50737142857142,
+          "med": 150.5727,
+          "p(95)": 172.89535999999998
+        },
+        "umbrales": {
+          "p(95)<700": {
+            "ok": true
+          }
+        }
+      },
+      "checks": {
+        "valores": {
+          "rate": 1,
+          "passes": 22,
+          "fails": 0
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "fallos_servidor": {
+        "valores": {
+          "count": 0,
+          "rate": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:lectura}": {
+        "valores": {
+          "avg": 55.761271428571426,
+          "med": 55.0139,
+          "p(95)": 73.31549999999999,
+          "p(99)": 76.87013999999999,
+          "max": 77.7588,
+          "count": 7
+        },
+        "umbrales": {
+          "p(95)<1200": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:listado}": {
+        "valores": {
+          "p(95)": 175.40928,
+          "p(99)": 181.162896,
+          "max": 182.6013,
+          "count": 7,
+          "avg": 120.65968571428571,
+          "med": 103.389
+        },
+        "umbrales": {
+          "p(95)<800": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_failed": {
+        "valores": {
+          "passes": 0,
+          "fails": 30,
+          "rate": 0
+        },
+        "umbrales": {
+          "rate<0.01": {
+            "ok": true
+          }
+        }
+      },
+      "conflictos": {
+        "valores": {
+          "count": 0,
+          "rate": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "archivo": "concurrente.json",
+    "ejecucion": "humo-concurrente",
+    "usuarios": 5,
+    "humo": true,
+    "nota": "Ensayo preliminar local con servidor PHP de desarrollo. Anterior a la separación de fases en el script final.",
+    "metricas": {
+      "http_req_duration{operacion:autoguardado}": {
+        "valores": {
+          "p(99)": 586.0523019999999,
+          "max": 589.3606,
+          "count": 22,
+          "avg": 391.3265454545454,
+          "med": 392.18235,
+          "p(95)": 572.54203
+        },
+        "umbrales": {
+          "p(95)<700": {
+            "ok": true
+          }
+        }
+      },
+      "integridad": {
+        "valores": {
+          "rate": 1,
+          "passes": 22,
+          "fails": 0
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:lectura}": {
+        "valores": {
+          "avg": 373.06746363636375,
+          "med": 303.41189999999995,
+          "p(95)": 840.45502,
+          "p(99)": 923.5222219999999,
+          "max": 944.6801,
+          "count": 22
+        },
+        "umbrales": {
+          "p(95)<1200": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_failed": {
+        "valores": {
+          "rate": 0,
+          "passes": 0,
+          "fails": 98
+        },
+        "umbrales": {
+          "rate<0.01": {
+            "ok": true
+          }
+        }
+      },
+      "checks": {
+        "valores": {
+          "passes": 71,
+          "fails": 0,
+          "rate": 1
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "fallos_servidor": {
+        "valores": {
+          "rate": 0,
+          "count": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      },
+      "conflictos": {
+        "valores": {
+          "count": 0,
+          "rate": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:listado}": {
+        "valores": {
+          "p(99)": 614.1931589999999,
+          "max": 631.5333,
+          "count": 22,
+          "avg": 362.8609045454545,
+          "med": 355.05615,
+          "p(95)": 547.6050299999999
+        },
+        "umbrales": {
+          "p(95)<800": {
+            "ok": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "archivo": "concurrente-final.json",
+    "ejecucion": "humo-final",
+    "usuarios": 5,
+    "humo": true,
+    "nota": "Ensayo preliminar local con servidor PHP de desarrollo. Anterior a la separación de fases en el script final.",
+    "metricas": {
+      "http_req_duration{operacion:listado}": {
+        "valores": {
+          "count": 12,
+          "avg": 1040.7557,
+          "med": 900.97505,
+          "p(95)": 1587.0691349999997,
+          "p(99)": 1745.8010270000002,
+          "max": 1785.484
+        },
+        "umbrales": {
+          "p(95)<800": {
+            "ok": false
+          }
+        }
+      },
+      "integridad": {
+        "valores": {
+          "rate": 1,
+          "passes": 12,
+          "fails": 0
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:lectura}": {
+        "valores": {
+          "avg": 948.6373416666669,
+          "med": 747.0062,
+          "p(95)": 1782.0057849999996,
+          "p(99)": 2017.8243570000004,
+          "max": 2076.779,
+          "count": 12
+        },
+        "umbrales": {
+          "p(95)<1200": {
+            "ok": false
+          }
+        }
+      },
+      "http_req_failed": {
+        "valores": {
+          "passes": 0,
+          "fails": 58,
+          "rate": 0
+        },
+        "umbrales": {
+          "rate<0.01": {
+            "ok": true
+          }
+        }
+      },
+      "checks": {
+        "valores": {
+          "rate": 1,
+          "passes": 41,
+          "fails": 0
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "fallos_servidor": {
+        "valores": {
+          "count": 0,
+          "rate": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:autoguardado}": {
+        "valores": {
+          "avg": 956.4338833333333,
+          "med": 946.82675,
+          "p(95)": 1500.2948099999996,
+          "p(99)": 1661.3303220000003,
+          "max": 1701.5892,
+          "count": 12
+        },
+        "umbrales": {
+          "p(95)<700": {
+            "ok": false
+          }
+        }
+      },
+      "conflictos": {
+        "valores": {
+          "count": 0,
+          "rate": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      }
+    }
+  },
+  {
+    "archivo": "concurrente-aislado.json",
+    "ejecucion": "humo-sin-otras-campanas",
+    "usuarios": 5,
+    "humo": true,
+    "nota": "Ensayo preliminar local con servidor PHP de desarrollo. Anterior a la separación de fases en el script final.",
+    "metricas": {
+      "http_req_duration{operacion:lectura}": {
+        "valores": {
+          "avg": 1633.7334750000002,
+          "med": 1711.5675999999999,
+          "p(95)": 2056.149885,
+          "p(99)": 2080.909417,
+          "max": 2087.0993,
+          "count": 8
+        },
+        "umbrales": {
+          "p(95)<1200": {
+            "ok": false
+          }
+        }
+      },
+      "integridad": {
+        "valores": {
+          "rate": 1,
+          "passes": 8,
+          "fails": 0
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:listado}": {
+        "valores": {
+          "count": 8,
+          "avg": 1160.3154375,
+          "med": 1142.7163,
+          "p(95)": 1734.2528499999999,
+          "p(99)": 1787.3377699999999,
+          "max": 1800.609
+        },
+        "umbrales": {
+          "p(95)<800": {
+            "ok": false
+          }
+        }
+      },
+      "fallos_servidor": {
+        "valores": {
+          "count": 0,
+          "rate": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_failed": {
+        "valores": {
+          "rate": 0,
+          "passes": 0,
+          "fails": 42
+        },
+        "umbrales": {
+          "rate<0.01": {
+            "ok": true
+          }
+        }
+      },
+      "checks": {
+        "valores": {
+          "rate": 1,
+          "passes": 29,
+          "fails": 0
+        },
+        "umbrales": {
+          "rate==1": {
+            "ok": true
+          }
+        }
+      },
+      "http_req_duration{operacion:autoguardado}": {
+        "valores": {
+          "avg": 1433.89955,
+          "med": 1379.0315999999998,
+          "p(95)": 2218.0939449999996,
+          "p(99)": 2336.468229,
+          "max": 2366.0618,
+          "count": 8
+        },
+        "umbrales": {
+          "p(95)<700": {
+            "ok": false
+          }
+        }
+      },
+      "conflictos": {
+        "valores": {
+          "rate": 0,
+          "count": 0
+        },
+        "umbrales": {
+          "count==0": {
+            "ok": true
+          }
+        }
+      }
+    }
+  }
+]

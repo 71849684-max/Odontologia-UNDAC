@@ -102,6 +102,12 @@ class ServicioHistorias
     public function abrir(array $datos, Cuenta $actor): array
     {
         return DB::transaction(function () use ($datos, $actor) {
+            $anio = now()->year;
+            // El upsert toma el bloqueo exclusivo antes de tocar pacientes. INSERT
+            // IGNORE podía mantener bloqueos compartidos y bloquear su conversión
+            // simultánea al ejecutar SELECT FOR UPDATE en varias conexiones.
+            DB::table('historia_correlativo')->upsert(['anio' => $anio, 'ultimo' => 0], ['anio'], ['anio']);
+            $contador = DB::table('historia_correlativo')->where('anio', $anio)->lockForUpdate()->first();
             $idPaciente = isset($datos['paciente_id']) ? (int) $datos['paciente_id'] : (isset($datos['pacienteId']) ? (int) $datos['pacienteId'] : 0);
 
             if ($idPaciente === 0) {
@@ -114,16 +120,8 @@ class ServicioHistorias
                 $this->pacientes->fila($idPaciente);
             }
 
-            $anio = now()->year;
-            // Usar el máximo correlativo (no el conteo) para no chocar con uq_historia_numero si hay huecos.
-            $ultimo = DB::table('historia_clinica')
-                ->where('numero_historia', 'like', "HC-{$anio}-%")
-                ->orderByDesc('numero_historia')
-                ->value('numero_historia');
-            $correlativo = 1;
-            if (is_string($ultimo) && preg_match('/HC-\d+-(\d+)$/', $ultimo, $partes)) {
-                $correlativo = ((int) $partes[1]) + 1;
-            }
+            $correlativo = (int) $contador->ultimo + 1;
+            DB::table('historia_correlativo')->where('anio', $anio)->update(['ultimo' => $correlativo]);
             $numero = sprintf('HC-%d-%03d', $anio, $correlativo);
             $idEstado = (int) DB::table('estado_historia_clinica')->where('codigo', 'BORRADOR')->value('id_estado_historia');
 
@@ -145,10 +143,17 @@ class ServicioHistorias
 
             $this->asignarActor($id, $actor);
 
+            // Abrir otra historia de un paciente existente también debe conservar
+            // el correo introducido en el formulario, no solo al crear su ficha.
+            $correo = Valores::texto($datos['correo'] ?? $datos['email'] ?? null);
+            if ($correo !== null) {
+                $this->pacientes->actualizar($idPaciente, ['correo' => $correo], $actor);
+            }
+
             DB::table('paciente')->where('id_paciente', $idPaciente)->update(['estado_atencion' => 'Borrador']);
 
             return $this->mostrar($id);
-        });
+        }, 3);
     }
 
     public function cambiarEstado(int $id, string $codigo, Cuenta $actor, ?string $observacion = null): array
@@ -166,7 +171,7 @@ class ServicioHistorias
             throw new OperacionNoPermitida('estado', 'No se puede pasar de '.$fila->codigo_estado.' a '.$codigo.'.');
         }
 
-        if (in_array($codigo, ['VALIDADA', 'OBSERVADA'], true) && $actor->tipoCuenta() !== 'DOCENTE') {
+        if (in_array($codigo, ['VALIDADA', 'OBSERVADA'], true) && ! $this->acceso->puedeAprobar($actor)) {
             throw new OperacionNoPermitida('estado', 'Solo un cirujano dentista puede observar o validar la historia.');
         }
 

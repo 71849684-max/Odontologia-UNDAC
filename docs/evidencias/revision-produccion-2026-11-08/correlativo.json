@@ -1,0 +1,9 @@
+{
+    "consulta": "SELECT de dos constantes sintéticas; sin escritura ni lectura de pacientes",
+    "orden": [
+        "HC-2026-999",
+        "HC-2026-1000"
+    ],
+    "ultimo_segun_algoritmo_actual": "HC-2026-999",
+    "siguiente_calculado": "HC-2026-1000"
+}

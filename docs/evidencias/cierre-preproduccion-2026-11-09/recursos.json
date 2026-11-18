@@ -1,0 +1,22 @@
+[
+  {
+    "Proceso": "mysqld",
+    "Muestras": 134,
+    "Disponibles": 134,
+    "CpuMedia": 4.446194029850746,
+    "CpuMaxima": 18.5,
+    "MemoriaMaximaMb": 438.75,
+    "Inicio": "2026-11-09T08:41:37.5750951Z",
+    "Fin": "2026-11-09T08:47:06.3542254Z"
+  },
+  {
+    "Proceso": "php",
+    "Muestras": 134,
+    "Disponibles": 134,
+    "CpuMedia": 4.1182835820895525,
+    "CpuMaxima": 7.87,
+    "MemoriaMaximaMb": 49.2,
+    "Inicio": "2026-11-09T08:41:37.5750951Z",
+    "Fin": "2026-11-09T08:47:06.3542254Z"
+  }
+]

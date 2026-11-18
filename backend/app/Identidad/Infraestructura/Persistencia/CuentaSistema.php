@@ -3,9 +3,11 @@
 namespace App\Identidad\Infraestructura\Persistencia;
 
 use App\Identidad\Dominio\ClaveCuenta;
+use App\Identidad\Dominio\Contratos\RepositorioUsuarios;
 use App\Identidad\Dominio\Cuenta;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Cuenta autenticable de alumno o docente. No está atada a una sola tabla:
@@ -212,7 +214,7 @@ class CuentaSistema implements Authenticatable, Cuenta
 
     public function save(): self
     {
-        \Illuminate\Support\Facades\DB::table($this->tablaCuenta())->where($this->columnaId(), $this->id())->update([
+        DB::table($this->tablaCuenta())->where($this->columnaId(), $this->id())->update([
             'estado' => $this->estado ? 1 : 0,
             'bloqueado_hasta' => $this->bloqueado_hasta,
             'intentos_fallidos' => $this->intentos_fallidos,
@@ -223,7 +225,7 @@ class CuentaSistema implements Authenticatable, Cuenta
 
     public function fresh(): self
     {
-        return app(\App\Identidad\Dominio\Contratos\RepositorioUsuarios::class)->buscarPorId($this->clave());
+        return app(RepositorioUsuarios::class)->buscarPorId($this->clave());
     }
 
     public function refresh(): self

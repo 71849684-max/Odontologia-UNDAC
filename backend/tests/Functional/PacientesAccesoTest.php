@@ -24,6 +24,7 @@ class PacientesAccesoTest extends TestCase
             'nombres' => 'Paciente Asignado',
             'sexo' => 'F',
         ])->assertCreated()->json('id');
+        $this->asignarProfesionalPrueba($docente, $idHistoria);
 
         $idPaciente = (int) $this->actingAs($duena, 'web')->getJson("/api/historias/{$idHistoria}")
             ->assertOk()
@@ -83,7 +84,7 @@ class PacientesAccesoTest extends TestCase
 
         $this->actingAs($docente, 'web')->getJson('/api/pacientes?q=700005')
             ->assertOk()
-            ->assertJsonCount(2, 'data');
+            ->assertJsonCount(1, 'data');
     }
 
     public function test_administrador_es_cuenta_docente(): void

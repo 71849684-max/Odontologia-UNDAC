@@ -1,0 +1,11 @@
+{
+    "entorno": "base exclusiva y tabla temporal",
+    "columnaRealIndiceTemporal": [
+        "id_historia_clinica"
+    ],
+    "columnaEsperada": [
+        "numero_historia"
+    ],
+    "codigoDiagnostico": 0,
+    "resultadoDiagnostico": "aprobado"
+}
